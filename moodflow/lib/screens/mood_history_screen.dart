@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/data/mood_data_service.dart';
 import '../widgets/edit_mood_dialog.dart';
 
@@ -155,6 +156,39 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
     _loadMoodHistory();
   }
 
+  Future<void> _showDatePicker() async {
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      helpText: 'Select date to log mood',
+    );
+    
+    if (selectedDate != null) {
+      _showManualMoodEntry(selectedDate);
+    }
+  }
+
+  Future<void> _showManualMoodEntry(DateTime date) async {
+    // Create empty day data for the selected date
+    final dayData = DayMoodData(date: date, segments: []);
+    
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DayDetailSheet(
+        dayData: dayData,
+        onSegmentEdit: (segment, rating, note) => _editSegment(date, segment, rating, note),
+        onSegmentDelete: (segment) => _deleteSegment(date, segment),
+      ),
+    );
+    
+    // Refresh after modal closes
+    _loadMoodHistory();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -218,6 +252,11 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
                       ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showDatePicker,
+        backgroundColor: Theme.of(context).primaryColor,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -341,7 +380,7 @@ class DayMoodCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         color: isToday 
                             ? Theme.of(context).primaryColor
-                            : null,
+                            : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
                       ),
                     ),
                   ),
@@ -580,14 +619,14 @@ class DayDetailSheet extends StatelessWidget {
       dateText = DateFormat('EEEE, MMMM d, y').format(dayData.date);
     }
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
+  return Container(
+    decoration: BoxDecoration(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(20),
+        topRight: Radius.circular(20),
       ),
+    ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -640,8 +679,15 @@ class DayDetailSheet extends StatelessWidget {
                 return Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.grey.shade600 
+                          : Colors.grey.shade200
+                    ),
                     borderRadius: BorderRadius.circular(12),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade800.withOpacity(0.3)
+                        : Colors.transparent,
                   ),
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -687,7 +733,9 @@ class DayDetailSheet extends StatelessWidget {
                           )
                         : Text(
                             'No mood logged',
-                            style: TextStyle(color: Colors.grey.shade500),
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                            ),
                           ),
                     trailing: hasData
                         ? PopupMenuButton<String>(
@@ -722,9 +770,11 @@ class DayDetailSheet extends StatelessWidget {
                             ],
                           )
                         : const Icon(Icons.chevron_right, color: Colors.grey),
-                    onTap: hasData 
-                        ? () => onSegmentEdit(index, segmentData.rating, segmentData.note)
-                        : null,
+                    onTap: () => onSegmentEdit(
+                      index, 
+                      hasData ? segmentData.rating : 5.0, 
+                      hasData ? segmentData.note : ''
+                    ),
                   ),
                 );
               },
