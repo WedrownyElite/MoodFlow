@@ -1,8 +1,12 @@
-name: mood_tracker
-description: "A new Flutter project."
+name: MoodFlow
+description: "An easy way to track your moods, identify trends, and make goals!"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+repository: https://github.com/WedrownyElite/MoodFlow
+homepage: https://github.com/WedrownyElite/MoodFlow
+issue_tracker: https://github.com/WedrownyElite/MoodFlow/issues
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -19,7 +23,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: '>=3.0.0 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions

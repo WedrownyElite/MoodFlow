@@ -1,3 +1,7 @@
+// Copyright (c) 2025 OddologyInc. All rights reserved.
+// Use of this source code is governed by a MIT license that can be
+// found in the LICENSE file.
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/main_menu_screen.dart';
