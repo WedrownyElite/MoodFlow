@@ -166,7 +166,7 @@ We welcome contributions! Please follow these steps:
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](Boo) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🐛 Bug Reports & Feature Requests
 
@@ -200,13 +200,25 @@ For support and questions:
 
 ## 📸 Screenshots
 
-| Home Screen | Mood Logging | Trends View |
-|-------------|--------------|-------------|
-| ![Home](screenshots/home.png) | ![Logging](screenshots/logging.png) | ![Trends](screenshots/trends.png) |
+### Main App Flow
+| Home Screen | Mood Logging | Dark Mode |
+|-------------|--------------|-----------|
+| ![Home](screenshots/home.jpg) | ![Logging](screenshots/logging.jpg) | ![Dark Mode](screenshots/dark.jpg) |
 
-| Goals Tracking | Settings | Dark Mode |
-|----------------|----------|-----------|
-| ![Goals](screenshots/goals.png) | ![Settings](screenshots/settings.png) | ![Dark](screenshots/dark.png) |
+### Trends & Analytics
+| Trends Overview | Detailed Analytics |
+|-----------------|-------------------|
+| ![Trends 1](screenshots/trends1.jpg) | ![Trends 2](screenshots/trends2.jpg) |
+
+### Goals & Progress
+| Goals Dashboard | Goal Details |
+|-----------------|--------------|
+| ![Goals 1](screenshots/goals1.jpg) | ![Goals 2](screenshots/goals2.jpg) |
+
+### Settings & Configuration
+| General Settings | Notification Settings | Theme Settings |
+|------------------|----------------------|----------------|
+| ![Settings 1](screenshots/settings1.jpg) | ![Settings 2](screenshots/settings2.jpg) | ![Settings 3](screenshots/settings3.jpg) |
 
 ## 🙏 Acknowledgments
 
