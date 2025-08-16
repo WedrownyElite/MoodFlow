@@ -215,10 +215,12 @@ For support and questions:
 |-----------------|--------------|
 | ![Goals 1](screenshots/goals1.jpg) | ![Goals 2](screenshots/goals2.jpg) |
 
-### Settings & Configuration
-| General Settings | Notification Settings | Theme Settings |
-|------------------|----------------------|----------------|
+### Settings & Customization
+| Themes & Basic Notifications | Advanced Notifications | Notification Preferences |
+|------------------------------|------------------------|--------------------------|
 | ![Settings 1](screenshots/settings1.jpg) | ![Settings 2](screenshots/settings2.jpg) | ![Settings 3](screenshots/settings3.jpg) |
+
+*Extensive notification customization with granular control over reminders, timing, and preferences*
 
 ## 🙏 Acknowledgments
 
