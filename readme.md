@@ -225,9 +225,6 @@ For support and questions:
 ## 🙏 Acknowledgments
 
 - Flutter team for the amazing framework
-- Material Design team for design guidelines
-- Open source community for inspiration and packages
-- Beta testers for valuable feedback
 
 ---
 
