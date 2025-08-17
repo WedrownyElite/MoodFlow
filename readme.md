@@ -170,7 +170,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🐛 Bug Reports & Feature Requests
 
-Please use the [GitHub Issues](https://github.com/yourusername/moodflow/issues) page to:
+Please use the [GitHub Issues](https://github.com/wedrownyelite/moodflow/issues) page to:
 - Report bugs with detailed reproduction steps
 - Request new features with clear use cases
 - Discuss improvements and suggestions
