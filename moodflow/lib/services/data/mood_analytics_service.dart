@@ -351,6 +351,132 @@ class MoodGoal {
   }
 }
 
+class StreakCalculationService {
+  /// Calculate different types of streaks for goal tracking
+  static Future<GoalStreakData> calculateStreakData(DateTime startDate, DateTime endDate) async {
+    int liveStreak = 0;        // Must be logged on actual day
+    int completionStreak = 0;  // Allows backfilling within 48 hours
+    int totalDaysLogged = 0;   // Total days with any mood data
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Start from today and work backwards for streaks
+    DateTime currentDate = today;
+    bool liveBroken = false;
+    bool completionBroken = false;
+
+    while (currentDate.isAfter(startDate) || currentDate.isAtSameMomentAs(startDate)) {
+      final dayMoods = await _getMoodsForDay(currentDate);
+      final hasAnyMood = dayMoods.isNotEmpty;
+
+      if (hasAnyMood) {
+        totalDaysLogged++;
+
+        // Check if mood was logged on the actual day (within reasonable hours)
+        final wasLoggedOnTime = await _wasMoodLoggedOnTime(currentDate, dayMoods);
+
+        if (!liveBroken) {
+          if (wasLoggedOnTime) {
+            liveStreak++;
+          } else {
+            liveBroken = true;
+          }
+        }
+
+        if (!completionBroken) {
+          completionStreak++;
+        }
+      } else {
+        // No mood logged for this day
+        liveBroken = true;
+        completionBroken = true;
+      }
+
+      currentDate = currentDate.subtract(const Duration(days: 1));
+    }
+
+    return GoalStreakData(
+      liveStreak: liveStreak,
+      completionStreak: completionStreak,
+      totalDaysLogged: totalDaysLogged,
+      totalDaysInPeriod: endDate.difference(startDate).inDays + 1,
+    );
+  }
+
+  /// Get all moods for a specific day
+  static Future<List<MoodLogEntry>> _getMoodsForDay(DateTime date) async {
+    final moods = <MoodLogEntry>[];
+
+    for (int segment = 0; segment < 3; segment++) {
+      final moodData = await MoodDataService.loadMood(date, segment);
+      if (moodData != null && moodData['rating'] != null) {
+        // Get the timestamp when this mood was actually saved
+        final timestamp = moodData['timestamp'] as String?;
+        moods.add(MoodLogEntry(
+          date: date,
+          segment: segment,
+          rating: (moodData['rating'] as num).toDouble(),
+          note: moodData['note'] as String? ?? '',
+          loggedAt: timestamp != null ? DateTime.parse(timestamp) : date,
+        ));
+      }
+    }
+
+    return moods;
+  }
+
+  /// Check if mood was logged within a reasonable timeframe of the actual day
+  static Future<bool> _wasMoodLoggedOnTime(DateTime targetDate, List<MoodLogEntry> moods) async {
+    final targetDayStart = DateTime(targetDate.year, targetDate.month, targetDate.day);
+    final targetDayEnd = targetDayStart.add(const Duration(days: 1));
+    final gracePeriodEnd = targetDayEnd.add(const Duration(hours: 6)); // 6 hour grace period
+
+    for (final mood in moods) {
+      // Check if this mood was logged on the target day or within grace period
+      if (mood.loggedAt.isAfter(targetDayStart) && mood.loggedAt.isBefore(gracePeriodEnd)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+}
+
+class MoodLogEntry {
+  final DateTime date;
+  final int segment;
+  final double rating;
+  final String note;
+  final DateTime loggedAt;
+
+  MoodLogEntry({
+    required this.date,
+    required this.segment,
+    required this.rating,
+    required this.note,
+    required this.loggedAt,
+  });
+}
+
+class GoalStreakData {
+  final int liveStreak;        // Strict streak - logged on time
+  final int completionStreak;  // Lenient streak - allows backfilling
+  final int totalDaysLogged;   // Total completion count
+  final int totalDaysInPeriod; // Total possible days
+
+  GoalStreakData({
+    required this.liveStreak,
+    required this.completionStreak,
+    required this.totalDaysLogged,
+    required this.totalDaysInPeriod,
+  });
+
+  double get completionPercentage => totalDaysInPeriod > 0
+      ? (totalDaysLogged / totalDaysInPeriod) * 100
+      : 0.0;
+}
+
 enum GoalType {
   averageMood,    // "Maintain 7+ average mood"
   consecutiveDays, // "Log mood 7 days in a row"
