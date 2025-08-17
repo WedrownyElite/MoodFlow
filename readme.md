@@ -232,7 +232,7 @@ For support and questions:
   <p>Made with ❤️ and Flutter</p>
   <p>
     <a href="#top">Back to Top</a> •
-    <a href="https://github.com/yourusername/moodflow/issues">Report Bug</a> •
-    <a href="https://github.com/yourusername/moodflow/issues">Request Feature</a>
+    <a href="https://github.com/wedrownyelite/moodflow/issues">Report Bug</a> •
+    <a href="https://github.com/wedrownyelite/moodflow/issues">Request Feature</a>
   </p>
 </div>
