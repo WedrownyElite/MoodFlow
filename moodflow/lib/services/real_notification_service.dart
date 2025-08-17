@@ -12,28 +12,79 @@ import 'navigation_service.dart';
 class NotificationTime {
   final int hour;
   final int minute;
-  
+
   const NotificationTime(this.hour, this.minute);
-  
+
   @override
   String toString() => '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 }
 
 class RealNotificationService {
-  static final FlutterLocalNotificationsPlugin _notifications = 
-      FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _notifications =
+  FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static late tz.Location _localTimeZone;
 
   /// Initialize the notification service
   static Future<void> initialize() async {
     if (_initialized) return;
 
-    // Initialize timezone
+    // Initialize timezone data
     tz.initializeTimeZones();
+
+    // Get the device's local timezone
+    try {
+      // Try to get system timezone name
+      final String timeZoneName = DateTime.now().timeZoneName;
+      debugPrint('🌍 System timezone name: $timeZoneName');
+
+      // Set local timezone - try system timezone first, fallback to UTC
+      try {
+        _localTimeZone = tz.getLocation(timeZoneName);
+      } catch (e) {
+        debugPrint('⚠️ Could not find timezone $timeZoneName, trying common alternatives...');
+
+        // Try common timezone mappings
+        String? alternativeZone;
+        if (timeZoneName.contains('EST') || timeZoneName.contains('EDT')) {
+          alternativeZone = 'America/New_York';
+        } else if (timeZoneName.contains('CST') || timeZoneName.contains('CDT')) {
+          alternativeZone = 'America/Chicago';
+        } else if (timeZoneName.contains('MST') || timeZoneName.contains('MDT')) {
+          alternativeZone = 'America/Denver';
+        } else if (timeZoneName.contains('PST') || timeZoneName.contains('PDT')) {
+          alternativeZone = 'America/Los_Angeles';
+        }
+
+        if (alternativeZone != null) {
+          try {
+            _localTimeZone = tz.getLocation(alternativeZone);
+            debugPrint('🌍 Using alternative timezone: $alternativeZone');
+          } catch (e2) {
+            _localTimeZone = tz.local;
+            debugPrint('🌍 Falling back to tz.local');
+          }
+        } else {
+          _localTimeZone = tz.local;
+          debugPrint('🌍 Using tz.local as fallback');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error getting timezone, using tz.local: $e');
+      _localTimeZone = tz.local;
+    }
+
+    // Verify timezone is working correctly
+    final now = tz.TZDateTime.now(_localTimeZone);
+    final systemNow = DateTime.now();
+    debugPrint('🌍 Selected timezone: ${_localTimeZone.name}');
+    debugPrint('🕐 TZ now: $now (${now.toLocal()})');
+    debugPrint('🕐 System now: $systemNow');
+    debugPrint('🕐 UTC offset: ${now.timeZoneOffset}');
 
     // Android initialization settings
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    
+
     // iOS initialization settings
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
@@ -52,17 +103,18 @@ class RealNotificationService {
     );
 
     _initialized = true;
+    debugPrint('📱 Notification service initialized successfully');
   }
 
   /// Handle notification taps
   static void _onNotificationTapped(NotificationResponse response) {
     debugPrint('Notification tapped: ${response.payload}');
-    
+
     if (response.payload != null) {
       try {
         final data = jsonDecode(response.payload!) as Map<String, dynamic>;
         final type = data['type'] as String?;
-        
+
         NavigationService.showNotificationTapInfo(type ?? 'unknown');
         NavigationService.handleNotificationTap(data);
       } catch (e) {
@@ -85,10 +137,10 @@ class RealNotificationService {
       final result = await _notifications
           .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
+        alert: true,
+        badge: true,
+        sound: true,
+      );
       return result ?? false;
     }
     return false;
@@ -181,36 +233,43 @@ class RealNotificationService {
 
   /// Get next instance of a specific time
   static tz.TZDateTime _nextInstanceOfTime(NotificationTime time) {
-    final now = tz.TZDateTime.now(tz.local);
+    final now = tz.TZDateTime.now(_localTimeZone);
 
-    // Add a small buffer to account for processing time
-    final nowWithBuffer = now.add(const Duration(seconds: 30));
-
+    // Create scheduled time for today in the correct timezone
     tz.TZDateTime scheduledDate = tz.TZDateTime(
-      tz.local,
-      nowWithBuffer.year,
-      nowWithBuffer.month,
-      nowWithBuffer.day,
+      _localTimeZone,
+      now.year,
+      now.month,
+      now.day,
       time.hour,
       time.minute,
+      0, // seconds
+      0, // milliseconds
     );
 
-    // If the scheduled time has already passed today (including buffer), schedule for tomorrow
-    if (scheduledDate.isBefore(nowWithBuffer)) {
+    // If the scheduled time has already passed today, schedule for tomorrow
+    if (scheduledDate.isBefore(now) || scheduledDate.isAtSameMomentAs(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    // For debugging: print the scheduled time
-    debugPrint('🔔 Scheduling notification for: $scheduledDate (current time: $now)');
+    // Convert to system time for logging (what the user actually sees)
+    final systemTime = scheduledDate.toLocal();
+    final systemNow = DateTime.now();
+
+    debugPrint('🔔 Current system time: $systemNow');
+    debugPrint('🔔 Scheduling notification for: $systemTime');
+    debugPrint('🔔 Time difference: ${scheduledDate.difference(now).inMinutes} minutes');
+    debugPrint('🔔 Timezone: ${_localTimeZone.name}');
 
     return scheduledDate;
   }
 
   static Future<void> scheduleTestNotificationIn(int seconds, String message) async {
-    final now = tz.TZDateTime.now(tz.local);
+    final now = tz.TZDateTime.now(_localTimeZone);
     final scheduledTime = now.add(Duration(seconds: seconds));
 
-    debugPrint('🔔 Test notification scheduled for: $scheduledTime (in $seconds seconds)');
+    debugPrint('🔔 Current time: ${DateTime.now()}');
+    debugPrint('🔔 Test notification scheduled for: ${scheduledTime.toLocal()} (in $seconds seconds)');
 
     const androidDetails = AndroidNotificationDetails(
       'mood_tracker_test',
