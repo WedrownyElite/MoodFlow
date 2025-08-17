@@ -65,7 +65,7 @@ class EnhancedNotificationService {
       return NotificationSettings.defaultSettings();
     }
   }
-
+  
   /// Update scheduled notifications based on settings
   static Future<void> _updateScheduledNotifications(NotificationSettings settings) async {
     if (!settings.enabled) {
@@ -74,15 +74,18 @@ class EnhancedNotificationService {
       return;
     }
 
+    // Cancel existing notifications first
+    await RealNotificationService.cancelAllNotifications();
+
     // Schedule mood reminders with user-configured times
     if (settings.accessReminders) {
       await RealNotificationService.scheduleMoodReminders(
         morningEnabled: settings.morningAccessReminder,
         middayEnabled: settings.middayAccessReminder,
         eveningEnabled: settings.eveningAccessReminder,
-        morningTime: NotificationTime(settings.morningTime.hour, settings.morningTime.minute),  // CHANGE THIS
-        middayTime: NotificationTime(settings.middayTime.hour, settings.middayTime.minute),     // CHANGE THIS
-        eveningTime: NotificationTime(settings.eveningTime.hour, settings.eveningTime.minute), // CHANGE THIS
+        morningTime: NotificationTime(settings.morningTime.hour, settings.morningTime.minute),
+        middayTime: NotificationTime(settings.middayTime.hour, settings.middayTime.minute),
+        eveningTime: NotificationTime(settings.eveningTime.hour, settings.eveningTime.minute),
       );
     }
 
@@ -92,255 +95,6 @@ class EnhancedNotificationService {
         enabled: true,
         time: NotificationTime(settings.endOfDayTime.hour, settings.endOfDayTime.minute),
       );
-    }
-  }
-
-  /// Get all pending notifications for the current time (for immediate notifications)
-  static Future<List<NotificationContent>> getPendingNotifications() async {
-    final settings = await loadSettings();
-    if (!settings.enabled) return [];
-
-    final now = DateTime.now();
-    final notifications = <NotificationContent>[];
-
-    // Check for mood log access notifications (only for immediate sending)
-    if (settings.accessReminders) {
-      final accessNotification = await _checkAccessNotification(now, settings);
-      if (accessNotification != null) {
-        notifications.add(accessNotification);
-        
-        // Send the notification immediately
-        await RealNotificationService.showNotification(
-          id: _getNotificationId(accessNotification.type),
-          title: accessNotification.title,
-          body: accessNotification.body,
-          payload: jsonEncode(accessNotification.data),
-        );
-      }
-    }
-
-    // Check for end-of-day reminder (only for immediate sending)
-    if (settings.endOfDayReminder) {
-      final endOfDayNotification = await _checkEndOfDayNotification(now, settings);
-      if (endOfDayNotification != null) {
-        notifications.add(endOfDayNotification);
-        
-        // Send the notification immediately
-        await RealNotificationService.showNotification(
-          id: _getNotificationId(endOfDayNotification.type),
-          title: endOfDayNotification.title,
-          body: endOfDayNotification.body,
-          payload: jsonEncode(endOfDayNotification.data),
-        );
-      }
-    }
-
-    // Check for goal reminders
-    if (settings.goalReminders) {
-      final goalNotifications = await _checkGoalNotifications(now, settings);
-      for (final notification in goalNotifications) {
-        notifications.add(notification);
-        
-        // Send the notification immediately
-        await RealNotificationService.showNotification(
-          id: _getNotificationId(notification.type),
-          title: notification.title,
-          body: notification.body,
-          payload: jsonEncode(notification.data),
-        );
-      }
-    }
-
-    return notifications;
-  }
-
-  /// Get notification ID based on type
-  static int _getNotificationId(NotificationType type) {
-    switch (type) {
-      case NotificationType.accessReminder:
-        return 1000; // Dynamic ID based on segment
-      case NotificationType.endOfDayReminder:
-      case NotificationType.endOfDayComplete:
-        return 2000;
-      case NotificationType.goalProgress:
-      case NotificationType.goalEncouragement:
-        return 3000;
-      case NotificationType.streakCelebration:
-        return 4000;
-    }
-  }
-
-  /// Check if user should get a mood log access notification
-  static Future<NotificationContent?> _checkAccessNotification(DateTime now, NotificationSettings settings) async {
-    final hour = now.hour;
-    String? timeSegment;
-    int segmentIndex = -1;
-
-    // Determine which segment just became available
-    if (hour == 0 && settings.morningAccessReminder) {
-      timeSegment = 'Morning';
-      segmentIndex = 0;
-    } else if (hour == 12 && settings.middayAccessReminder) {
-      timeSegment = 'Midday';
-      segmentIndex = 1;
-    } else if (hour == 18 && settings.eveningAccessReminder) {
-      timeSegment = 'Evening';
-      segmentIndex = 2;
-    }
-
-    if (timeSegment == null) return null;
-
-    // Check if already notified today for this segment
-    if (await _wasNotifiedToday('access_$segmentIndex')) return null;
-
-    // Check if user already logged this segment
-    final existingMood = await MoodDataService.loadMood(now, segmentIndex);
-    if (existingMood != null && existingMood['rating'] != null) return null;
-
-    await _markNotifiedToday('access_$segmentIndex');
-
-    return NotificationContent(
-      id: 'access_$segmentIndex',
-      title: '$timeSegment mood logging is now available! 🌟',
-      body: 'Time to check in with yourself - how are you feeling this $timeSegment?',
-      type: NotificationType.accessReminder,
-      data: {'type': 'access_reminder', 'segment': segmentIndex, 'timeSegment': timeSegment.toLowerCase()},
-    );
-  }
-
-  /// Check for end-of-day reminder notification
-  static Future<NotificationContent?> _checkEndOfDayNotification(DateTime now, NotificationSettings settings) async {
-    // Check if it's around the end-of-day time (default 11 PM)
-    if (now.hour != settings.endOfDayTime.hour) return null;
-
-    // Check if already notified today
-    if (await _wasNotifiedToday('end_of_day')) return null;
-
-    // Check how many moods were logged today
-    int loggedSegments = 0;
-    final missingSegments = <String>[];
-    
-    for (int i = 0; i < 3; i++) {
-      final mood = await MoodDataService.loadMood(now, i);
-      if (mood != null && mood['rating'] != null) {
-        loggedSegments++;
-      } else {
-        missingSegments.add(MoodDataService.timeSegments[i]);
-      }
-    }
-
-    // If all segments logged, send congratulations
-    if (loggedSegments == 3) {
-      await _markNotifiedToday('end_of_day');
-      return NotificationContent(
-        id: 'end_of_day_complete',
-        title: 'Perfect day of mood tracking! 🎉',
-        body: 'You logged all your moods today. Great job staying mindful!',
-        type: NotificationType.endOfDayComplete,
-        data: {'type': 'end_of_day', 'segmentsLogged': loggedSegments},
-      );
-    }
-
-    // If some segments missing, send reminder
-    if (loggedSegments > 0) {
-      await _markNotifiedToday('end_of_day');
-      return NotificationContent(
-        id: 'end_of_day_reminder',
-        title: 'Don\'t forget to complete your mood log! 📝',
-        body: 'You\'re missing: ${missingSegments.join(", ")}. Quick check-in before bed?',
-        type: NotificationType.endOfDayReminder,
-        data: {'type': 'end_of_day', 'missingSegments': missingSegments, 'loggedSegments': loggedSegments},
-      );
-    }
-
-    // If no segments logged, send gentle reminder
-    await _markNotifiedToday('end_of_day');
-    return NotificationContent(
-      id: 'end_of_day_empty',
-      title: 'How was your day? 🌙',
-      body: 'Take a moment to reflect on your day and log your moods.',
-      type: NotificationType.endOfDayReminder,
-      data: {'type': 'end_of_day', 'loggedSegments': 0},
-    );
-  }
-
-  /// Check for goal-related notifications
-  static Future<List<NotificationContent>> _checkGoalNotifications(DateTime now, NotificationSettings settings) async {
-    final goals = await MoodAnalyticsService.loadGoals();
-    final activeGoals = goals.where((g) => !g.isCompleted).toList();
-    final notifications = <NotificationContent>[];
-
-    for (final goal in activeGoals) {
-      // Check if it's been a while since goal was created (send progress reminder)
-      final daysSinceCreated = now.difference(goal.createdDate).inDays;
-      
-      if (daysSinceCreated > 0 && daysSinceCreated % 3 == 0) { // Every 3 days
-        final notificationId = 'goal_${goal.id}_day_$daysSinceCreated';
-        if (await _wasNotifiedToday(notificationId)) continue;
-
-        // Calculate progress (simplified)
-        final progressText = await _getGoalProgressText(goal);
-        
-        await _markNotifiedToday(notificationId);
-        notifications.add(NotificationContent(
-          id: notificationId,
-          title: 'Goal Progress Update 🎯',
-          body: '${goal.title}: $progressText Keep it up!',
-          type: NotificationType.goalProgress,
-          data: {'type': 'goal', 'goalId': goal.id, 'goalTitle': goal.title},
-        ));
-      }
-
-      // Check for goal near completion
-      if (daysSinceCreated > 0 && daysSinceCreated % 7 == 0) { // Weekly encouragement
-        final notificationId = 'goal_${goal.id}_week_${(daysSinceCreated / 7).floor()}';
-        if (await _wasNotifiedToday(notificationId)) continue;
-
-        await _markNotifiedToday(notificationId);
-        notifications.add(NotificationContent(
-          id: notificationId,
-          title: 'Keep working toward your goal! 💪',
-          body: '${goal.title} - You\'ve been at this for ${daysSinceCreated} days!',
-          type: NotificationType.goalEncouragement,
-          data: {'type': 'goal', 'goalId': goal.id, 'daysSinceCreated': daysSinceCreated},
-        ));
-      }
-    }
-
-    return notifications;
-  }
-
-  /// Helper: Check if we sent a notification today for this type
-  static Future<bool> _wasNotifiedToday(String notificationId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final lastNotified = prefs.getString('last_notification_$notificationId');
-    if (lastNotified == null) return false;
-
-    final lastDate = DateTime.parse(lastNotified);
-    final today = DateTime.now();
-    
-    return lastDate.year == today.year && 
-           lastDate.month == today.month && 
-           lastDate.day == today.day;
-  }
-
-  /// Helper: Mark that we sent a notification today
-  static Future<void> _markNotifiedToday(String notificationId) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('last_notification_$notificationId', DateTime.now().toIso8601String());
-  }
-
-  /// Helper: Get simplified goal progress text
-  static Future<String> _getGoalProgressText(MoodGoal goal) async {
-    switch (goal.type) {
-      case GoalType.consecutiveDays:
-        return 'Keep logging daily!';
-      case GoalType.averageMood:
-        return 'Maintain that positive energy!';
-      case GoalType.minimumMood:
-        return 'Stay above your minimum!';
-      case GoalType.improvementStreak:
-        return 'Each day better than the last!';
     }
   }
 
@@ -427,9 +181,11 @@ class NotificationSettings {
     return NotificationSettings(
       enabled: enabled ?? this.enabled,
       accessReminders: accessReminders ?? this.accessReminders,
-      morningAccessReminder: morningAccessReminder ?? this.morningAccessReminder,
+      morningAccessReminder: morningAccessReminder ??
+          this.morningAccessReminder,
       middayAccessReminder: middayAccessReminder ?? this.middayAccessReminder,
-      eveningAccessReminder: eveningAccessReminder ?? this.eveningAccessReminder,
+      eveningAccessReminder: eveningAccessReminder ??
+          this.eveningAccessReminder,
       endOfDayReminder: endOfDayReminder ?? this.endOfDayReminder,
       endOfDayTime: endOfDayTime ?? this.endOfDayTime,
       morningTime: morningTime ?? this.morningTime,
@@ -451,6 +207,9 @@ class NotificationSettings {
       'eveningAccessReminder': eveningAccessReminder,
       'endOfDayReminder': endOfDayReminder,
       'endOfDayTime': '${endOfDayTime.hour}:${endOfDayTime.minute}',
+      'morningTime': '${morningTime.hour}:${morningTime.minute}',
+      'middayTime': '${middayTime.hour}:${middayTime.minute}',
+      'eveningTime': '${eveningTime.hour}:${eveningTime.minute}',
       'goalReminders': goalReminders,
       'goalProgress': goalProgress,
       'goalEncouragement': goalEncouragement,

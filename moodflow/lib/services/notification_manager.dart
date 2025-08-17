@@ -9,14 +9,14 @@ class NotificationManager {
   /// Initialize the notification manager
   static void initialize() {
     if (_isInitialized) return;
-    
+
     _isInitialized = true;
-    
+
     // Check for notifications every hour
     _backgroundTimer = Timer.periodic(const Duration(hours: 1), (timer) {
       _checkAndScheduleNotifications();
     });
-    
+
     // Also check immediately
     _checkAndScheduleNotifications();
   }
@@ -31,34 +31,37 @@ class NotificationManager {
   /// Check for pending notifications and schedule them
   static Future<void> _checkAndScheduleNotifications() async {
     try {
-      final notifications = await EnhancedNotificationService.getPendingNotifications();
-      
-      for (final notification in notifications) {
-        await _scheduleNotification(notification);
+      // The RealNotificationService already handles scheduling
+      // This timer just ensures the scheduled notifications stay active
+      final settings = await EnhancedNotificationService.loadSettings();
+      if (settings.enabled) {
+        // Re-apply scheduled notifications to ensure they're still active
+        await EnhancedNotificationService.saveSettings(settings);
       }
     } catch (e) {
-      // Log error but don't crash the app
-      debugPrint('Error checking notifications: $e');
+      debugPrint('Error maintaining notifications: $e');
     }
   }
 
   /// Schedule a single notification (placeholder implementation)
-  static Future<void> _scheduleNotification(NotificationContent notification) async {
+  static Future<void> _scheduleNotification(
+      NotificationContent notification) async {
     // In a real implementation, this would use flutter_local_notifications
     // to schedule the actual system notification
-    
+
     debugPrint('📱 Notification: ${notification.title}');
     debugPrint('📝 Body: ${notification.body}');
     debugPrint('🔔 Type: ${notification.type}');
-    
+
     // For development/testing, you could show a snackbar or dialog
     // In production, this would be a proper system notification
   }
 
   /// Show a notification immediately (for testing purposes)
-  static Future<void> showTestNotification(BuildContext context, NotificationContent notification) async {
+  static Future<void> showTestNotification(BuildContext context,
+      NotificationContent notification) async {
     if (!context.mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Column(
@@ -85,24 +88,25 @@ class NotificationManager {
   }
 
   /// Handle when user taps on a notification
-  static void _handleNotificationTap(BuildContext context, NotificationContent notification) {
+  static void _handleNotificationTap(BuildContext context,
+      NotificationContent notification) {
     switch (notification.type) {
       case NotificationType.accessReminder:
-        // Navigate to mood log screen
+      // Navigate to mood log screen
         Navigator.of(context).pushNamed('/mood-log');
         break;
       case NotificationType.endOfDayReminder:
       case NotificationType.endOfDayComplete:
-        // Navigate to mood log screen
+      // Navigate to mood log screen
         Navigator.of(context).pushNamed('/mood-log');
         break;
       case NotificationType.goalProgress:
       case NotificationType.goalEncouragement:
-        // Navigate to goals screen
+      // Navigate to goals screen
         Navigator.of(context).pushNamed('/goals');
         break;
       case NotificationType.streakCelebration:
-        // Navigate to trends screen to show streak
+      // Navigate to trends screen to show streak
         Navigator.of(context).pushNamed('/trends');
         break;
     }
@@ -110,14 +114,15 @@ class NotificationManager {
 
   /// Manual check for notifications (useful for testing)
   static Future<List<NotificationContent>> checkForNotifications() async {
-    return await EnhancedNotificationService.getPendingNotifications();
+    return [];
   }
 
   /// Show all pending notifications as snackbars (for testing)
-  static Future<void> showPendingNotificationsAsSnackbars(BuildContext context) async {
+  static Future<void> showPendingNotificationsAsSnackbars(
+      BuildContext context) async {
     // For testing purposes, show example notifications instead of actual pending ones
     final testNotifications = NotificationTesting.createTestNotifications();
-    
+
     if (testNotifications.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,13 +134,13 @@ class NotificationManager {
       }
       return;
     }
-    
+
     for (int i = 0; i < testNotifications.length; i++) {
       final notification = testNotifications[i];
-      
+
       // Delay between notifications so they don't overlap
       await Future.delayed(Duration(milliseconds: i * 2000)); // 2 second delay
-      
+
       if (context.mounted) {
         await showTestNotification(context, notification);
       }
@@ -144,26 +149,40 @@ class NotificationManager {
 
   /// Check for real pending notifications (for actual scheduling)
   static Future<void> showRealPendingNotifications(BuildContext context) async {
-    final notifications = await checkForNotifications();
-    
-    for (int i = 0; i < notifications.length; i++) {
-      final notification = notifications[i];
-      
-      // Delay between notifications so they don't overlap
-      await Future.delayed(Duration(milliseconds: i * 100));
-      
-      if (context.mounted) {
-        await showTestNotification(context, notification);
+    // Show the actual system-scheduled pending notifications instead
+    try {
+      final pendingNotifications = await EnhancedNotificationService
+          .getSystemPendingNotifications();
+
+      if (pendingNotifications.isEmpty && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No pending system notifications scheduled.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
       }
-    }
-    
-    if (notifications.isEmpty && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No pending notifications at this time.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+
+      // Show info about scheduled notifications
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Found ${pendingNotifications.length} scheduled notifications'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error checking notifications: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 }
