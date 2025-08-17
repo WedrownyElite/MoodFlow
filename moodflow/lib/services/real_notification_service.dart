@@ -182,20 +182,65 @@ class RealNotificationService {
   /// Get next instance of a specific time
   static tz.TZDateTime _nextInstanceOfTime(NotificationTime time) {
     final now = tz.TZDateTime.now(tz.local);
+
+    // Add a small buffer to account for processing time
+    final nowWithBuffer = now.add(const Duration(seconds: 30));
+
     tz.TZDateTime scheduledDate = tz.TZDateTime(
       tz.local,
-      now.year,
-      now.month,
-      now.day,
+      nowWithBuffer.year,
+      nowWithBuffer.month,
+      nowWithBuffer.day,
       time.hour,
       time.minute,
     );
-    
-    if (scheduledDate.isBefore(now)) {
+
+    // If the scheduled time has already passed today (including buffer), schedule for tomorrow
+    if (scheduledDate.isBefore(nowWithBuffer)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
-    
+
+    // For debugging: print the scheduled time
+    debugPrint('🔔 Scheduling notification for: $scheduledDate (current time: $now)');
+
     return scheduledDate;
+  }
+
+  static Future<void> scheduleTestNotificationIn(int seconds, String message) async {
+    final now = tz.TZDateTime.now(tz.local);
+    final scheduledTime = now.add(Duration(seconds: seconds));
+
+    debugPrint('🔔 Test notification scheduled for: $scheduledTime (in $seconds seconds)');
+
+    const androidDetails = AndroidNotificationDetails(
+      'mood_tracker_test',
+      'Test Notifications',
+      channelDescription: 'Test notifications for debugging',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _notifications.zonedSchedule(
+      99999, // Unique test ID
+      'Test Notification',
+      message,
+      scheduledTime,
+      details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: jsonEncode({'type': 'test'}),
+    );
   }
 
   /// Cancel a specific notification

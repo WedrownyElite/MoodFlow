@@ -338,6 +338,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.celebration, color: Colors.green),
               onTap: () => _sendDayCompleteNotification(),
             ),
+            ListTile(
+              title: const Text('Test 10-Second Notification'),
+              subtitle: const Text('Schedule a notification for 10 seconds from now'),
+              leading: const Icon(Icons.timer, color: Colors.green),
+              onTap: () => _testImmediateNotification(),
+            ),
             
             const SizedBox(height: 16),
             _buildSubsectionHeader('Goal Notifications'),
@@ -397,6 +403,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _testImmediateNotification() async {
+    // Test notification in 10 seconds
+    await real_notifications.RealNotificationService.scheduleTestNotificationIn(
+        10,
+        'This test notification was scheduled 10 seconds ago!'
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('📱 Test notification scheduled for 10 seconds from now!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+  
   Future<void> _showPendingNotifications() async {
     final pendingNotifications = await notifications.EnhancedNotificationService.getSystemPendingNotifications();
     
