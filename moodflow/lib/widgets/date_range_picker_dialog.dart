@@ -2,21 +2,21 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class DateRangePickerDialog extends StatefulWidget {
+class CustomDateRangePickerDialog extends StatefulWidget {
   final DateTime? initialStartDate;
   final DateTime? initialEndDate;
 
-  const DateRangePickerDialog({
+  const CustomDateRangePickerDialog({
     super.key,
     this.initialStartDate,
     this.initialEndDate,
   });
 
   @override
-  State<DateRangePickerDialog> createState() => _DateRangePickerDialogState();
+  State<CustomDateRangePickerDialog> createState() => _CustomDateRangePickerDialogState();
 }
 
-class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
+class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialog> {
   DateTime? _startDate;
   DateTime? _endDate;
 

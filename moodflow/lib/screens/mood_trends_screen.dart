@@ -6,9 +6,9 @@ import '../widgets/mood_line_chart.dart';
 import '../widgets/mood_heatmap.dart';
 import '../widgets/mood_statistics_cards.dart';
 import '../widgets/date_range_picker_dialog.dart';
+import '../widgets/mood_line_chart.dart';
 
 enum TimeRange { week, month, quarter, year, all, custom }
-enum ChartAggregation { daily, weekly, monthly }
 
 class MoodTrendsScreen extends StatefulWidget {
   const MoodTrendsScreen({super.key});
@@ -232,7 +232,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
   Future<void> _showCustomDateRangePicker() async {
     final result = await showDialog<Map<String, DateTime>>(
       context: context,
-      builder: (context) => DateRangePickerDialog(
+      builder: (context) => CustomDateRangePickerDialog(
         initialStartDate: _customStartDate,
         initialEndDate: _customEndDate,
       ),
