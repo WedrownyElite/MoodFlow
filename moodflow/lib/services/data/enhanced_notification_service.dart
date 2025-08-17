@@ -74,15 +74,15 @@ class EnhancedNotificationService {
       return;
     }
 
-    // Schedule mood reminders
+    // Schedule mood reminders with user-configured times
     if (settings.accessReminders) {
       await RealNotificationService.scheduleMoodReminders(
         morningEnabled: settings.morningAccessReminder,
         middayEnabled: settings.middayAccessReminder,
         eveningEnabled: settings.eveningAccessReminder,
-        morningTime: NotificationTime(0, 0), // 12:00 AM
-        middayTime: NotificationTime(12, 0), // 12:00 PM
-        eveningTime: NotificationTime(18, 0), // 6:00 PM
+        morningTime: NotificationTime(settings.morningTime.hour, settings.morningTime.minute),  // CHANGE THIS
+        middayTime: NotificationTime(settings.middayTime.hour, settings.middayTime.minute),     // CHANGE THIS
+        eveningTime: NotificationTime(settings.eveningTime.hour, settings.eveningTime.minute), // CHANGE THIS
       );
     }
 
@@ -363,6 +363,9 @@ class NotificationSettings {
   final bool middayAccessReminder;
   final bool eveningAccessReminder;
   final bool endOfDayReminder;
+  final TimeOfDay morningTime;
+  final TimeOfDay middayTime;
+  final TimeOfDay eveningTime;
   final TimeOfDay endOfDayTime;
   final bool goalReminders;
   final bool goalProgress;
@@ -376,6 +379,9 @@ class NotificationSettings {
     required this.middayAccessReminder,
     required this.eveningAccessReminder,
     required this.endOfDayReminder,
+    required this.morningTime,
+    required this.middayTime,
+    required this.eveningTime,
     required this.endOfDayTime,
     required this.goalReminders,
     required this.goalProgress,
@@ -391,7 +397,10 @@ class NotificationSettings {
       middayAccessReminder: true,
       eveningAccessReminder: true,
       endOfDayReminder: true,
-      endOfDayTime: const TimeOfDay(hour: 23, minute: 0), // 11 PM
+      endOfDayTime: const TimeOfDay(hour: 23, minute: 0),
+      morningTime: const TimeOfDay(hour: 9, minute: 0),
+      middayTime: const TimeOfDay(hour: 13, minute: 0),
+      eveningTime: const TimeOfDay(hour: 19, minute: 0),
       goalReminders: true,
       goalProgress: true,
       goalEncouragement: true,
@@ -407,6 +416,9 @@ class NotificationSettings {
     bool? eveningAccessReminder,
     bool? endOfDayReminder,
     TimeOfDay? endOfDayTime,
+    TimeOfDay? morningTime,
+    TimeOfDay? middayTime,
+    TimeOfDay? eveningTime,
     bool? goalReminders,
     bool? goalProgress,
     bool? goalEncouragement,
@@ -420,6 +432,9 @@ class NotificationSettings {
       eveningAccessReminder: eveningAccessReminder ?? this.eveningAccessReminder,
       endOfDayReminder: endOfDayReminder ?? this.endOfDayReminder,
       endOfDayTime: endOfDayTime ?? this.endOfDayTime,
+      morningTime: morningTime ?? this.morningTime,
+      middayTime: middayTime ?? this.middayTime,
+      eveningTime: eveningTime ?? this.eveningTime,
       goalReminders: goalReminders ?? this.goalReminders,
       goalProgress: goalProgress ?? this.goalProgress,
       goalEncouragement: goalEncouragement ?? this.goalEncouragement,
@@ -457,6 +472,9 @@ class NotificationSettings {
       eveningAccessReminder: json['eveningAccessReminder'] ?? true,
       endOfDayReminder: json['endOfDayReminder'] ?? true,
       endOfDayTime: parseTime(json['endOfDayTime'] ?? '23:0'),
+      morningTime: parseTime(json['morningTime'] ?? '9:0'),
+      middayTime: parseTime(json['middayTime'] ?? '13:0'),
+      eveningTime: parseTime(json['eveningTime'] ?? '19:0'),
       goalReminders: json['goalReminders'] ?? true,
       goalProgress: json['goalProgress'] ?? true,
       goalEncouragement: json['goalEncouragement'] ?? true,

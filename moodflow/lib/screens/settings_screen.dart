@@ -169,36 +169,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _updateNotificationSettings(settings.copyWith(accessReminders: value));
             },
           ),
-          
+
           if (settings.accessReminders) ...[
             Padding(
               padding: const EdgeInsets.only(left: 16),
               child: Column(
                 children: [
                   SwitchListTile(
-                    title: const Text('Morning (12:00 AM)'),
+                    title: Text('Morning (${settings.morningTime})'),
                     subtitle: const Text('When morning mood logging becomes available'),
                     value: settings.morningAccessReminder,
                     onChanged: (value) {
                       _updateNotificationSettings(settings.copyWith(morningAccessReminder: value));
                     },
                   ),
+                  if (settings.morningAccessReminder)
+                    ListTile(
+                      title: const Text('Morning time'),
+                      subtitle: Text(settings.morningTime.toString()),
+                      trailing: const Icon(Icons.access_time),
+                      onTap: () => _selectMorningTime(settings),
+                    ),
                   SwitchListTile(
-                    title: const Text('Midday (12:00 PM)'),
+                    title: Text('Midday (${settings.middayTime})'),
                     subtitle: const Text('When midday mood logging becomes available'),
                     value: settings.middayAccessReminder,
                     onChanged: (value) {
                       _updateNotificationSettings(settings.copyWith(middayAccessReminder: value));
                     },
                   ),
+                  if (settings.middayAccessReminder)
+                    ListTile(
+                      title: const Text('Midday time'),
+                      subtitle: Text(settings.middayTime.toString()),
+                      trailing: const Icon(Icons.access_time),
+                      onTap: () => _selectMiddayTime(settings),
+                    ),
                   SwitchListTile(
-                    title: const Text('Evening (6:00 PM)'),
+                    title: Text('Evening (${settings.eveningTime})'),
                     subtitle: const Text('When evening mood logging becomes available'),
                     value: settings.eveningAccessReminder,
                     onChanged: (value) {
                       _updateNotificationSettings(settings.copyWith(eveningAccessReminder: value));
                     },
                   ),
+                  if (settings.eveningAccessReminder)
+                    ListTile(
+                      title: const Text('Evening time'),
+                      subtitle: Text(settings.eveningTime.toString()),
+                      trailing: const Icon(Icons.access_time),
+                      onTap: () => _selectEveningTime(settings),
+                    ),
                 ],
               ),
             ),
@@ -446,6 +467,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
           duration: Duration(seconds: 2),
         ),
       );
+    }
+  }
+
+  Future<void> _selectMorningTime(notifications.NotificationSettings settings) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: settings.morningTime.hour, minute: settings.morningTime.minute),
+      helpText: 'Select morning reminder time',
+    );
+
+    if (picked != null) {
+      final newTime = notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
+      _updateNotificationSettings(settings.copyWith(morningTime: newTime));
+    }
+  }
+
+  Future<void> _selectMiddayTime(notifications.NotificationSettings settings) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: settings.middayTime.hour, minute: settings.middayTime.minute),
+      helpText: 'Select midday reminder time',
+    );
+
+    if (picked != null) {
+      final newTime = notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
+      _updateNotificationSettings(settings.copyWith(middayTime: newTime));
+    }
+  }
+
+  Future<void> _selectEveningTime(notifications.NotificationSettings settings) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: settings.eveningTime.hour, minute: settings.eveningTime.minute),
+      helpText: 'Select evening reminder time',
+    );
+
+    if (picked != null) {
+      final newTime = notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
+      _updateNotificationSettings(settings.copyWith(eveningTime: newTime));
     }
   }
 
