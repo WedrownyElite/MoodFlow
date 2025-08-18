@@ -484,40 +484,55 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
     Color insightColor;
     Color textColor;
 
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
     switch (bestSegment) {
       case 0: // Morning
         insightText = "You're brightest in the morning! ☀️";
         insightIcon = Icons.wb_sunny;
         insightColor = Colors.orange.shade600;
-        textColor = const Color.fromARGB(255, 160, 73, 1);
+        // FIXED: Use brighter text color for dark mode
+        textColor = isDarkMode ? Colors.orange.shade300 : const Color.fromARGB(255, 160, 73, 1);
         break;
       case 1: // Midday
         insightText = "Midday energy is your strength! ⚡";
         insightIcon = Icons.flash_on;
         insightColor = Colors.blue.shade600;
-        textColor = Colors.blue.shade700;
+        // FIXED: Use brighter text color for dark mode
+        textColor = isDarkMode ? Colors.blue.shade300 : Colors.blue.shade700;
         break;
       case 2: // Evening
         insightText = "Evenings bring out your best! 🌙";
         insightIcon = Icons.nights_stay;
         insightColor = Colors.purple.shade600;
-        textColor = Colors.purple.shade700;
+        // FIXED: Use brighter text color for dark mode
+        textColor = isDarkMode ? Colors.purple.shade300 : Colors.purple.shade700;
         break;
       default:
         insightText = "Keep tracking to find your patterns!";
         insightIcon = Icons.insights;
         insightColor = Colors.grey.shade600;
-        textColor = Colors.grey.shade700;
+        // FIXED: Use brighter text color for dark mode
+        textColor = isDarkMode ? Colors.grey.shade400 : Colors.grey.shade700;
     }
 
     return Card(
       elevation: 2,
-      color: insightColor.withOpacity(0.1),
+      // FIXED: Use lighter background for dark mode
+      color: isDarkMode
+          ? insightColor.withOpacity(0.08)  // Much lighter in dark mode
+          : insightColor.withOpacity(0.1),
       child: Container(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(insightIcon, color: insightColor, size: 24),
+            Icon(
+                insightIcon,
+                // FIXED: Use brighter icon color for dark mode
+                color: isDarkMode ? insightColor.withOpacity(0.8) : insightColor,
+                size: 24
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -528,7 +543,10 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: textColor.withOpacity(0.8),
+                      // FIXED: Use brighter subtitle color for dark mode
+                      color: isDarkMode
+                          ? textColor.withOpacity(0.7)  // Lighter in dark mode
+                          : textColor.withOpacity(0.8),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -537,7 +555,7 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: textColor,
+                      color: textColor,  // Using the adjusted textColor
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -545,7 +563,10 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
                     '${segments[bestSegment]} average: ${bestAverage.toStringAsFixed(1)}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: textColor.withOpacity(0.7),
+                      // FIXED: Use brighter detail color for dark mode
+                      color: isDarkMode
+                          ? textColor.withOpacity(0.6)  // Lighter in dark mode
+                          : textColor.withOpacity(0.7),
                     ),
                   ),
                 ],

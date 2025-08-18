@@ -123,6 +123,10 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
   }
 
   Future<void> _showCustomDateRangePicker() async {
+    print('🐛 DEBUG: Opening custom date range picker');
+    print('🐛 DEBUG: Current _customStartDate = $_customStartDate');
+    print('🐛 DEBUG: Current _customEndDate = $_customEndDate');
+
     final result = await showDialog<Map<String, DateTime>>(
       context: context,
       builder: (context) => CustomDateRangePickerDialog(
@@ -131,13 +135,24 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
       ),
     );
 
+    print('🐛 DEBUG: Date picker result = $result');
+
     if (result != null && result['startDate'] != null && result['endDate'] != null) {
+      print('🐛 DEBUG: Setting custom dates and reloading data');
+      print('🐛 DEBUG: New start date = ${result['startDate']}');
+      print('🐛 DEBUG: New end date = ${result['endDate']}');
+
       setState(() {
         _customStartDate = result['startDate'];
         _customEndDate = result['endDate'];
         _selectedRange = TimeRange.custom;
       });
+
+      print('🐛 DEBUG: About to call _loadTrendData()');
       _loadTrendData();
+      print('🐛 DEBUG: _loadTrendData() completed');
+    } else {
+      print('🐛 DEBUG: Date picker was cancelled or returned null');
     }
   }
 
@@ -401,15 +416,29 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
 
 // In mood_trends_screen.dart, replace the _buildChartTimeRangeSelector method with this fixed version:
 
+// Replace the _buildChartTimeRangeSelector method with this ACTUALLY FIXED version:
+
   Widget _buildChartTimeRangeSelector() {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+
+    // DEBUG LOGS
+    print('🐛 DEBUG: Building chart time range selector');
+    print('🐛 DEBUG: isDarkMode = $isDarkMode');
+    print('🐛 DEBUG: _selectedRange = $_selectedRange');
+    print('🐛 DEBUG: TimeRange.custom = ${TimeRange.custom}');
+    print('🐛 DEBUG: Is custom selected = ${_selectedRange == TimeRange.custom}');
 
     // Define theme-aware colors
     final primaryTextColor = theme.textTheme.bodyLarge?.color ?? (isDarkMode ? Colors.white : Colors.black87);
     final secondaryTextColor = theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ?? (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600);
     final borderColor = theme.dividerColor;
     final buttonBackgroundColor = isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300;
+
+    // DEBUG LOGS FOR COLORS
+    print('🐛 DEBUG: primaryTextColor = $primaryTextColor');
+    print('🐛 DEBUG: theme.cardColor = ${theme.cardColor}');
+    print('🐛 DEBUG: theme.primaryColor = ${Theme.of(context).primaryColor}');
 
     return Column(
       children: [
@@ -452,70 +481,106 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
         // Custom date range and aggregation controls
         Row(
           children: [
-            // Custom date range button - COMPLETELY FIXED VERSION
+            // Custom date range button - FIXED FOR DARK MODE
             Expanded(
-              child: Container(
-                height: 40, // Match dropdown height
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: _selectedRange == TimeRange.custom
-                        ? Theme.of(context).primaryColor
-                        : borderColor,
-                    width: _selectedRange == TimeRange.custom ? 2 : 1,
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                  color: _selectedRange == TimeRange.custom
-                      ? Theme.of(context).primaryColor.withOpacity(0.1)
-                      : (isDarkMode ? Colors.grey.shade800.withOpacity(0.3) : Colors.transparent),
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _showCustomDateRangePicker,
-                    borderRadius: BorderRadius.circular(4),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.date_range,
-                            size: 16,
-                            color: _selectedRange == TimeRange.custom
-                                ? (_selectedRange == TimeRange.custom
-                                ? (isDarkMode
-                                ? Theme.of(context).primaryColor.withOpacity(0.9)
-                                : Theme.of(context).primaryColor)
-                                : Theme.of(context).primaryColor)
-                                : secondaryTextColor,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _selectedRange == TimeRange.custom
-                                  ? _buildCustomRangeText()
-                                  : 'Custom Range',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: _selectedRange == TimeRange.custom
-                                    ? (isDarkMode
-                                    ? Theme.of(context).primaryColor.withOpacity(0.9)
-                                    : Theme.of(context).primaryColor)
-                                    : primaryTextColor,
-                                fontWeight: _selectedRange == TimeRange.custom ? FontWeight.w600 : FontWeight.normal,
+              child: Builder(
+                builder: (context) {
+                  final isCustomSelected = _selectedRange == TimeRange.custom;
+
+                  // CALCULATE PROPER COLORS FOR CUSTOM BUTTON
+                  Color backgroundColor;
+                  Color textColor;
+                  Color iconColor;
+                  Color borderColor;
+
+                  if (isCustomSelected) {
+                    // WHEN CUSTOM IS SELECTED - FIX FOR DARK PRIMARY COLORS
+                    backgroundColor = Theme.of(context).primaryColor.withOpacity(isDarkMode ? 0.15 : 0.1);
+
+                    // THE FIX: Use bright color for text/icons in dark mode when primary is dark
+                    if (isDarkMode) {
+                      // Create a bright version of the primary color for dark mode
+                      final primaryHSL = HSLColor.fromColor(Theme.of(context).primaryColor);
+                      final brightPrimary = primaryHSL.withLightness(0.7).withSaturation(0.8).toColor();
+                      textColor = brightPrimary;
+                      iconColor = brightPrimary;
+                      borderColor = brightPrimary;
+
+                      print('🐛 DEBUG: Using bright primary for dark mode: $brightPrimary');
+                    } else {
+                      textColor = Theme.of(context).primaryColor;
+                      iconColor = Theme.of(context).primaryColor;
+                      borderColor = Theme.of(context).primaryColor;
+                    }
+
+                    print('🐛 DEBUG: Custom is selected - using primary colors');
+                    print('🐛 DEBUG: backgroundColor = $backgroundColor');
+                    print('🐛 DEBUG: textColor = $textColor');
+                  } else {
+                    // WHEN CUSTOM IS NOT SELECTED
+                    backgroundColor = isDarkMode ? theme.cardColor : Colors.white;
+                    textColor = primaryTextColor;
+                    iconColor = primaryTextColor;
+                    borderColor = theme.dividerColor;
+
+                    print('🐛 DEBUG: Custom is NOT selected - using default colors');
+                    print('🐛 DEBUG: backgroundColor = $backgroundColor');
+                    print('🐛 DEBUG: textColor = $textColor');
+                  }
+
+                  return Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: borderColor,
+                        width: isCustomSelected ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                      color: backgroundColor,
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          print('🐛 DEBUG: Custom date range button tapped');
+                          _showCustomDateRangePicker();
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.date_range,
+                                size: 16,
+                                color: iconColor,
                               ),
-                            ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  isCustomSelected
+                                      ? _buildCustomRangeText()
+                                      : 'Custom Range',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: textColor,
+                                    fontWeight: isCustomSelected ? FontWeight.w600 : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
 
             const SizedBox(width: 8),
 
-            // Chart aggregation dropdown - ALSO IMPROVED
+            // Chart aggregation dropdown
             Expanded(
               child: DropdownButtonFormField<ChartAggregation>(
                 value: _chartAggregation,
@@ -531,24 +596,24 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
                     color: secondaryTextColor,
                   ),
                   border: OutlineInputBorder(
-                    borderSide: BorderSide(color: borderColor),
+                    borderSide: BorderSide(color: theme.dividerColor),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: borderColor),
+                    borderSide: BorderSide(color: theme.dividerColor),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Theme.of(context).primaryColor),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   isDense: true,
-                  fillColor: isDarkMode ? Colors.grey.shade800.withOpacity(0.3) : null,
-                  filled: isDarkMode,
+                  fillColor: theme.cardColor,
+                  filled: true,
                 ),
                 style: TextStyle(
                   fontSize: 12,
                   color: primaryTextColor,
                 ),
-                dropdownColor: isDarkMode ? Colors.grey.shade800 : null, // Ensures dropdown matches theme
+                dropdownColor: theme.cardColor,
                 items: ChartAggregation.values.map((aggregation) {
                   return DropdownMenuItem(
                     value: aggregation,
@@ -568,6 +633,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
     );
   }
 
+
   Widget _buildChartDateRangeInfo() {
     if (_trendData.isEmpty) return const SizedBox.shrink();
 
@@ -579,14 +645,42 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
+    // DEBUG LOGS FOR INFO BOX
+    print('🐛 DEBUG: Building chart date range info');
+    print('🐛 DEBUG: isDarkMode = $isDarkMode');
+    print('🐛 DEBUG: theme.primaryColor = ${theme.primaryColor}');
+
+    // CALCULATE PROPER COLORS FOR INFO BOX - FIXED FOR DARK PRIMARY
+    final backgroundColor = isDarkMode
+        ? theme.primaryColor.withOpacity(0.08)  // Very light in dark mode
+        : theme.primaryColor.withOpacity(0.1);
+
+    final borderColor = isDarkMode
+        ? theme.primaryColor.withOpacity(0.25)  // Light border in dark mode
+        : theme.primaryColor.withOpacity(0.3);
+
+    // THE FIX: Use bright color for text in dark mode when primary is dark
+    Color textColor;
+    if (isDarkMode) {
+      // Create a bright version of the primary color for dark mode
+      final primaryHSL = HSLColor.fromColor(theme.primaryColor);
+      textColor = primaryHSL.withLightness(0.7).withSaturation(0.8).toColor();
+      print('🐛 DEBUG: Using bright primary for info box text: $textColor');
+    } else {
+      textColor = theme.primaryColor;
+    }
+
+    print('🐛 DEBUG: Info box backgroundColor = $backgroundColor');
+    print('🐛 DEBUG: Info box textColor = $textColor');
+
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withOpacity(0.1),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.3),
+          color: borderColor,
         ),
       ),
       child: Row(
@@ -594,9 +688,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
           Icon(
             Icons.info_outline,
             size: 16,
-            color: isDarkMode
-                ? Theme.of(context).primaryColor.withOpacity(0.9)
-                : Theme.of(context).primaryColor,
+            color: textColor,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -605,9 +697,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
                   '$daysWithData of $dayCount days with data',
               style: TextStyle(
                 fontSize: 12,
-                color: isDarkMode
-                    ? Theme.of(context).primaryColor.withOpacity(0.9)
-                    : Theme.of(context).primaryColor,
+                color: textColor,
                 fontWeight: FontWeight.w500,
               ),
             ),

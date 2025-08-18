@@ -298,10 +298,12 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  color: Theme.of(context).primaryColor.withOpacity(isDarkMode ? 0.08 : 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: Theme.of(context).primaryColor.withOpacity(0.3),
+                    color: isDarkMode
+                        ? Theme.of(context).primaryColor.withOpacity(0.25)
+                        : Theme.of(context).primaryColor.withOpacity(0.3),
                   ),
                 ),
                 child: Row(
@@ -309,14 +311,26 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                     Icon(
                       Icons.info_outline,
                       size: 16,
-                      color: isDarkMode ? Theme.of(context).primaryColor.withOpacity(0.9) : Theme.of(context).primaryColor,
+                      // FIXED: Use bright color for icon in dark mode
+                      color: isDarkMode
+                          ? () {
+                        final primaryHSL = HSLColor.fromColor(Theme.of(context).primaryColor);
+                        return primaryHSL.withLightness(0.7).withSaturation(0.8).toColor();
+                      }()
+                          : Theme.of(context).primaryColor,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Selected range: ${_getDayCount()} days',
                       style: TextStyle(
                         fontSize: 14,
-                        color: isDarkMode ? Theme.of(context).primaryColor.withOpacity(0.9) : Theme.of(context).primaryColor,
+                        // FIXED: Use bright color for text in dark mode
+                        color: isDarkMode
+                            ? () {
+                          final primaryHSL = HSLColor.fromColor(Theme.of(context).primaryColor);
+                          return primaryHSL.withLightness(0.7).withSaturation(0.8).toColor();
+                        }()
+                            : Theme.of(context).primaryColor,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
