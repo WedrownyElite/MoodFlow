@@ -1,4 +1,4 @@
-﻿// widgets/date_range_picker_dialog.dart
+﻿// Fixed version of date_range_picker_dialog.dart with proper dark mode support
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -117,6 +117,14 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
+    // Define theme-aware colors
+    final textColor = theme.textTheme.bodyLarge?.color ?? (isDarkMode ? Colors.white : Colors.black);
+    final subtitleColor = theme.textTheme.bodyMedium?.color ?? (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600);
+    final borderColor = isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400;
+
     return Dialog(
       child: Container(
         width: double.maxFinite,
@@ -128,14 +136,18 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
             // Header
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Select Date Range',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: textColor),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -144,9 +156,13 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
             const SizedBox(height: 16),
 
             // Quick range buttons
-            const Text(
+            Text(
               'Quick Ranges',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -166,10 +182,15 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                     onPressed: () => _setQuickRange(range),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      foregroundColor: textColor,
+                      side: BorderSide(color: borderColor),
                     ),
                     child: Text(
                       range['label'],
-                      style: const TextStyle(fontSize: 12),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textColor,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   );
@@ -180,9 +201,13 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
             const SizedBox(height: 24),
 
             // Custom date selection
-            const Text(
+            Text(
               'Custom Range',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -194,15 +219,19 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade400),
+                        border: Border.all(color: borderColor),
                         borderRadius: BorderRadius.circular(8),
+                        color: isDarkMode ? Colors.grey.shade800.withOpacity(0.3) : Colors.transparent,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Start Date',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: subtitleColor,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -212,7 +241,7 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: _startDate != null ? Colors.black : Colors.grey.shade600,
+                              color: _startDate != null ? textColor : subtitleColor,
                             ),
                           ),
                         ],
@@ -229,15 +258,19 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade400),
+                        border: Border.all(color: borderColor),
                         borderRadius: BorderRadius.circular(8),
+                        color: isDarkMode ? Colors.grey.shade800.withOpacity(0.3) : Colors.transparent,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'End Date',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: subtitleColor,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -247,7 +280,7 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: _endDate != null ? Colors.black : Colors.grey.shade600,
+                              color: _endDate != null ? textColor : subtitleColor,
                             ),
                           ),
                         ],
@@ -260,7 +293,7 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
 
             const SizedBox(height: 16),
 
-            // Range info
+            // Range info - FIXED FOR DARK MODE
             if (_isValidRange()) ...[
               Container(
                 padding: const EdgeInsets.all(12),
@@ -276,14 +309,14 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                     Icon(
                       Icons.info_outline,
                       size: 16,
-                      color: Theme.of(context).primaryColor,
+                      color: isDarkMode ? Theme.of(context).primaryColor.withOpacity(0.9) : Theme.of(context).primaryColor,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Selected range: ${_getDayCount()} days',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).primaryColor,
+                        color: isDarkMode ? Theme.of(context).primaryColor.withOpacity(0.9) : Theme.of(context).primaryColor,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -299,7 +332,10 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                 Expanded(
                   child: TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: textColor),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
