@@ -119,7 +119,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
       final formatter = DateFormat('MMM d');
       return '${formatter.format(_customStartDate!)} - ${formatter.format(_customEndDate!)}';
     }
-    return 'Custom Range';
+    return 'Custom Range'; // Fallback text
   }
 
   Future<void> _showCustomDateRangePicker() async {
@@ -399,6 +399,8 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
     );
   }
 
+// In mood_trends_screen.dart, replace the _buildChartTimeRangeSelector method with this fixed version:
+
   Widget _buildChartTimeRangeSelector() {
     return Column(
       children: [
@@ -416,8 +418,16 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
                       _loadTrendData();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isSelected ? Theme.of(context).primaryColor : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade300),
-                      foregroundColor: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
+                      backgroundColor: isSelected
+                          ? Theme.of(context).primaryColor
+                          : (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade700
+                          : Colors.grey.shade300),
+                      foregroundColor: isSelected
+                          ? Colors.white
+                          : (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black87),
                       elevation: isSelected ? 2 : 0,
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
@@ -437,42 +447,63 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
         // Custom date range and aggregation controls
         Row(
           children: [
-            // Custom date range button
+            // Custom date range button - FIXED VERSION
             Expanded(
-              child: OutlinedButton.icon(
-                icon: Icon(
-                  Icons.date_range,
-                  size: 16,
-                  color: _selectedRange == TimeRange.custom
-                      ? Theme.of(context).primaryColor
-                      : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
-                ),
-                label: Text(
-                  _selectedRange == TimeRange.custom
-                      ? _buildCustomRangeText()
-                      : 'Custom Range',
-                  style: TextStyle(
-                    fontSize: 12,
+              child: Container(
+                height: 40, // Match dropdown height
+                decoration: BoxDecoration(
+                  border: Border.all(
                     color: _selectedRange == TimeRange.custom
                         ? Theme.of(context).primaryColor
-                        : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                        : Theme.of(context).dividerColor,
                   ),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                onPressed: _showCustomDateRangePicker,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                    color: _selectedRange == TimeRange.custom
-                        ? Theme.of(context).primaryColor
-                        : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _showCustomDateRangePicker,
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.date_range,
+                            size: 16,
+                            color: _selectedRange == TimeRange.custom
+                                ? Theme.of(context).primaryColor
+                                : (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white70
+                                : Colors.grey.shade700),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _selectedRange == TimeRange.custom
+                                  ? _buildCustomRangeText()
+                                  : 'Custom Range',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _selectedRange == TimeRange.custom
+                                    ? Theme.of(context).primaryColor
+                                    : (Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black87),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 ),
               ),
             ),
 
             const SizedBox(width: 8),
 
-            // Chart aggregation dropdown
+            // Chart aggregation dropdown - ALSO IMPROVED
             Expanded(
               child: DropdownButtonFormField<ChartAggregation>(
                 value: _chartAggregation,
@@ -481,18 +512,44 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
                     setState(() => _chartAggregation = value);
                   }
                 },
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'View',
-                  labelStyle: TextStyle(fontSize: 12),
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  labelStyle: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  ),
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   isDense: true,
                 ),
-                style: const TextStyle(fontSize: 12),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                dropdownColor: Theme.of(context).cardColor, // Ensures dropdown matches theme
                 items: ChartAggregation.values.map((aggregation) {
                   return DropdownMenuItem(
                     value: aggregation,
-                    child: Text(_getAggregationDisplayName(aggregation)),
+                    child: Text(
+                      _getAggregationDisplayName(aggregation),
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                    ),
                   );
                 }).toList(),
               ),
