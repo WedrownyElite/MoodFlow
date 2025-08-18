@@ -49,7 +49,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    currentSegment = _getCurrentSegmentIndex();
+    _initializeCurrentSegment();
     _pageController = PageController(initialPage: currentSegment);
 
     // Initialize controllers for all segments
@@ -90,6 +90,19 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     _preloadAllData();
   }
 
+  Future<void> _initializeCurrentSegment() async {
+    currentSegment = await _getCurrentSegmentIndex();
+    _pageController = PageController(initialPage: currentSegment);
+
+    // Continue with the rest of initialization that depends on currentSegment
+    _pageController.addListener(() {
+      final page = _pageController.page?.round() ?? currentSegment;
+      if (!_canAccessSegment(page)) {
+        _pageController.jumpToPage(currentSegment);
+      }
+    });
+  }
+  
   void _initGradientSync() {
     // Initialize with fallback gradient immediately
     final gradient = MoodGradientService.fallbackGradient(widget.isDarkMode);
@@ -151,11 +164,17 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     super.dispose();
   }
 
-  int _getCurrentSegmentIndex() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 0;
-    if (hour < 18) return 1;
-    return 2;
+  Future<int> _getCurrentSegmentIndex() async {
+    final settings = await EnhancedNotificationService.loadSettings();
+    final now = DateTime.now();
+    final currentMinutes = now.hour * 60 + now.minute;
+
+    final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
+    final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
+
+    if (currentMinutes >= eveningMinutes) return 2; // Evening
+    if (currentMinutes >= middayMinutes) return 1;  // Midday
+    return 0; // Morning
   }
 
   bool _canAccessSegment(int index) {
@@ -168,12 +187,12 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     final currentMinutes = now.hour * 60 + now.minute;
 
     switch (index) {
-      case 0: // Morning - always accessible
+      case 0: // Morning - always accessible from midnight
         return true;
-      case 1: // Midday - accessible after midday time
+      case 1: // Midday - accessible after user's midday time
         final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
         return currentMinutes >= middayMinutes;
-      case 2: // Evening - accessible after evening time
+      case 2: // Evening - accessible after user's evening time
         final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
         return currentMinutes >= eveningMinutes;
       default:

@@ -11,12 +11,12 @@ class MoodGradientService {
     final currentMinutes = now.hour * 60 + now.minute;
 
     switch (index) {
-      case 0:
+      case 0: // Morning - always accessible from midnight
         return true;
-      case 1:
+      case 1: // Midday - accessible after user's midday time
         final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
         return currentMinutes >= middayMinutes;
-      case 2:
+      case 2: // Evening - accessible after user's evening time
         final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
         return currentMinutes >= eveningMinutes;
       default:
