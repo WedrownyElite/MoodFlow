@@ -170,7 +170,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🐛 Bug Reports & Feature Requests
 
-Please use the [GitHub Issues](https://github.com/yourusername/moodflow/issues) page to:
+Please use the [GitHub Issues](https://github.com/wedrownyelite/moodflow/issues) page to:
 - Report bugs with detailed reproduction steps
 - Request new features with clear use cases
 - Discuss improvements and suggestions
@@ -225,9 +225,6 @@ For support and questions:
 ## 🙏 Acknowledgments
 
 - Flutter team for the amazing framework
-- Material Design team for design guidelines
-- Open source community for inspiration and packages
-- Beta testers for valuable feedback
 
 ---
 
@@ -235,7 +232,7 @@ For support and questions:
   <p>Made with ❤️ and Flutter</p>
   <p>
     <a href="#top">Back to Top</a> •
-    <a href="https://github.com/yourusername/moodflow/issues">Report Bug</a> •
-    <a href="https://github.com/yourusername/moodflow/issues">Request Feature</a>
+    <a href="https://github.com/wedrownyelite/moodflow/issues">Report Bug</a> •
+    <a href="https://github.com/wedrownyelite/moodflow/issues">Request Feature</a>
   </p>
 </div>
