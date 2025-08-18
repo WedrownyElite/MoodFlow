@@ -39,13 +39,18 @@ class _MoodLineChartState extends State<MoodLineChart> {
   List<AggregatedDataPoint> _aggregateData() {
     if (widget.trendData.isEmpty) return [];
 
-    switch (widget.aggregation) {
-      case ChartAggregation.daily:
-        return _getDailyData();
-      case ChartAggregation.weekly:
-        return _getWeeklyData();
-      case ChartAggregation.monthly:
-        return _getMonthlyData();
+    try {
+      switch (widget.aggregation) {
+        case ChartAggregation.daily:
+          return _getDailyData();
+        case ChartAggregation.weekly:
+          return _getWeeklyData();
+        case ChartAggregation.monthly:
+          return _getMonthlyData();
+      }
+    } catch (e) {
+      debugPrint('Error aggregating data: $e');
+      return [];
     }
   }
 
@@ -775,8 +780,13 @@ class AggregatedDataPoint {
 
   double? get average {
     if (moods.isEmpty) return null;
-    final total = moods.values.fold(0.0, (sum, mood) => sum + mood);
-    return total / moods.length;
+    final validMoods = moods.values.where((mood) => mood.isFinite && !mood.isNaN).toList();
+    if (validMoods.isEmpty) return null;
+
+    final total = validMoods.fold(0.0, (sum, mood) => sum + mood);
+    final avg = total / validMoods.length;
+
+    return avg.isFinite && !avg.isNaN ? avg : null;
   }
 }
 
@@ -800,7 +810,7 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (aggregatedData.isEmpty) return;
+    if (aggregatedData.isEmpty || size.width <= 0 || size.height <= 0) return;
 
     // Asymmetric padding - more left, less right
     final leftPadding = isMaximized ? 80.0 : 50.0;
@@ -991,8 +1001,13 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
       bool isFirstPoint = true;
 
       for (final point in points) {
+        if (aggregatedData.length <= 1) continue;
+
         final x = leftPadding + (chartWidth * (point.index / (aggregatedData.length - 1)));
         final y = topPadding + chartHeight - (chartHeight * ((point.moods[segment]! - 1) / 9));
+
+        // Check for invalid values
+        if (x.isNaN || y.isNaN || x.isInfinite || y.isInfinite) continue;
 
         if (isFirstPoint) {
           path.moveTo(x, y);
@@ -1021,8 +1036,13 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
         bool isFirstPoint = true;
 
         for (final point in averagePoints) {
+          if (aggregatedData.length <= 1) continue;
+
           final x = leftPadding + (chartWidth * (point.index / (aggregatedData.length - 1)));
           final y = topPadding + chartHeight - (chartHeight * ((point.average! - 1) / 9));
+
+          // Check for invalid values
+          if (x.isNaN || y.isNaN || x.isInfinite || y.isInfinite) continue;
 
           if (isFirstPoint) {
             path.moveTo(x, y);

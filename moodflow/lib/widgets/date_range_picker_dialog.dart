@@ -307,9 +307,9 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                   child: ElevatedButton(
                     onPressed: _isValidRange()
                         ? () {
-                      Navigator.of(context).pop({
-                        'startDate': _startDate,
-                        'endDate': _endDate,
+                      Navigator.of(context).pop(<String, DateTime>{
+                        'startDate': _startDate!,
+                        'endDate': _endDate!,
                       });
                     }
                         : null,

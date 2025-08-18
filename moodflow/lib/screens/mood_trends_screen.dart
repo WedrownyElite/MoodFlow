@@ -114,113 +114,6 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
     }
   }
 
-  Widget _buildTimeRangeSelector() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        children: [
-          // Time range buttons
-          Row(
-            children: [
-              ...TimeRange.values.take(5).map((range) { // Don't include custom in main row
-                final isSelected = range == _selectedRange;
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() => _selectedRange = range);
-                        _loadTrendData();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300,
-                        foregroundColor: isSelected ? Colors.white : Colors.black87,
-                        elevation: isSelected ? 2 : 0,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                      ),
-                      child: Text(
-                        _getRangeDisplayName(range),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-
-          // Custom date range and aggregation controls
-          Row(
-            children: [
-              // Custom date range button
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: Icon(
-                    Icons.date_range,
-                    size: 16,
-                    color: _selectedRange == TimeRange.custom
-                        ? Theme.of(context).primaryColor
-                        : Colors.grey.shade600,
-                  ),
-                  label: Text(
-                    _selectedRange == TimeRange.custom
-                        ? _buildCustomRangeText()
-                        : 'Custom Range',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _selectedRange == TimeRange.custom
-                          ? Theme.of(context).primaryColor
-                          : Colors.grey.shade600,
-                    ),
-                  ),
-                  onPressed: _showCustomDateRangePicker,
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(
-                      color: _selectedRange == TimeRange.custom
-                          ? Theme.of(context).primaryColor
-                          : Colors.grey.shade400,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  ),
-                ),
-              ),
-
-              const SizedBox(width: 8),
-
-              // Chart aggregation dropdown
-              Expanded(
-                child: DropdownButtonFormField<ChartAggregation>(
-                  value: _chartAggregation,
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _chartAggregation = value);
-                    }
-                  },
-                  decoration: InputDecoration(
-                    labelText: 'View',
-                    labelStyle: const TextStyle(fontSize: 12),
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                    isDense: true,
-                  ),
-                  style: const TextStyle(fontSize: 12),
-                  items: ChartAggregation.values.map((aggregation) {
-                    return DropdownMenuItem(
-                      value: aggregation,
-                      child: Text(_getAggregationDisplayName(aggregation)),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   String _buildCustomRangeText() {
     if (_customStartDate != null && _customEndDate != null) {
       final formatter = DateFormat('MMM d');
@@ -238,7 +131,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
       ),
     );
 
-    if (result != null) {
+    if (result != null && result['startDate'] != null && result['endDate'] != null) {
       setState(() {
         _customStartDate = result['startDate'];
         _customEndDate = result['endDate'];
@@ -312,7 +205,6 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildTimeRangeSelector(),
             _buildDateRangeInfo(),
             const SizedBox(height: 16),
 
@@ -357,6 +249,12 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
+
+                      // Date range selector for chart only
+                      _buildChartTimeRangeSelector(),
+                      _buildChartDateRangeInfo(),
+                      const SizedBox(height: 16),
+
                       SizedBox(
                         height: 250,
                         child: MoodLineChart(
@@ -497,6 +395,152 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildChartTimeRangeSelector() {
+    return Column(
+      children: [
+        // Time range buttons
+        Row(
+          children: [
+            ...TimeRange.values.take(5).map((range) { // Don't include custom in main row
+              final isSelected = range == _selectedRange;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() => _selectedRange = range);
+                      _loadTrendData();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isSelected ? Theme.of(context).primaryColor : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade300),
+                      foregroundColor: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
+                      elevation: isSelected ? 2 : 0,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    child: Text(
+                      _getRangeDisplayName(range),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+
+        const SizedBox(height: 8),
+
+        // Custom date range and aggregation controls
+        Row(
+          children: [
+            // Custom date range button
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: Icon(
+                  Icons.date_range,
+                  size: 16,
+                  color: _selectedRange == TimeRange.custom
+                      ? Theme.of(context).primaryColor
+                      : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                ),
+                label: Text(
+                  _selectedRange == TimeRange.custom
+                      ? _buildCustomRangeText()
+                      : 'Custom Range',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _selectedRange == TimeRange.custom
+                        ? Theme.of(context).primaryColor
+                        : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                  ),
+                ),
+                onPressed: _showCustomDateRangePicker,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: _selectedRange == TimeRange.custom
+                        ? Theme.of(context).primaryColor
+                        : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            // Chart aggregation dropdown
+            Expanded(
+              child: DropdownButtonFormField<ChartAggregation>(
+                value: _chartAggregation,
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _chartAggregation = value);
+                  }
+                },
+                decoration: const InputDecoration(
+                  labelText: 'View',
+                  labelStyle: TextStyle(fontSize: 12),
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  isDense: true,
+                ),
+                style: const TextStyle(fontSize: 12),
+                items: ChartAggregation.values.map((aggregation) {
+                  return DropdownMenuItem(
+                    value: aggregation,
+                    child: Text(_getAggregationDisplayName(aggregation)),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChartDateRangeInfo() {
+    if (_trendData.isEmpty) return const SizedBox.shrink();
+
+    final startDate = _trendData.first.date;
+    final endDate = _trendData.last.date;
+    final dayCount = _trendData.length;
+    final daysWithData = _trendData.where((day) => day.hasAnyMood).length;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Theme.of(context).primaryColor.withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            size: 16,
+            color: Theme.of(context).primaryColor,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${DateFormat('MMM d, y').format(startDate)} - ${DateFormat('MMM d, y').format(endDate)} • '
+                  '$daysWithData of $dayCount days with data',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
