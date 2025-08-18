@@ -6,6 +6,7 @@ import '../services/ui/mood_gradient_service.dart';
 import '../services/animation/blur_transition_service.dart';
 import '../services/animation/slider_animation_service.dart';
 import '../widgets/animated_mood_slider.dart';
+import '../services/data/enhanced_notification_service.dart';
 
 class MoodLogScreen extends StatefulWidget {
   final bool useCustomGradient;
@@ -105,9 +106,9 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   Future<void> _preloadAllData() async {
     // Load all accessible segments' data
     final loadFutures = <Future<void>>[];
-    
+
     for (int i = 0; i < timeSegments.length; i++) {
-      if (_canAccessSegment(i)) {
+      if (await _canAccessSegmentAsync(i)) {
         loadFutures.add(_loadDataForSegment(i));
       }
     }
@@ -158,11 +159,26 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   }
 
   bool _canAccessSegment(int index) {
-    final hour = DateTime.now().hour;
-    if (index == 0) return true;
-    if (index == 1) return hour >= 12;
-    if (index == 2) return hour >= 18;
-    return false;
+    return true; // We'll implement async version
+  }
+
+  Future<bool> _canAccessSegmentAsync(int index) async {
+    final settings = await EnhancedNotificationService.loadSettings();
+    final now = DateTime.now();
+    final currentMinutes = now.hour * 60 + now.minute;
+
+    switch (index) {
+      case 0: // Morning - always accessible
+        return true;
+      case 1: // Midday - accessible after midday time
+        final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
+        return currentMinutes >= middayMinutes;
+      case 2: // Evening - accessible after evening time
+        final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
+        return currentMinutes >= eveningMinutes;
+      default:
+        return false;
+    }
   }
 
   Future<void> _saveMoodData(int segment) async {

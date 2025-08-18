@@ -1,15 +1,27 @@
 import 'package:flutter/material.dart';
 import '../data/mood_data_service.dart';
+import '../data/enhanced_notification_service.dart';
 
 class MoodGradientService {
   static const List<String> timeSegments = MoodDataService.timeSegments;
 
   /// Determine if a segment is accessible based on hour
-  static bool canAccessSegment(int index, DateTime now) {
-    if (index == 0) return true;
-    if (index == 1) return now.hour >= 12;
-    if (index == 2) return now.hour >= 18;
-    return false;
+  static Future<bool> canAccessSegment(int index, DateTime now) async {
+    final settings = await EnhancedNotificationService.loadSettings();
+    final currentMinutes = now.hour * 60 + now.minute;
+
+    switch (index) {
+      case 0:
+        return true;
+      case 1:
+        final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
+        return currentMinutes >= middayMinutes;
+      case 2:
+        final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
+        return currentMinutes >= eveningMinutes;
+      default:
+        return false;
+    }
   }
 
   /// Compute average mood from accessible segments and generate gradient
@@ -18,7 +30,7 @@ class MoodGradientService {
     final List<double> moods = [];
 
     for (int i = 0; i < timeSegments.length; i++) {
-      if (canAccessSegment(i, now)) {
+      if (await canAccessSegment(i, now)) {
         final moodData = await MoodDataService.loadMood(now, i);
         if (moodData != null && moodData['rating'] is num) {
           moods.add(moodData['rating'].toDouble());
@@ -29,9 +41,15 @@ class MoodGradientService {
     }
 
     // Find the index of currentSegment within accessible segments
-    final accessibleIndices = List<int>.generate(timeSegments.length, (i) => i).where((i) => canAccessSegment(i, now)).toList();
+    final accessibleIndices = <int>[];
+    for (int i = 0; i < timeSegments.length; i++) {
+      if (await canAccessSegment(i, now)) {
+        accessibleIndices.add(i);
+      }
+    }
+
     final segmentPos = accessibleIndices.indexOf(currentSegment);
-    if (segmentPos != -1) {
+    if (segmentPos != -1 && segmentPos < moods.length) {
       moods[segmentPos] = currentMood;
     }
 

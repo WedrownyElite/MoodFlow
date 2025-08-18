@@ -18,7 +18,7 @@ class MoodTrendsScreen extends StatefulWidget {
 }
 
 class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
-  TimeRange _selectedRange = TimeRange.month;
+  TimeRange _selectedRange = TimeRange.month; // Keep month as default for chart range
   ChartAggregation _chartAggregation = ChartAggregation.daily;
   List<DayMoodData> _trendData = [];
   MoodStatistics _statistics = MoodStatistics.empty();
@@ -74,7 +74,8 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
       endDate: actualEndDate,
     );
 
-    final statistics = MoodTrendsService.calculateStatistics(trends);
+    // UPDATED: Now using async calculateStatistics method
+    final statistics = await MoodTrendsService.calculateStatistics(trends);
 
     setState(() {
       _trendData = trends;
@@ -123,10 +124,6 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
   }
 
   Future<void> _showCustomDateRangePicker() async {
-    print('🐛 DEBUG: Opening custom date range picker');
-    print('🐛 DEBUG: Current _customStartDate = $_customStartDate');
-    print('🐛 DEBUG: Current _customEndDate = $_customEndDate');
-
     final result = await showDialog<Map<String, DateTime>>(
       context: context,
       builder: (context) => CustomDateRangePickerDialog(
@@ -135,24 +132,14 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
       ),
     );
 
-    print('🐛 DEBUG: Date picker result = $result');
-
     if (result != null && result['startDate'] != null && result['endDate'] != null) {
-      print('🐛 DEBUG: Setting custom dates and reloading data');
-      print('🐛 DEBUG: New start date = ${result['startDate']}');
-      print('🐛 DEBUG: New end date = ${result['endDate']}');
-
       setState(() {
         _customStartDate = result['startDate'];
         _customEndDate = result['endDate'];
         _selectedRange = TimeRange.custom;
       });
 
-      print('🐛 DEBUG: About to call _loadTrendData()');
       _loadTrendData();
-      print('🐛 DEBUG: _loadTrendData() completed');
-    } else {
-      print('🐛 DEBUG: Date picker was cancelled or returned null');
     }
   }
 
@@ -223,63 +210,20 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
             _buildDateRangeInfo(),
             const SizedBox(height: 16),
 
+            // Date range selector
+            _buildChartTimeRangeSelector(),
+            _buildChartDateRangeInfo(),
+            const SizedBox(height: 16),
+
             // Enhanced Statistics Cards with Streak Options
             MoodStatisticsCards(statistics: _statistics),
             const SizedBox(height: 24),
 
-            // Line Chart Section
+            // Line Chart Section (remove selectors from inside)
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               child: Card(
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${_getAggregationDisplayName(_chartAggregation)} Trends',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          if (_chartAggregation != ChartAggregation.daily)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                _chartAggregation == ChartAggregation.weekly ? 'Averaged by week' : 'Averaged by month',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).primaryColor,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Date range selector for chart only
-                      _buildChartTimeRangeSelector(),
-                      _buildChartDateRangeInfo(),
-                      const SizedBox(height: 16),
-
-                      SizedBox(
-                        height: 250,
-                        child: MoodLineChart(
-                          trendData: _trendData,
-                          aggregation: _chartAggregation,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // ... chart content WITHOUT selectors
               ),
             ),
             const SizedBox(height: 24),
@@ -334,6 +278,15 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                'Statistics Info:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text('• "Days Logged" shows your total across all time'),
+              Text('• Other stats reflect the selected date range'),
+              SizedBox(height: 16),
+
               Text(
                 'Date Ranges:',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -414,31 +367,14 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
     );
   }
 
-// In mood_trends_screen.dart, replace the _buildChartTimeRangeSelector method with this fixed version:
-
-// Replace the _buildChartTimeRangeSelector method with this ACTUALLY FIXED version:
-
   Widget _buildChartTimeRangeSelector() {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
-    // DEBUG LOGS
-    print('🐛 DEBUG: Building chart time range selector');
-    print('🐛 DEBUG: isDarkMode = $isDarkMode');
-    print('🐛 DEBUG: _selectedRange = $_selectedRange');
-    print('🐛 DEBUG: TimeRange.custom = ${TimeRange.custom}');
-    print('🐛 DEBUG: Is custom selected = ${_selectedRange == TimeRange.custom}');
-
-    // Define theme-aware colors
     final primaryTextColor = theme.textTheme.bodyLarge?.color ?? (isDarkMode ? Colors.white : Colors.black87);
     final secondaryTextColor = theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ?? (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600);
     final borderColor = theme.dividerColor;
     final buttonBackgroundColor = isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300;
-
-    // DEBUG LOGS FOR COLORS
-    print('🐛 DEBUG: primaryTextColor = $primaryTextColor');
-    print('🐛 DEBUG: theme.cardColor = ${theme.cardColor}');
-    print('🐛 DEBUG: theme.primaryColor = ${Theme.of(context).primaryColor}');
 
     return Column(
       children: [
@@ -481,51 +417,36 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
         // Custom date range and aggregation controls
         Row(
           children: [
-            // Custom date range button - FIXED FOR DARK MODE
+            // Custom date range button
             Expanded(
               child: Builder(
                 builder: (context) {
                   final isCustomSelected = _selectedRange == TimeRange.custom;
 
-                  // CALCULATE PROPER COLORS FOR CUSTOM BUTTON
                   Color backgroundColor;
                   Color textColor;
                   Color iconColor;
                   Color borderColor;
 
                   if (isCustomSelected) {
-                    // WHEN CUSTOM IS SELECTED - FIX FOR DARK PRIMARY COLORS
                     backgroundColor = Theme.of(context).primaryColor.withOpacity(isDarkMode ? 0.15 : 0.1);
 
-                    // THE FIX: Use bright color for text/icons in dark mode when primary is dark
                     if (isDarkMode) {
-                      // Create a bright version of the primary color for dark mode
                       final primaryHSL = HSLColor.fromColor(Theme.of(context).primaryColor);
                       final brightPrimary = primaryHSL.withLightness(0.7).withSaturation(0.8).toColor();
                       textColor = brightPrimary;
                       iconColor = brightPrimary;
                       borderColor = brightPrimary;
-
-                      print('🐛 DEBUG: Using bright primary for dark mode: $brightPrimary');
                     } else {
                       textColor = Theme.of(context).primaryColor;
                       iconColor = Theme.of(context).primaryColor;
                       borderColor = Theme.of(context).primaryColor;
                     }
-
-                    print('🐛 DEBUG: Custom is selected - using primary colors');
-                    print('🐛 DEBUG: backgroundColor = $backgroundColor');
-                    print('🐛 DEBUG: textColor = $textColor');
                   } else {
-                    // WHEN CUSTOM IS NOT SELECTED
                     backgroundColor = isDarkMode ? theme.cardColor : Colors.white;
                     textColor = primaryTextColor;
                     iconColor = primaryTextColor;
                     borderColor = theme.dividerColor;
-
-                    print('🐛 DEBUG: Custom is NOT selected - using default colors');
-                    print('🐛 DEBUG: backgroundColor = $backgroundColor');
-                    print('🐛 DEBUG: textColor = $textColor');
                   }
 
                   return Container(
@@ -542,7 +463,6 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
-                          print('🐛 DEBUG: Custom date range button tapped');
                           _showCustomDateRangePicker();
                         },
                         borderRadius: BorderRadius.circular(4),
@@ -633,7 +553,6 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
     );
   }
 
-
   Widget _buildChartDateRangeInfo() {
     if (_trendData.isEmpty) return const SizedBox.shrink();
 
@@ -644,11 +563,6 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
 
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-
-    // DEBUG LOGS FOR INFO BOX
-    print('🐛 DEBUG: Building chart date range info');
-    print('🐛 DEBUG: isDarkMode = $isDarkMode');
-    print('🐛 DEBUG: theme.primaryColor = ${theme.primaryColor}');
 
     // CALCULATE PROPER COLORS FOR INFO BOX - FIXED FOR DARK PRIMARY
     final backgroundColor = isDarkMode
@@ -665,13 +579,9 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
       // Create a bright version of the primary color for dark mode
       final primaryHSL = HSLColor.fromColor(theme.primaryColor);
       textColor = primaryHSL.withLightness(0.7).withSaturation(0.8).toColor();
-      print('🐛 DEBUG: Using bright primary for info box text: $textColor');
     } else {
       textColor = theme.primaryColor;
     }
-
-    print('🐛 DEBUG: Info box backgroundColor = $backgroundColor');
-    print('🐛 DEBUG: Info box textColor = $textColor');
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
