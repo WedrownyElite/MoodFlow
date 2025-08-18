@@ -29,15 +29,16 @@ class MoodLogScreen extends StatefulWidget {
 class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateMixin {
   final List<String> timeSegments = MoodDataService.timeSegments;
   int currentSegment = 0;
-
-  // Cache all segment data
-  final Map<int, double> _cachedMoodValues = {};
-  final Map<int, TextEditingController> _cachedNoteControllers = {};
   
   late PageController _pageController;
   late AnimationController _gradientAnimationController;
   late BlurTransitionService _blurService;
   late SliderAnimationService _sliderService;
+
+  // Cache all segment data
+  final Map<int, double> _cachedMoodValues = {};
+  final Map<int, TextEditingController> _cachedNoteControllers = {};
+  final Map<int, bool> _accessibilityCache = {};
   
   LinearGradient? _currentGradient;
   LinearGradient? _targetGradient;
@@ -117,17 +118,15 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   }
 
   Future<void> _preloadAllData() async {
-    // Load all accessible segments' data
+    // Load all segments' accessibility and data
     final loadFutures = <Future<void>>[];
 
     for (int i = 0; i < timeSegments.length; i++) {
-      if (await _canAccessSegmentAsync(i)) {
-        loadFutures.add(_loadDataForSegment(i));
-      }
+      loadFutures.add(_loadAccessibilityAndDataForSegment(i));
     }
-    
+
     await Future.wait(loadFutures);
-    
+
     setState(() {
       _isInitialLoading = false;
     });
@@ -136,9 +135,24 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     if (widget.useCustomGradient) {
       _updateGradientForMood(_cachedMoodValues[currentSegment] ?? 5.0);
     }
-    
+
     // Initialize slider with current mood value
     _sliderService.setValueImmediate(_cachedMoodValues[currentSegment] ?? 5.0);
+  }
+
+  Future<void> _loadAccessibilityAndDataForSegment(int segment) async {
+    // Check accessibility
+    final canAccess = await _canAccessSegmentAsync(segment);
+    _accessibilityCache[segment] = canAccess;
+
+    // Load data only if accessible
+    if (canAccess) {
+      await _loadDataForSegment(segment);
+    } else {
+      // Set default values for inaccessible segments
+      _cachedMoodValues[segment] = 5.0;
+      _cachedNoteControllers[segment]?.text = '';
+    }
   }
 
   Future<void> _loadDataForSegment(int segment) async {
@@ -178,7 +192,8 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   }
 
   bool _canAccessSegment(int index) {
-    return true; // We'll implement async version
+    // Use cached results from _accessibilityCache
+    return _accessibilityCache[index] ?? false;
   }
 
   Future<bool> _canAccessSegmentAsync(int index) async {
@@ -237,27 +252,29 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   }
 
   Future<void> _navigateToSegment(int newIndex) async {
-    if (!_canAccessSegment(newIndex) || _blurService.isTransitioning) return;
-    
+    // Check accessibility first
+    final canAccess = await _canAccessSegmentAsync(newIndex);
+    if (!canAccess || _blurService.isTransitioning) return;
+
     await _blurService.executeTransition(() async {
       // Load data and switch page while blurred
-      await _loadDataForSegment(newIndex);
-      
+      await _loadAccessibilityAndDataForSegment(newIndex);
+
       setState(() {
         currentSegment = newIndex;
       });
-      
+
       _pageController.jumpToPage(newIndex);
-      
+
       // Animate slider to new value after page switch
       final newMoodValue = _cachedMoodValues[newIndex] ?? 5.0;
       await _sliderService.animateToValue(newMoodValue);
-      
+
       if (widget.useCustomGradient) {
         _updateGradientForMood(newMoodValue);
       }
     });
-    
+
     // Ensure UI is properly updated after transition
     if (mounted) {
       setState(() {});
@@ -265,7 +282,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   }
 
   Widget _buildMoodPage(int index) {
-    final canEdit = index == currentSegment && _canAccessSegment(index);
+    final canEdit = index == currentSegment && (_accessibilityCache[index] ?? false);
 
     if (!_cachedMoodValues.containsKey(index) || !_cachedNoteControllers.containsKey(index)) {
       return const Center(child: CircularProgressIndicator());
@@ -412,7 +429,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          if (currentSegment > 0 && _canAccessSegment(currentSegment - 1))
+                          if (currentSegment > 0 && (_accessibilityCache[currentSegment - 1] ?? false))
                             IconButton(
                               icon: const Icon(Icons.arrow_left, color: Colors.white, size: 32),
                               onPressed: _blurService.isTransitioning ? null : () => _navigateToSegment(currentSegment - 1),
@@ -423,7 +440,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                             timeSegments[currentSegment],
                             style: const TextStyle(fontSize: 20, color: Colors.white),
                           ),
-                          if (currentSegment < timeSegments.length - 1 && _canAccessSegment(currentSegment + 1))
+                          if (currentSegment < timeSegments.length - 1 && (_accessibilityCache[currentSegment + 1] ?? false))
                             IconButton(
                               icon: const Icon(Icons.arrow_right, color: Colors.white, size: 32),
                               onPressed: _blurService.isTransitioning ? null : () => _navigateToSegment(currentSegment + 1),
