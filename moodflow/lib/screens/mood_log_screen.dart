@@ -29,7 +29,7 @@ class MoodLogScreen extends StatefulWidget {
 class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateMixin {
   final List<String> timeSegments = MoodDataService.timeSegments;
   int currentSegment = 0;
-  
+
   late PageController _pageController;
   late AnimationController _gradientAnimationController;
   late BlurTransitionService _blurService;
@@ -39,7 +39,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   final Map<int, double> _cachedMoodValues = {};
   final Map<int, TextEditingController> _cachedNoteControllers = {};
   final Map<int, bool> _accessibilityCache = {};
-  
+
   LinearGradient? _currentGradient;
   LinearGradient? _targetGradient;
   Animation<LinearGradient>? _gradientAnimation;
@@ -50,14 +50,36 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _initializeCurrentSegment();
-    _pageController = PageController(initialPage: currentSegment);
 
-    // Initialize controllers for all segments
+    // Initialize controllers for all segments first
     for (int i = 0; i < timeSegments.length; i++) {
       _cachedNoteControllers[i] = TextEditingController();
       _cachedMoodValues[i] = 5.0; // Default value
     }
+
+    // FIXED: Initialize current segment properly
+    _initializeCurrentSegment();
+  }
+
+  Future<void> _initializeCurrentSegment() async {
+    // FIXED: Get the correct current segment based on time and accessibility
+    final detectedSegment = await _getCurrentSegmentIndex();
+
+    // FIXED: If initialSegment is provided (from notification), use that if accessible
+    if (widget.initialSegment != null) {
+      final requestedSegment = widget.initialSegment!;
+      final canAccess = await _canAccessSegmentAsync(requestedSegment);
+      if (canAccess) {
+        currentSegment = requestedSegment;
+      } else {
+        currentSegment = detectedSegment;
+      }
+    } else {
+      currentSegment = detectedSegment;
+    }
+
+    // Now initialize page controller with the correct segment
+    _pageController = PageController(initialPage: currentSegment);
 
     _pageController.addListener(() {
       final page = _pageController.page?.round() ?? currentSegment;
@@ -77,8 +99,8 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
 
     // Gradient animation controller
     _gradientAnimationController = AnimationController(
-      vsync: this, 
-      duration: const Duration(milliseconds: 500)
+        vsync: this,
+        duration: const Duration(milliseconds: 500)
     );
     _gradientAnimationController.addListener(() {
       if (mounted) setState(() {});
@@ -86,35 +108,9 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
 
     // Initialize gradient synchronously first
     _initGradientSync();
-    
+
     // Preload all data
     _preloadAllData();
-  }
-
-  Future<void> _initializeCurrentSegment() async {
-    currentSegment = await _getCurrentSegmentIndex();
-    _pageController = PageController(initialPage: currentSegment);
-
-    // Continue with the rest of initialization that depends on currentSegment
-    _pageController.addListener(() {
-      final page = _pageController.page?.round() ?? currentSegment;
-      if (!_canAccessSegment(page)) {
-        _pageController.jumpToPage(currentSegment);
-      }
-    });
-  }
-  
-  void _initGradientSync() {
-    // Initialize with fallback gradient immediately
-    final gradient = MoodGradientService.fallbackGradient(widget.isDarkMode);
-    _currentGradient = gradient;
-    _targetGradient = gradient;
-    _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient).animate(_gradientAnimationController);
-    
-    // Then asynchronously update if using custom gradient
-    if (widget.useCustomGradient) {
-      _initGradient();
-    }
   }
 
   Future<void> _preloadAllData() async {
@@ -157,7 +153,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
 
   Future<void> _loadDataForSegment(int segment) async {
     final moodData = await MoodDataService.loadMood(DateTime.now(), segment);
-    
+
     _cachedMoodValues[segment] = (moodData?['rating'] ?? 5).toDouble();
     _cachedNoteControllers[segment]?.text = (moodData?['note'] ?? '');
   }
@@ -166,12 +162,12 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   void dispose() {
     _debounceTimer?.cancel();
     _pageController.dispose();
-    
+
     // Dispose all controllers
     for (final controller in _cachedNoteControllers.values) {
       controller.dispose();
     }
-    
+
     _gradientAnimationController.dispose();
     _blurService.dispose();
     _sliderService.dispose();
@@ -186,6 +182,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
     final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
 
+    // FIXED: Return the highest accessible segment
     if (currentMinutes >= eveningMinutes) return 2; // Evening
     if (currentMinutes >= middayMinutes) return 1;  // Midday
     return 0; // Morning
@@ -218,11 +215,24 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   Future<void> _saveMoodData(int segment) async {
     final moodValue = _cachedMoodValues[segment] ?? 5.0;
     final noteText = _cachedNoteControllers[segment]?.text ?? '';
-    
+
     await MoodDataService.saveMood(DateTime.now(), segment, moodValue, noteText);
-    
+
     if (widget.useCustomGradient && segment == currentSegment) {
       _updateGradientForMood(moodValue);
+    }
+  }
+
+  void _initGradientSync() {
+    // Initialize with fallback gradient immediately
+    final gradient = MoodGradientService.fallbackGradient(widget.isDarkMode);
+    _currentGradient = gradient;
+    _targetGradient = gradient;
+    _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient).animate(_gradientAnimationController);
+
+    // Then asynchronously update if using custom gradient
+    if (widget.useCustomGradient) {
+      _initGradient();
     }
   }
 
@@ -279,6 +289,25 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     if (mounted) {
       setState(() {});
     }
+  }
+
+  // FIXED: Add method to get navigation bounds
+  int _getFirstAccessibleSegment() {
+    for (int i = 0; i < timeSegments.length; i++) {
+      if (_accessibilityCache[i] == true) {
+        return i;
+      }
+    }
+    return 0; // Fallback to morning
+  }
+
+  int _getLastAccessibleSegment() {
+    for (int i = timeSegments.length - 1; i >= 0; i--) {
+      if (_accessibilityCache[i] == true) {
+        return i;
+      }
+    }
+    return 0; // Fallback to morning
   }
 
   Widget _buildMoodPage(int index) {
@@ -341,28 +370,28 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: canEdit
                 ? IgnorePointer(
-                    ignoring: _blurService.isTransitioning,
-                    child: TextField(
-                      controller: noteController,
-                      maxLines: null,
-                      minLines: 8,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: const InputDecoration(border: InputBorder.none, hintText: 'Write your thoughts here...'),
-                      onChanged: (text) {
-                        _debounceTimer?.cancel();
-                        _debounceTimer = Timer(const Duration(milliseconds: 800), () {
-                          _saveMoodData(index);
-                        });
-                      },
-                    ),
-                  )
+              ignoring: _blurService.isTransitioning,
+              child: TextField(
+                controller: noteController,
+                maxLines: null,
+                minLines: 8,
+                style: const TextStyle(color: Colors.black),
+                decoration: const InputDecoration(border: InputBorder.none, hintText: 'Write your thoughts here...'),
+                onChanged: (text) {
+                  _debounceTimer?.cancel();
+                  _debounceTimer = Timer(const Duration(milliseconds: 800), () {
+                    _saveMoodData(index);
+                  });
+                },
+              ),
+            )
                 : Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    child: noteController.text.isEmpty
-                        ? const SizedBox.shrink()
-                        : Text(noteController.text, style: const TextStyle(color: Colors.black87)),
-                  ),
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              child: noteController.text.isEmpty
+                  ? const SizedBox.shrink()
+                  : Text(noteController.text, style: const TextStyle(color: Colors.black87)),
+            ),
           ),
           const SizedBox(height: 32),
         ],
@@ -429,10 +458,19 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          if (currentSegment > 0 && (_accessibilityCache[currentSegment - 1] ?? false))
+                          // FIXED: Use proper navigation bounds
+                          if (currentSegment > _getFirstAccessibleSegment())
                             IconButton(
                               icon: const Icon(Icons.arrow_left, color: Colors.white, size: 32),
-                              onPressed: _blurService.isTransitioning ? null : () => _navigateToSegment(currentSegment - 1),
+                              onPressed: _blurService.isTransitioning ? null : () {
+                                // Find the previous accessible segment
+                                for (int i = currentSegment - 1; i >= 0; i--) {
+                                  if (_accessibilityCache[i] == true) {
+                                    _navigateToSegment(i);
+                                    break;
+                                  }
+                                }
+                              },
                             )
                           else
                             const SizedBox(width: 48),
@@ -440,10 +478,19 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                             timeSegments[currentSegment],
                             style: const TextStyle(fontSize: 20, color: Colors.white),
                           ),
-                          if (currentSegment < timeSegments.length - 1 && (_accessibilityCache[currentSegment + 1] ?? false))
+                          // FIXED: Use proper navigation bounds
+                          if (currentSegment < _getLastAccessibleSegment())
                             IconButton(
                               icon: const Icon(Icons.arrow_right, color: Colors.white, size: 32),
-                              onPressed: _blurService.isTransitioning ? null : () => _navigateToSegment(currentSegment + 1),
+                              onPressed: _blurService.isTransitioning ? null : () {
+                                // Find the next accessible segment
+                                for (int i = currentSegment + 1; i < timeSegments.length; i++) {
+                                  if (_accessibilityCache[i] == true) {
+                                    _navigateToSegment(i);
+                                    break;
+                                  }
+                                }
+                              },
                             )
                           else
                             const SizedBox(width: 48),

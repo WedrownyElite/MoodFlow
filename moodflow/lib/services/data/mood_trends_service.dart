@@ -1,4 +1,4 @@
-// Updated mood_trends_service.dart with separate total days calculation
+// Updated mood_trends_service.dart with date range specific statistics
 import 'dart:math';
 import '../data/mood_data_service.dart';
 
@@ -59,15 +59,20 @@ class MoodTrendsService {
     return totalDaysLogged;
   }
 
-  /// Calculate statistics from mood trends (for date range specific stats)
-  /// BUT use separate total days logged calculation
-  static Future<MoodStatistics> calculateStatistics(List<DayMoodData> trends) async {
+  /// NEW: Calculate statistics for a specific date range (affects most stats)
+  /// But keeps global stats for days logged and streaks
+  static Future<MoodStatistics> calculateStatisticsForDateRange(
+      List<DayMoodData> trends,
+      DateTime startDate,
+      DateTime endDate
+      ) async {
     if (trends.isEmpty) {
-      // Even if no trends in range, still get total days logged
+      // Even if no trends in range, still get total days logged and streaks
       final totalDaysLogged = await getTotalDaysLogged();
+      final currentStreak = await _calculateCurrentStreakGlobal();
       return MoodStatistics(
         daysLogged: totalDaysLogged,
-        currentStreak: 0,
+        currentStreak: currentStreak,
         overallAverage: 0.0,
         timeSegmentAverages: {},
         bestTimeSegment: 0,
@@ -81,37 +86,22 @@ class MoodTrendsService {
       2: [], // Evening
     };
 
-    // Calculate current streak and other range-specific statistics
-    int currentStreak = 0;
+    // FIXED: Calculate current streak globally, not just in date range
+    final currentStreak = await _calculateCurrentStreakGlobal();
     double? bestDayMood;
     DateTime? bestDay;
     double? worstDayMood;
     DateTime? worstDay;
 
-// Process trends in reverse to calculate current streak
-    final today = DateTime.now();
-    final todayDate = DateTime(today.year, today.month, today.day);
-
-    for (int i = trends.length - 1; i >= 0; i--) {
-      final day = trends[i];
+    // Process trends to calculate date-range specific statistics
+    for (final day in trends) {
       final dayMoods = day.moods.values.where((mood) => mood != null).cast<double>().toList();
 
       if (dayMoods.isNotEmpty) {
-        // Skip today unless it has mood data
-        final dayDate = DateTime(day.date.year, day.date.month, day.date.day);
-        if (dayDate.isAtSameMomentAs(todayDate) && dayMoods.isEmpty) {
-          continue; // Skip today if no mood logged yet
-        }
-
-        // Only count streak if we're starting from a valid day or continuing a streak
-        if (i == trends.length - 1 || currentStreak > 0) {
-          currentStreak++;
-        }
-
         final dayAverage = dayMoods.reduce((a, b) => a + b) / dayMoods.length;
         allMoods.add(dayAverage);
 
-        // Track best/worst days
+        // Track best/worst days within the date range
         if (bestDayMood == null || dayAverage > bestDayMood) {
           bestDayMood = dayAverage;
           bestDay = day.date;
@@ -121,21 +111,18 @@ class MoodTrendsService {
           worstDay = day.date;
         }
 
-        // Group by time segments
+        // Group by time segments within the date range
         for (int segment = 0; segment < 3; segment++) {
           if (day.moods[segment] != null) {
             timeSegmentMoods[segment]!.add(day.moods[segment]!);
           }
         }
-      } else if (currentStreak > 0) {
-        // Only break streak calculation, not the entire loop
-        break;
       }
     }
 
     final overallAverage = allMoods.isNotEmpty ? allMoods.reduce((a, b) => a + b) / allMoods.length : 0.0;
 
-    // Calculate time segment averages
+    // Calculate time segment averages within the date range
     final timeSegmentAverages = <int, double>{};
     int bestTimeSegment = 0;
     double bestTimeAverage = 0.0;
@@ -156,16 +143,68 @@ class MoodTrendsService {
     final totalDaysLogged = await getTotalDaysLogged();
 
     return MoodStatistics(
-      daysLogged: totalDaysLogged, // THIS IS NOW INDEPENDENT OF DATE RANGE
-      currentStreak: currentStreak,
-      overallAverage: overallAverage,
-      bestDay: bestDay,
-      bestDayMood: bestDayMood,
-      worstDay: worstDay,
-      worstDayMood: worstDayMood,
-      timeSegmentAverages: timeSegmentAverages,
-      bestTimeSegment: bestTimeSegment,
+      daysLogged: totalDaysLogged, // GLOBAL STAT - independent of date range
+      currentStreak: currentStreak, // GLOBAL STAT - independent of date range
+      overallAverage: overallAverage, // DATE RANGE SPECIFIC
+      bestDay: bestDay, // DATE RANGE SPECIFIC
+      bestDayMood: bestDayMood, // DATE RANGE SPECIFIC
+      worstDay: worstDay, // DATE RANGE SPECIFIC
+      worstDayMood: worstDayMood, // DATE RANGE SPECIFIC
+      timeSegmentAverages: timeSegmentAverages, // DATE RANGE SPECIFIC
+      bestTimeSegment: bestTimeSegment, // DATE RANGE SPECIFIC
     );
+  }
+
+  /// Calculate current streak globally (not affected by date range)
+  static Future<int> _calculateCurrentStreakGlobal() async {
+    int streak = 0;
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+
+    // Start from today and work backwards
+    for (int i = 0; i < 365; i++) { // Max 1 year
+      final date = todayDate.subtract(Duration(days: i));
+      bool hasAnyMood = false;
+
+      for (int segment = 0; segment < 3; segment++) {
+        final mood = await MoodDataService.loadMood(date, segment);
+        if (mood != null && mood['rating'] != null) {
+          hasAnyMood = true;
+          break;
+        }
+      }
+
+      if (hasAnyMood) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  /// LEGACY: Calculate statistics from mood trends (for backwards compatibility)
+  /// This method is now deprecated in favor of calculateStatisticsForDateRange
+  static Future<MoodStatistics> calculateStatistics(List<DayMoodData> trends) async {
+    // For backwards compatibility, calculate stats for the entire trends list
+    if (trends.isEmpty) {
+      final totalDaysLogged = await getTotalDaysLogged();
+      final currentStreak = await _calculateCurrentStreakGlobal();
+      return MoodStatistics(
+        daysLogged: totalDaysLogged,
+        currentStreak: currentStreak,
+        overallAverage: 0.0,
+        timeSegmentAverages: {},
+        bestTimeSegment: 0,
+      );
+    }
+
+    // Use the date range of the trends data
+    final startDate = trends.first.date;
+    final endDate = trends.last.date;
+
+    return await calculateStatisticsForDateRange(trends, startDate, endDate);
   }
 
   /// Get mood data formatted for line chart

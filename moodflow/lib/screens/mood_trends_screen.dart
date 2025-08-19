@@ -6,7 +6,6 @@ import '../widgets/mood_line_chart.dart';
 import '../widgets/mood_heatmap.dart';
 import '../widgets/mood_statistics_cards.dart';
 import '../widgets/date_range_picker_dialog.dart';
-import '../widgets/mood_line_chart.dart';
 
 enum TimeRange { week, month, quarter, year, all, custom }
 
@@ -18,7 +17,7 @@ class MoodTrendsScreen extends StatefulWidget {
 }
 
 class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
-  TimeRange _selectedRange = TimeRange.month; // Keep month as default for chart range
+  TimeRange _selectedRange = TimeRange.month;
   ChartAggregation _chartAggregation = ChartAggregation.daily;
   List<DayMoodData> _trendData = [];
   MoodStatistics _statistics = MoodStatistics.empty();
@@ -74,8 +73,12 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
       endDate: actualEndDate,
     );
 
-    // UPDATED: Now using async calculateStatistics method
-    final statistics = await MoodTrendsService.calculateStatistics(trends);
+    // FIXED: Calculate statistics based on the filtered date range
+    final statistics = await MoodTrendsService.calculateStatisticsForDateRange(
+        trends,
+        startDate,
+        actualEndDate
+    );
 
     setState(() {
       _trendData = trends;
@@ -120,7 +123,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
       final formatter = DateFormat('MMM d');
       return '${formatter.format(_customStartDate!)} - ${formatter.format(_customEndDate!)}';
     }
-    return 'Custom Range'; // Fallback text
+    return 'Custom Range';
   }
 
   Future<void> _showCustomDateRangePicker() async {
@@ -219,11 +222,54 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
             MoodStatisticsCards(statistics: _statistics),
             const SizedBox(height: 24),
 
-            // Line Chart Section (remove selectors from inside)
+            // FIXED: Restored Line Chart Section
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               child: Card(
-                // ... chart content WITHOUT selectors
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${_getAggregationDisplayName(_chartAggregation)} Trends',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          if (_chartAggregation != ChartAggregation.daily)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                _chartAggregation == ChartAggregation.weekly ? 'Averaged by week' : 'Averaged by month',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).primaryColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      SizedBox(
+                        height: 250,
+                        child: MoodLineChart(
+                          trendData: _trendData,
+                          aggregation: _chartAggregation,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -283,7 +329,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               SizedBox(height: 8),
-              Text('• "Days Logged" shows your total across all time'),
+              Text('• "Days Logged" and "Current Streaks" show your total across all time'),
               Text('• Other stats reflect the selected date range'),
               SizedBox(height: 16),
 
