@@ -57,6 +57,8 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
 
   /// Calculate detailed streaks in real-time to reflect current mood entries
   Future<void> _calculateDetailedStreaks() async {
+    await Future.delayed(const Duration(milliseconds: 50));
+    
     setState(() => _isLoadingStreaks = true);
 
     int liveStreak = 0;
@@ -75,12 +77,32 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
       streakCalculationDate = todayDate.subtract(const Duration(days: 1));
     }
 
-    // Calculate streaks by going backwards from the streak calculation date
-    DateTime currentDate = streakCalculationDate;
+// Check if user has logged any mood today
+    bool hasLoggedToday = false;
+    for (int segment = 0; segment < 3; segment++) {
+      final moodData = await MoodDataService.loadMood(todayDate, segment);
+      if (moodData != null && moodData['rating'] != null) {
+        hasLoggedToday = true;
+        break;
+      }
+    }
+
+// Determine starting date for streak calculation
+    DateTime streakStartDate;
+    if (hasLoggedToday) {
+      // User has logged today, so include today in streak calculation
+      streakStartDate = todayDate;
+    } else {
+      // User hasn't logged today, so start from yesterday
+      streakStartDate = todayDate.subtract(const Duration(days: 1));
+    }
+
+// Calculate streaks starting from the determined date
+    DateTime currentDate = streakStartDate;
     bool liveBroken = false;
     bool completionBroken = false;
 
-    //  Check up to 365 days back and refresh data in real-time
+//  Check up to 365 days back and refresh data in real-time
     for (int i = 0; i < 365; i++) {
       bool hasAnyMood = false;
       bool wasLoggedOnTime = false;

@@ -13,13 +13,17 @@ import 'screens/settings_screen.dart';
 import 'services/notification_manager.dart';
 import 'services/data/enhanced_notification_service.dart';
 import 'services/navigation_service.dart';
+import 'services/ai/mood_analysis_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Initialize environment variables
+  await MoodAnalysisService.initialize();
+
   // Initialize notifications
   await EnhancedNotificationService.initialize();
-  
+
   runApp(const MoodTrackerApp());
 }
 

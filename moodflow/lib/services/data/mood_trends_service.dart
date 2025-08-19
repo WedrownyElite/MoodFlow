@@ -161,8 +161,28 @@ class MoodTrendsService {
     final now = DateTime.now();
     final todayDate = DateTime(now.year, now.month, now.day);
 
-    // Start from today and work backwards
-    DateTime currentDate = todayDate;
+    // Check if user has logged any mood today
+    bool hasLoggedToday = false;
+    for (int segment = 0; segment < 3; segment++) {
+      final mood = await MoodDataService.loadMood(todayDate, segment);
+      if (mood != null && mood['rating'] != null) {
+        hasLoggedToday = true;
+        break;
+      }
+    }
+
+    // Determine starting date for streak calculation
+    DateTime streakStartDate;
+    if (hasLoggedToday) {
+      // User has logged today, so include today in streak calculation
+      streakStartDate = todayDate;
+    } else {
+      // User hasn't logged today, so start from yesterday
+      streakStartDate = todayDate.subtract(const Duration(days: 1));
+    }
+
+    // Calculate streak starting from the determined date
+    DateTime currentDate = streakStartDate;
 
     for (int i = 0; i < 365; i++) { // Max 1 year
       bool hasAnyMood = false;

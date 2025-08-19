@@ -8,6 +8,7 @@ import 'mood_trends_screen.dart';
 import 'mood_history_screen.dart';
 import 'goals_screen.dart';
 import 'settings_screen.dart';
+import 'ai_analysis_screen.dart';
 
 class MainMenuScreen extends StatefulWidget {
   final ThemeMode themeMode;
@@ -167,6 +168,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
                     label: const Text('View Trends'),
                     onPressed: _blurService.isTransitioning ? null : () {
                       _navigateWithBlur(const MoodTrendsScreen());
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.psychology),
+                    label: const Text('AI Analysis'),
+                    onPressed: _blurService.isTransitioning ? null : () {
+                      _navigateWithBlur(const AIAnalysisScreen());
                     },
                   ),
                   const SizedBox(height: 24),

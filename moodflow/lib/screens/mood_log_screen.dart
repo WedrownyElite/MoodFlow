@@ -100,7 +100,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     const defaultMiddayMinutes = 13 * 60; // 1 PM
     const defaultEveningMinutes = 19 * 60; // 7 PM
 
-    // Return highest accessible segment
+    // Return highest accessible segment - start from highest and work down
     if (currentMinutes >= defaultEveningMinutes) return 2; // Evening
     if (currentMinutes >= defaultMiddayMinutes) return 1;  // Midday
     return 0; // Morning
@@ -144,14 +144,20 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     // Load accessibility and refine current segment if needed
     await _loadAllAccessibility();
 
-    // Only change segment if the initially set one is not accessible
-    if (!(_accessibilityCache[currentSegment] ?? false)) {
-      final newSegment = await _getCurrentSegmentIndexAsync();
-      if (newSegment != currentSegment && (_accessibilityCache[newSegment] ?? false)) {
-        currentSegment = newSegment;
-        if (mounted) {
-          _pageController.jumpToPage(currentSegment); // No animation for correction
-        }
+    // Find the highest accessible segment based on actual settings
+    int highestAccessible = 0;
+    for (int i = 2; i >= 0; i--) { // Check from evening down to morning
+      if (_accessibilityCache[i] == true) {
+        highestAccessible = i;
+        break;
+      }
+    }
+
+    // Only change segment if we found a higher accessible segment
+    if (highestAccessible > currentSegment && (_accessibilityCache[highestAccessible] ?? false)) {
+      currentSegment = highestAccessible;
+      if (mounted) {
+        _pageController.jumpToPage(currentSegment); // No animation for correction
       }
     }
 
@@ -265,6 +271,9 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     if (widget.useCustomGradient && segment == currentSegment) {
       _updateGradientForMood(moodValue);
     }
+
+    // Force a brief delay to ensure data is written to storage
+    await Future.delayed(const Duration(milliseconds: 100));
   }
 
   void _initGradientSync() {
