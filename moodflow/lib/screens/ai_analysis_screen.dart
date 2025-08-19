@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/ai/mood_analysis_service.dart';
 import '../widgets/date_range_picker_dialog.dart';
 
@@ -13,14 +14,110 @@ class AIAnalysisScreen extends StatefulWidget {
 class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
   MoodAnalysisResult? _analysisResult;
   bool _isAnalyzing = false;
+  bool _hasValidKey = false;
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _endDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    // Auto-analyze last 30 days on load
-    _performAnalysis();
+    _checkApiKey();
+  }
+
+  Future<void> _checkApiKey() async {
+    final hasKey = await MoodAnalysisService.hasValidApiKey();
+    setState(() {
+      _hasValidKey = hasKey;
+    });
+  }
+
+  Future<void> _showApiKeyDialog() async {
+    final controller = TextEditingController();
+    bool isValidating = false;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Enter OpenAI API Key'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'To use AI analysis, you need an OpenAI API key. Get one free at:',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'https://platform.openai.com/api-keys',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'API Key',
+                  hintText: 'sk-...',
+                  border: OutlineInputBorder(),
+                ),
+                obscureText: true,
+                enabled: !isValidating,
+              ),
+              if (isValidating) ...[
+                const SizedBox(height: 12),
+                const Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('Validating API key...'),
+                  ],
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isValidating ? null : () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isValidating ? null : () async {
+                if (controller.text.trim().isEmpty) return;
+
+                setDialogState(() => isValidating = true);
+
+                final isValid = await MoodAnalysisService.validateAndSaveApiKey(controller.text.trim());
+
+                if (isValid) {
+                  Navigator.of(context).pop(true);
+                } else {
+                  setDialogState(() => isValidating = false);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Invalid API key. Please check and try again.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true) {
+      _checkApiKey();
+    }
   }
 
   Future<void> _selectDateRange() async {
@@ -36,12 +133,17 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
       setState(() {
         _startDate = result['startDate']!;
         _endDate = result['endDate']!;
+        _analysisResult = null; // Clear previous results when date changes
       });
-      _performAnalysis();
     }
   }
 
   Future<void> _performAnalysis() async {
+    if (!_hasValidKey) {
+      await _showApiKeyDialog();
+      return;
+    }
+
     setState(() {
       _isAnalyzing = true;
       _analysisResult = null;
@@ -58,6 +160,58 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     });
   }
 
+  void _showDisclaimer() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Important Disclaimer'),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'AI Analysis Disclaimer',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '• This analysis is generated by artificial intelligence (OpenAI\'s GPT) and is for informational purposes only.',
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• The recommendations provided are NOT professional medical, psychological, or behavioral health advice.',
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• OddologyInc and this app are not responsible for any actions taken based on AI-generated content.',
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• If you are experiencing mental health concerns, please consult with a qualified healthcare professional or counselor.',
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• This tool is designed to help you reflect on patterns in your mood tracking data, not to diagnose or treat any condition.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                'By using this feature, you acknowledge and accept these limitations.',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('I Understand'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,13 +221,56 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _isAnalyzing ? null : _performAnalysis,
+            icon: const Icon(Icons.info_outline),
+            onPressed: _showDisclaimer,
           ),
+          if (_hasValidKey)
+            IconButton(
+              icon: const Icon(Icons.key),
+              onPressed: _showApiKeyDialog,
+            ),
         ],
       ),
       body: Column(
         children: [
+          // Disclaimer banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            color: Colors.orange.shade100,
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'AI analysis for informational purposes only. Not professional health advice.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange.shade800,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _showDisclaimer,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                  ),
+                  child: Text(
+                    'Details',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Date range selector
           Container(
             padding: const EdgeInsets.all(16),
@@ -82,18 +279,47 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Analyzing: ${DateFormat('MMM d').format(_startDate)} - ${DateFormat('MMM d, y').format(_endDate)}',
+                    'Date Range: ${DateFormat('MMM d').format(_startDate)} - ${DateFormat('MMM d, y').format(_endDate)}',
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                 ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.date_range, size: 18),
-                  label: const Text('Change Range'),
+                  label: const Text('Change'),
                   onPressed: _selectDateRange,
                 ),
               ],
             ),
           ),
+
+          // Analysis button
+          if (_hasValidKey) ...[
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: _isAnalyzing
+                      ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                      : const Icon(Icons.psychology),
+                  label: Text(_isAnalyzing ? 'Analyzing...' : 'Analyze My Moods'),
+                  onPressed: _isAnalyzing ? null : _performAnalysis,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+            ),
+          ],
 
           Expanded(
             child: _buildContent(),
@@ -104,6 +330,70 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
   }
 
   Widget _buildContent() {
+    if (!_hasValidKey) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.key,
+                size: 64,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'API Key Required',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'To use AI analysis, you need to provide your own OpenAI API key.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add),
+                label: const Text('Add API Key'),
+                onPressed: _showApiKeyDialog,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_analysisResult == null && !_isAnalyzing) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.psychology,
+                size: 64,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Ready to Analyze',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Select your date range and click "Analyze My Moods" to get AI insights about your mood patterns.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (_isAnalyzing) {
       return const Center(
         child: Column(
@@ -120,10 +410,6 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           ],
         ),
       );
-    }
-
-    if (_analysisResult == null) {
-      return const Center(child: Text('No analysis available'));
     }
 
     if (!_analysisResult!.success) {

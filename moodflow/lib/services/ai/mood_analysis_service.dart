@@ -4,16 +4,11 @@ import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 import '../data/mood_data_service.dart';
 import '../data/mood_trends_service.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MoodAnalysisService {
   // Store API key securely
-  static String get _openaiApiKey => dotenv.env['OPENAI_API_KEY'] ?? '';
-
-  // Initialization method
-  static Future<void> initialize() async {
-    await dotenv.load(fileName: ".env");
-  }
+  static String _openaiApiKey = '';
   
   static const String _baseUrl = 'https://api.openai.com/v1/chat/completions';
 
@@ -134,6 +129,9 @@ class MoodAnalysisService {
 
   /// Send analysis request to OpenAI
   static Future<String> _sendToOpenAI(String prompt) async {
+    // Get API key from storage
+    _openaiApiKey = await _getStoredApiKey();
+
     final response = await http.post(
       Uri.parse(_baseUrl),
       headers: {
@@ -141,7 +139,7 @@ class MoodAnalysisService {
         'Authorization': 'Bearer $_openaiApiKey',
       },
       body: jsonEncode({
-        'model': 'gpt-4o-mini', // Cost-effective model
+        'model': 'gpt-3.5-turbo',
         'messages': [
           {
             'role': 'system',
@@ -240,6 +238,54 @@ class MoodAnalysisService {
 
   static String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Check if a valid API key exists
+  static Future<bool> hasValidApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    final apiKey = prefs.getString('openai_api_key');
+    return apiKey != null && apiKey.isNotEmpty;
+  }
+
+  /// Validate and save API key
+  static Future<bool> validateAndSaveApiKey(String apiKey) async {
+    try {
+      // Test the API key with a simple request
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $apiKey',
+        },
+        body: jsonEncode({
+          'model': 'gpt-3.5-turbo',
+          'messages': [
+            {
+              'role': 'user',
+              'content': 'Test',
+            },
+          ],
+          'max_tokens': 5,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // Valid key, save it
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('openai_api_key', apiKey);
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get stored API key
+  static Future<String> _getStoredApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('openai_api_key') ?? '';
   }
 }
 
