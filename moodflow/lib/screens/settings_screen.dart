@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../services/data/enhanced_notification_service.dart' as notifications;
 import '../services/real_notification_service.dart' as real_notifications;
 import '../services/notification_manager.dart';
+import '../screens/backup_export_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final ThemeMode themeMode;

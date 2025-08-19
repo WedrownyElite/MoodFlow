@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.moodflow"
+    namespace = "com.oddologyinc.moodflow"
     ndkVersion = "27.0.12077973"
     compileSdk = flutter.compileSdkVersion
     
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.moodflow"
+        applicationId = "com.oddologyinc.moodflow"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
