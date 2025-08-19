@@ -167,4 +167,32 @@ class BackupService {
       );
     }
   }
+
+  /// Get last backup date
+  static Future<DateTime?> getLastBackupDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dateString = prefs.getString(_lastBackupKey);
+    if (dateString != null) {
+      return DateTime.parse(dateString);
+    }
+    return null;
+  }
+
+  /// Set last backup date
+  static Future<void> setLastBackupDate(DateTime date) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastBackupKey, date.toIso8601String());
+  }
+
+  /// Check if auto backup is enabled
+  static Future<bool> isAutoBackupEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_autoBackupEnabledKey) ?? false;
+  }
+
+  /// Set auto backup enabled/disabled
+  static Future<void> setAutoBackupEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoBackupEnabledKey, enabled);
+  }
 }

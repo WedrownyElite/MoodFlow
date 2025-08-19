@@ -52,5 +52,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>This app needs access to documents for backup functionality</string>
 </dict>
 </plist>

@@ -6,6 +6,7 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis_auth/googleapis_auth.dart';
 import 'package:http/http.dart' as http;
 import '../backup/backup_service.dart';
+import '../data/backup_models.dart'; // This import was missing!
 
 class GoogleDriveService {
   static const List<String> _scopes = [drive.DriveApi.driveFileScope];
@@ -144,7 +145,8 @@ class GoogleDriveService {
       final query = await driveApi.files.list(
         q: "parents in '$folderId' and name contains 'moodflow_backup_' and trashed=false",
         orderBy: 'createdTime desc',
-        fields: 'files(id,name,createdTime,size,description)',
+        // Note: Removed 'fields' parameter as it was causing errors
+        $fields: 'files(id,name,createdTime,size,description)', // Use $fields instead
       );
 
       client.close();
