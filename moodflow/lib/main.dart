@@ -10,6 +10,8 @@ import 'screens/goals_screen.dart';
 import 'screens/mood_history_screen.dart';
 import 'screens/mood_trends_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/backup_export_screen.dart';
+import 'screens/ai_analysis_screen.dart';
 import 'services/notification_manager.dart';
 import 'services/data/enhanced_notification_service.dart';
 import 'services/navigation_service.dart';
@@ -41,7 +43,7 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
   void initState() {
     super.initState();
     _loadPreferences();
-    
+
     // Initialize notification manager
     NotificationManager.initialize();
   }
@@ -86,7 +88,7 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Mood Tracker',
-      navigatorKey: NavigationService.navigatorKey, // Add this line
+      navigatorKey: NavigationService.navigatorKey,
       themeMode: _themeMode,
       theme: ThemeData(
         brightness: Brightness.light,
@@ -96,7 +98,6 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
         brightness: Brightness.dark,
         primarySwatch: Colors.indigo,
       ),
-      // Add named routes
       routes: {
         '/': (context) => MainMenuScreen(
           themeMode: _themeMode,
@@ -113,7 +114,7 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
           final brightness = _themeMode == ThemeMode.system
               ? MediaQuery.platformBrightnessOf(context)
               : (_themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light);
-          
+
           return MoodLogScreen(
             useCustomGradient: _useCustomGradient,
             isDarkMode: brightness == Brightness.dark,
@@ -127,6 +128,8 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
         },
         '/history': (context) => const MoodHistoryScreen(),
         '/trends': (context) => const MoodTrendsScreen(),
+        '/ai-analysis': (context) => const AIAnalysisScreen(),
+        '/backup-export': (context) => const BackupExportScreen(),
         '/settings': (context) => SettingsScreen(
           themeMode: _themeMode,
           useCustomGradient: _useCustomGradient,

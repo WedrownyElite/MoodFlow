@@ -9,6 +9,7 @@ import 'mood_history_screen.dart';
 import 'goals_screen.dart';
 import 'settings_screen.dart';
 import 'ai_analysis_screen.dart';
+import 'backup_export_screen.dart';
 
 class MainMenuScreen extends StatefulWidget {
   final ThemeMode themeMode;
@@ -36,9 +37,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
     super.initState();
     _blurService = BlurTransitionService(
       vsync: this,
-      duration: const Duration(milliseconds: 300), // Faster for menu navigation
+      duration: const Duration(milliseconds: 300),
     );
-    
+
     // Check for notification permission on app start
     _checkNotificationPermission();
   }
@@ -46,9 +47,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
   Future<void> _checkNotificationPermission() async {
     // Wait a bit for the UI to settle
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     if (!mounted) return;
-    
+
     final shouldAsk = await EnhancedNotificationService.shouldAskForPermission();
     if (shouldAsk) {
       _showNotificationPermissionDialog();
@@ -92,12 +93,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
     if (_blurService.isTransitioning) return;
 
     await _blurService.executeTransition(() async {
-      // Navigate while screen is blurred
       Navigator.push(
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => destination,
-          transitionDuration: Duration.zero, // No additional transition
+          transitionDuration: Duration.zero,
           reverseTransitionDuration: Duration.zero,
         ),
       );
@@ -176,6 +176,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
                     label: const Text('AI Analysis'),
                     onPressed: _blurService.isTransitioning ? null : () {
                       _navigateWithBlur(const AIAnalysisScreen());
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.cloud_upload),
+                    label: const Text('Backup & Export'),
+                    onPressed: _blurService.isTransitioning ? null : () {
+                      _navigateWithBlur(const BackupExportScreen());
                     },
                   ),
                   const SizedBox(height: 24),
