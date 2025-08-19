@@ -57,18 +57,57 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       _cachedMoodValues[i] = 5.0; // Default value
     }
 
-    // FIXED: Initialize all services immediately (synchronously)
+    // Determine the correct starting segment synchronously
+    _initializeCorrectSegment();
+  }
+
+  /// Synchronously determine and set the correct starting segment
+  void _initializeCorrectSegment() {
+    // Get current segment immediately based on time and provided parameters
+    if (widget.initialSegment != null) {
+      currentSegment = widget.initialSegment!;
+    } else {
+      // Determine current segment based on time of day
+      currentSegment = _getHighestAccessibleSegmentSync();
+    }
+
+    // Initialize services with the correct segment
     _initializeServicesSync();
 
     // Then do async initialization
-    _initializeCurrentSegment();
+    _initializeAsync();
+  }
+
+  /// Get current segment index synchronously based on time
+  int _getCurrentSegmentIndexSync() {
+    final now = DateTime.now();
+    final currentMinutes = now.hour * 60 + now.minute;
+
+    // Use default times if we can't load settings yet
+    const defaultMiddayMinutes = 13 * 60; // 1 PM
+    const defaultEveningMinutes = 19 * 60; // 7 PM
+
+    // Return the HIGHEST accessible segment, not just based on time
+    if (currentMinutes >= defaultEveningMinutes) return 2; // Evening
+    if (currentMinutes >= defaultMiddayMinutes) return 1;  // Midday
+    return 0; // Morning (fallback)
+  }
+
+  int _getHighestAccessibleSegmentSync() {
+    final now = DateTime.now();
+    final currentMinutes = now.hour * 60 + now.minute;
+
+    const defaultMiddayMinutes = 13 * 60; // 1 PM
+    const defaultEveningMinutes = 19 * 60; // 7 PM
+
+    // Return highest accessible segment
+    if (currentMinutes >= defaultEveningMinutes) return 2; // Evening
+    if (currentMinutes >= defaultMiddayMinutes) return 1;  // Midday
+    return 0; // Morning
   }
 
   void _initializeServicesSync() {
-    // Initialize current segment with a default value (will be updated async)
-    currentSegment = 0;
-
-    // Initialize page controller with default segment
+    // Initialize page controller with the correct segment immediately
     _pageController = PageController(initialPage: currentSegment);
 
     _pageController.addListener(() {
@@ -81,7 +120,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     // Initialize blur transition service
     _blurService = BlurTransitionService(vsync: this);
 
-    // Initialize slider animation service
+    // Initialize slider animation service with current segment's value
     _sliderService = SliderAnimationService(
       vsync: this,
       initialValue: _cachedMoodValues[currentSegment] ?? 5.0,
@@ -100,45 +139,24 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     _initGradientSync();
   }
 
-  Future<void> _initializeCurrentSegment() async {
-    // FIXED: Get the correct current segment based on time and accessibility
-    final detectedSegment = await _getCurrentSegmentIndex();
+  /// Async initialization that doesn't affect the initial view
+  Future<void> _initializeAsync() async {
+    // Load accessibility and refine current segment if needed
+    await _loadAllAccessibility();
 
-    // FIXED: If initialSegment is provided (from notification), use that if accessible
-    if (widget.initialSegment != null) {
-      final requestedSegment = widget.initialSegment!;
-      final canAccess = await _canAccessSegmentAsync(requestedSegment);
-      if (canAccess) {
-        currentSegment = requestedSegment;
-      } else {
-        currentSegment = detectedSegment;
+    // Only change segment if the initially set one is not accessible
+    if (!(_accessibilityCache[currentSegment] ?? false)) {
+      final newSegment = await _getCurrentSegmentIndexAsync();
+      if (newSegment != currentSegment && (_accessibilityCache[newSegment] ?? false)) {
+        currentSegment = newSegment;
+        if (mounted) {
+          _pageController.jumpToPage(currentSegment); // No animation for correction
+        }
       }
-    } else {
-      currentSegment = detectedSegment;
-    }
-
-    // Update page controller with the correct segment
-    if (mounted) {
-      _pageController.animateToPage(
-        currentSegment,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
     }
 
     // Preload all data
-    _preloadAllData();
-  }
-
-  Future<void> _preloadAllData() async {
-    // Load all segments' accessibility and data
-    final loadFutures = <Future<void>>[];
-
-    for (int i = 0; i < timeSegments.length; i++) {
-      loadFutures.add(_loadAccessibilityAndDataForSegment(i));
-    }
-
-    await Future.wait(loadFutures);
+    await _preloadAllData();
 
     if (mounted) {
       setState(() {
@@ -150,25 +168,31 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
         _updateGradientForMood(_cachedMoodValues[currentSegment] ?? 5.0);
       }
 
-      // FIXED: Animate slider to the saved mood value instead of jumping
+      // Set slider to the saved mood value immediately (no animation on startup)
       final savedMoodValue = _cachedMoodValues[currentSegment] ?? 5.0;
-      await _sliderService.animateToValue(savedMoodValue);
+      _sliderService.setValueImmediate(savedMoodValue);
     }
   }
 
-  Future<void> _loadAccessibilityAndDataForSegment(int segment) async {
-    // Check accessibility
-    final canAccess = await _canAccessSegmentAsync(segment);
-    _accessibilityCache[segment] = canAccess;
-
-    // Load data only if accessible
-    if (canAccess) {
-      await _loadDataForSegment(segment);
-    } else {
-      // Set default values for inaccessible segments
-      _cachedMoodValues[segment] = 5.0;
-      _cachedNoteControllers[segment]?.text = '';
+  /// Load accessibility for all segments first
+  Future<void> _loadAllAccessibility() async {
+    for (int i = 0; i < timeSegments.length; i++) {
+      final canAccess = await _canAccessSegmentAsync(i);
+      _accessibilityCache[i] = canAccess;
     }
+  }
+
+  Future<void> _preloadAllData() async {
+    // Load all segments' data
+    final loadFutures = <Future<void>>[];
+
+    for (int i = 0; i < timeSegments.length; i++) {
+      if (_accessibilityCache[i] == true) {
+        loadFutures.add(_loadDataForSegment(i));
+      }
+    }
+
+    await Future.wait(loadFutures);
   }
 
   Future<void> _loadDataForSegment(int segment) async {
@@ -194,7 +218,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     super.dispose();
   }
 
-  Future<int> _getCurrentSegmentIndex() async {
+  Future<int> _getCurrentSegmentIndexAsync() async {
     final settings = await EnhancedNotificationService.loadSettings();
     final now = DateTime.now();
     final currentMinutes = now.hour * 60 + now.minute;
@@ -202,7 +226,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
     final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
 
-    // FIXED: Return the highest accessible segment
+    // Return the highest accessible segment
     if (currentMinutes >= eveningMinutes) return 2; // Evening
     if (currentMinutes >= middayMinutes) return 1;  // Midday
     return 0; // Morning
@@ -241,11 +265,6 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     if (widget.useCustomGradient && segment == currentSegment) {
       _updateGradientForMood(moodValue);
     }
-
-    // FIXED: Trigger streak recalculation when mood is saved
-    // This will update the statistics cards on other screens
-    // We don't need to do anything here specifically, but the statistics
-    // will be recalculated when the trends screen is next visited
   }
 
   void _initGradientSync() {
@@ -293,23 +312,20 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     final canAccess = await _canAccessSegmentAsync(newIndex);
     if (!canAccess || _blurService.isTransitioning) return;
 
-    // FIXED: Simplified blur transition to prevent getting stuck
+    // Use smooth blur transition for segment navigation
     await _blurService.executeTransition(() async {
-      // Do minimal work during blur - just switch the page
       setState(() {
         currentSegment = newIndex;
       });
       _pageController.jumpToPage(newIndex);
 
-      // Small delay to let the page switch visually complete
       await Future.delayed(const Duration(milliseconds: 50));
     });
 
-    // FIXED: Do heavy lifting AFTER blur transition completes
     // Load data for the new segment
-    await _loadAccessibilityAndDataForSegment(newIndex);
+    await _loadDataForSegment(newIndex);
 
-    // Animate slider to new segment's mood value
+    // Animate slider to new segment's mood value with reduced duration
     final newMoodValue = _cachedMoodValues[newIndex] ?? 5.0;
     await _sliderService.animateToValue(newMoodValue);
 
@@ -318,20 +334,18 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       _updateGradientForMood(newMoodValue);
     }
 
-    // Ensure UI is properly updated after transition
     if (mounted) {
       setState(() {});
     }
   }
 
-  // FIXED: Add method to get navigation bounds
   int _getFirstAccessibleSegment() {
     for (int i = 0; i < timeSegments.length; i++) {
       if (_accessibilityCache[i] == true) {
         return i;
       }
     }
-    return 0; // Fallback to morning
+    return 0;
   }
 
   int _getLastAccessibleSegment() {
@@ -340,7 +354,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
         return i;
       }
     }
-    return 0; // Fallback to morning
+    return 0;
   }
 
   Widget _buildMoodPage(int index) {
@@ -463,10 +477,12 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: timeSegments.length,
                         onPageChanged: (newIndex) async {
+                          // This should rarely trigger since we use jumpToPage
                           if (!_canAccessSegment(newIndex)) {
                             _pageController.jumpToPage(currentSegment);
                             return;
                           }
+
                           setState(() => _isInitialLoading = true);
                           await _loadDataForSegment(newIndex);
                           setState(() {
@@ -474,7 +490,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                             _isInitialLoading = false;
                           });
 
-                          // FIXED: Animate slider to the new segment's mood value
+                          // Update slider to the new segment's mood value
                           final newMoodValue = _cachedMoodValues[newIndex] ?? 5.0;
                           await _sliderService.animateToValue(newMoodValue);
 
@@ -496,12 +512,10 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // FIXED: Use proper navigation bounds
                           if (currentSegment > _getFirstAccessibleSegment())
                             IconButton(
                               icon: const Icon(Icons.arrow_left, color: Colors.white, size: 32),
                               onPressed: _blurService.isTransitioning ? null : () {
-                                // Find the previous accessible segment
                                 for (int i = currentSegment - 1; i >= 0; i--) {
                                   if (_accessibilityCache[i] == true) {
                                     _navigateToSegment(i);
@@ -516,12 +530,10 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                             timeSegments[currentSegment],
                             style: const TextStyle(fontSize: 20, color: Colors.white),
                           ),
-                          // FIXED: Use proper navigation bounds
                           if (currentSegment < _getLastAccessibleSegment())
                             IconButton(
                               icon: const Icon(Icons.arrow_right, color: Colors.white, size: 32),
                               onPressed: _blurService.isTransitioning ? null : () {
-                                // Find the next accessible segment
                                 for (int i = currentSegment + 1; i < timeSegments.length; i++) {
                                   if (_accessibilityCache[i] == true) {
                                     _navigateToSegment(i);

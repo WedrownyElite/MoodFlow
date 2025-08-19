@@ -35,10 +35,8 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
   @override
   void didUpdateWidget(MoodStatisticsCards oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // FIXED: Recalculate streaks when the widget updates (new data available)
-    if (oldWidget.statistics != widget.statistics) {
-      _calculateDetailedStreaks();
-    }
+    // Force recalculation every time to ensure real-time updates
+    _calculateDetailedStreaks();
   }
 
   Future<void> _loadStreakPreference() async {
@@ -57,7 +55,7 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
     });
   }
 
-  /// FIXED: Calculate detailed streaks with proper grace period logic
+  /// Calculate detailed streaks in real-time to reflect current mood entries
   Future<void> _calculateDetailedStreaks() async {
     setState(() => _isLoadingStreaks = true);
 
@@ -67,12 +65,10 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
     final todayDate = DateTime(now.year, now.month, now.day);
 
     // Calculate what time of day we consider "end of day" for streak purposes
-    // Let's say after 6 AM the next day, we consider the previous day "missed"
     final graceHour = 6; // 6 AM grace period
     final currentHour = now.hour;
 
-    // Determine the "streak calculation date" - if it's before 6 AM, 
-    // we're still in the grace period for yesterday
+    // Determine the "streak calculation date"
     DateTime streakCalculationDate = todayDate;
     if (currentHour < graceHour) {
       // Before 6 AM - we're still in yesterday's grace period
@@ -84,7 +80,7 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
     bool liveBroken = false;
     bool completionBroken = false;
 
-    // Check up to 365 days back
+    //  Check up to 365 days back and refresh data in real-time
     for (int i = 0; i < 365; i++) {
       bool hasAnyMood = false;
       bool wasLoggedOnTime = false;
@@ -115,32 +111,22 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
           liveBroken = true;
         }
       } else {
-        // FIXED: Special handling for "today" during grace period
-        if (currentDate.isAtSameMomentAs(todayDate) && currentHour < graceHour) {
-          // We're before 6 AM today, so "today" is still in grace period
-          // Don't break the streak yet - continue checking previous days
-          currentDate = currentDate.subtract(const Duration(days: 1));
-          continue;
-        } else {
-          // No mood data for this day and not in grace period - break both streaks
-          liveBroken = true;
-          completionBroken = true;
-        }
-      }
-
-      // If both streaks are broken, we can stop
-      if (liveBroken && completionBroken) {
-        break;
+        // No mood data for this day - break both streaks
+        liveBroken = true;
+        completionBroken = true;
+        break; // Stop immediately when we hit a day with no data
       }
 
       currentDate = currentDate.subtract(const Duration(days: 1));
     }
 
-    setState(() {
-      _liveStreak = liveStreak;
-      _completionStreak = completionStreak;
-      _isLoadingStreaks = false;
-    });
+    if (mounted) {
+      setState(() {
+        _liveStreak = liveStreak;
+        _completionStreak = completionStreak;
+        _isLoadingStreaks = false;
+      });
+    }
   }
 
   void _showStreakSettings() {
@@ -549,36 +535,31 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
         insightText = "You're brightest in the morning! ☀️";
         insightIcon = Icons.wb_sunny;
         insightColor = Colors.orange.shade600;
-        // FIXED: Use brighter text color for dark mode
         textColor = isDarkMode ? Colors.orange.shade300 : const Color.fromARGB(255, 160, 73, 1);
         break;
       case 1: // Midday
         insightText = "Midday energy is your strength! ⚡";
         insightIcon = Icons.flash_on;
         insightColor = Colors.blue.shade600;
-        // FIXED: Use brighter text color for dark mode
         textColor = isDarkMode ? Colors.blue.shade300 : Colors.blue.shade700;
         break;
       case 2: // Evening
         insightText = "Evenings bring out your best! 🌙";
         insightIcon = Icons.nights_stay;
         insightColor = Colors.purple.shade600;
-        // FIXED: Use brighter text color for dark mode
         textColor = isDarkMode ? Colors.purple.shade300 : Colors.purple.shade700;
         break;
       default:
         insightText = "Keep tracking to find your patterns!";
         insightIcon = Icons.insights;
         insightColor = Colors.grey.shade600;
-        // FIXED: Use brighter text color for dark mode
         textColor = isDarkMode ? Colors.grey.shade400 : Colors.grey.shade700;
     }
 
     return Card(
       elevation: 2,
-      // FIXED: Use lighter background for dark mode
       color: isDarkMode
-          ? insightColor.withOpacity(0.08)  // Much lighter in dark mode
+          ? insightColor.withOpacity(0.08)
           : insightColor.withOpacity(0.1),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -586,7 +567,6 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
           children: [
             Icon(
                 insightIcon,
-                // FIXED: Use brighter icon color for dark mode
                 color: isDarkMode ? insightColor.withOpacity(0.8) : insightColor,
                 size: 24
             ),
@@ -600,9 +580,8 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      // FIXED: Use brighter subtitle color for dark mode
                       color: isDarkMode
-                          ? textColor.withOpacity(0.7)  // Lighter in dark mode
+                          ? textColor.withOpacity(0.7)
                           : textColor.withOpacity(0.8),
                     ),
                   ),
@@ -612,7 +591,7 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: textColor,  // Using the adjusted textColor
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -620,9 +599,8 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
                     '${segments[bestSegment]} average: ${bestAverage.toStringAsFixed(1)}',
                     style: TextStyle(
                       fontSize: 12,
-                      // FIXED: Use brighter detail color for dark mode
                       color: isDarkMode
-                          ? textColor.withOpacity(0.6)  // Lighter in dark mode
+                          ? textColor.withOpacity(0.6)
                           : textColor.withOpacity(0.7),
                     ),
                   ),

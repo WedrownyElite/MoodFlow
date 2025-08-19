@@ -1,4 +1,4 @@
-// Updated mood_trends_service.dart with corrected streak calculation
+// Updated mood_trends_service.dart - Fixed streak calculation
 import 'dart:math';
 import '../data/mood_data_service.dart';
 
@@ -86,7 +86,7 @@ class MoodTrendsService {
       2: [], // Evening
     };
 
-    // FIXED: Calculate current streak globally, not just in date range
+    // Calculate current streak globally, not just in date range
     final currentStreak = await _calculateCurrentStreakGlobal();
     double? bestDayMood;
     DateTime? bestDay;
@@ -155,31 +155,19 @@ class MoodTrendsService {
     );
   }
 
-  /// FIXED: Calculate current streak globally with proper grace period logic
+  /// Calculate current streak globally with real-time updates
   static Future<int> _calculateCurrentStreakGlobal() async {
     int streak = 0;
     final now = DateTime.now();
     final todayDate = DateTime(now.year, now.month, now.day);
 
-    // Calculate what time of day we consider "end of day" for streak purposes
-    // Let's say after 6 AM the next day, we consider the previous day "missed"
-    final graceHour = 6; // 6 AM grace period
-    final currentHour = now.hour;
-
-    // Determine the "streak calculation date" - if it's before 6 AM, 
-    // we're still in the grace period for yesterday
-    DateTime streakCalculationDate = todayDate;
-    if (currentHour < graceHour) {
-      // Before 6 AM - we're still in yesterday's grace period
-      streakCalculationDate = todayDate.subtract(const Duration(days: 1));
-    }
-
-    // Start from the streak calculation date and work backwards
-    DateTime currentDate = streakCalculationDate;
+    // Start from today and work backwards
+    DateTime currentDate = todayDate;
 
     for (int i = 0; i < 365; i++) { // Max 1 year
       bool hasAnyMood = false;
 
+      // Check if this day has any moods
       for (int segment = 0; segment < 3; segment++) {
         final mood = await MoodDataService.loadMood(currentDate, segment);
         if (mood != null && mood['rating'] != null) {
