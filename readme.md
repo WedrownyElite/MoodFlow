@@ -18,6 +18,16 @@ A comprehensive mood tracking application built with Flutter, designed to help u
 - **Statistics Dashboard** - Comprehensive insights including streaks, averages, and patterns
 - **Dark/Light Mode** - Adaptive themes with custom gradient backgrounds
 
+### AI Analysis ✨ *(New)*
+- AI-Powered Insights - Leverage OpenAI to receive intelligent summaries and mood analysis
+- Custom API Key - Add your own OpenAI key for private usage
+- Future Updates:
+    - Choose which AI model you’d like to use
+    - Select from different AI providers (not just OpenAI)
+- Production Plan:
+    - Option to use your own API key
+    - Or pay to use MoodFlow’s managed app key
+
 ### User Experience
 - **Blur Transitions** - Smooth, professional navigation animations
 - **Responsive Design** - Optimized for all screen sizes and orientations
@@ -83,8 +93,10 @@ lib/
 │   ├── mood_history_screen.dart
 │   ├── mood_trends_screen.dart
 │   ├── goals_screen.dart
+│   ├── ai_analysis_screen.dart
 │   └── settings_screen.dart
 ├── services/                 # Business logic
+│   ├── ai/                 # AI services
 │   ├── animation/           # Animation services
 │   ├── data/               # Data management
 │   └── ui/                 # UI utilities
@@ -92,7 +104,8 @@ lib/
 │   ├── animated_mood_slider.dart
 │   ├── mood_line_chart.dart
 │   ├── mood_heatmap.dart
-│   └── goal_card.dart
+│   ├── goal_card.dart
+│   └── [additional files]
 └── [additional files]
 ```
 
@@ -102,6 +115,8 @@ lib/
 1. **Morning** (Available from 12:00 AM): Log your starting mood and thoughts
 2. **Midday** (Available from 12:00 PM): Check in during your day
 3. **Evening** (Available from 6:00 PM): Reflect on your day's emotional journey
+
+*(Users can customize access and notification times in the settings)*
 
 ### Setting Goals
 - Navigate to the Goals screen
