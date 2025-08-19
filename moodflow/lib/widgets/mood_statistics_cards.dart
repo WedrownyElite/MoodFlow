@@ -32,6 +32,15 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
     _calculateDetailedStreaks();
   }
 
+  @override
+  void didUpdateWidget(MoodStatisticsCards oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // FIXED: Recalculate streaks when the widget updates (new data available)
+    if (oldWidget.statistics != widget.statistics) {
+      _calculateDetailedStreaks();
+    }
+  }
+
   Future<void> _loadStreakPreference() async {
     final prefs = await SharedPreferences.getInstance();
     final modeIndex = prefs.getInt('streak_calculation_mode') ?? StreakCalculationMode.both.index;
@@ -48,16 +57,30 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
     });
   }
 
+  /// FIXED: Calculate detailed streaks with proper grace period logic
   Future<void> _calculateDetailedStreaks() async {
     setState(() => _isLoadingStreaks = true);
 
     int liveStreak = 0;
     int completionStreak = 0;
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    final todayDate = DateTime(now.year, now.month, now.day);
 
-    // Calculate streaks by going backwards from today
-    DateTime currentDate = today;
+    // Calculate what time of day we consider "end of day" for streak purposes
+    // Let's say after 6 AM the next day, we consider the previous day "missed"
+    final graceHour = 6; // 6 AM grace period
+    final currentHour = now.hour;
+
+    // Determine the "streak calculation date" - if it's before 6 AM, 
+    // we're still in the grace period for yesterday
+    DateTime streakCalculationDate = todayDate;
+    if (currentHour < graceHour) {
+      // Before 6 AM - we're still in yesterday's grace period
+      streakCalculationDate = todayDate.subtract(const Duration(days: 1));
+    }
+
+    // Calculate streaks by going backwards from the streak calculation date
+    DateTime currentDate = streakCalculationDate;
     bool liveBroken = false;
     bool completionBroken = false;
 
@@ -92,9 +115,17 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
           liveBroken = true;
         }
       } else {
-        // No mood data for this day - break both streaks
-        liveBroken = true;
-        completionBroken = true;
+        // FIXED: Special handling for "today" during grace period
+        if (currentDate.isAtSameMomentAs(todayDate) && currentHour < graceHour) {
+          // We're before 6 AM today, so "today" is still in grace period
+          // Don't break the streak yet - continue checking previous days
+          currentDate = currentDate.subtract(const Duration(days: 1));
+          continue;
+        } else {
+          // No mood data for this day and not in grace period - break both streaks
+          liveBroken = true;
+          completionBroken = true;
+        }
       }
 
       // If both streaks are broken, we can stop
@@ -198,6 +229,32 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
           ),
 
           const SizedBox(height: 16),
+
+          // Add explanation about grace period
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue.shade600, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Streak calculation includes a grace period until 6 AM. Your streak won\'t break immediately at midnight if you haven\'t logged today\'s mood yet.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.moodflow"  // THIS IS THE MISSING LINE
+    namespace = "com.example.moodflow"
     ndkVersion = "27.0.12077973"
     compileSdk = flutter.compileSdkVersion
     
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.moodflow"
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -29,8 +29,6 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

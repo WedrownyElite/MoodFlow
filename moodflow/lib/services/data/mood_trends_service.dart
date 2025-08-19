@@ -1,4 +1,4 @@
-// Updated mood_trends_service.dart with date range specific statistics
+// Updated mood_trends_service.dart with corrected streak calculation
 import 'dart:math';
 import '../data/mood_data_service.dart';
 
@@ -155,19 +155,33 @@ class MoodTrendsService {
     );
   }
 
-  /// Calculate current streak globally (not affected by date range)
+  /// FIXED: Calculate current streak globally with proper grace period logic
   static Future<int> _calculateCurrentStreakGlobal() async {
     int streak = 0;
-    final today = DateTime.now();
-    final todayDate = DateTime(today.year, today.month, today.day);
+    final now = DateTime.now();
+    final todayDate = DateTime(now.year, now.month, now.day);
 
-    // Start from today and work backwards
+    // Calculate what time of day we consider "end of day" for streak purposes
+    // Let's say after 6 AM the next day, we consider the previous day "missed"
+    final graceHour = 6; // 6 AM grace period
+    final currentHour = now.hour;
+
+    // Determine the "streak calculation date" - if it's before 6 AM, 
+    // we're still in the grace period for yesterday
+    DateTime streakCalculationDate = todayDate;
+    if (currentHour < graceHour) {
+      // Before 6 AM - we're still in yesterday's grace period
+      streakCalculationDate = todayDate.subtract(const Duration(days: 1));
+    }
+
+    // Start from the streak calculation date and work backwards
+    DateTime currentDate = streakCalculationDate;
+
     for (int i = 0; i < 365; i++) { // Max 1 year
-      final date = todayDate.subtract(Duration(days: i));
       bool hasAnyMood = false;
 
       for (int segment = 0; segment < 3; segment++) {
-        final mood = await MoodDataService.loadMood(date, segment);
+        final mood = await MoodDataService.loadMood(currentDate, segment);
         if (mood != null && mood['rating'] != null) {
           hasAnyMood = true;
           break;
@@ -177,8 +191,11 @@ class MoodTrendsService {
       if (hasAnyMood) {
         streak++;
       } else {
+        // No mood logged for this day - break the streak
         break;
       }
+
+      currentDate = currentDate.subtract(const Duration(days: 1));
     }
 
     return streak;

@@ -16,7 +16,7 @@ class MoodTrendsScreen extends StatefulWidget {
   State<MoodTrendsScreen> createState() => _MoodTrendsScreenState();
 }
 
-class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
+class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBindingObserver {
   TimeRange _selectedRange = TimeRange.month;
   ChartAggregation _chartAggregation = ChartAggregation.daily;
   List<DayMoodData> _trendData = [];
@@ -30,7 +30,14 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadTrendData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _loadTrendData() async {
@@ -142,6 +149,25 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> {
         _selectedRange = TimeRange.custom;
       });
 
+      _loadTrendData();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // App came back to foreground - refresh data
+      _loadTrendData();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null && route.isCurrent && mounted) {
+      // This screen is now the current route - refresh data
       _loadTrendData();
     }
   }
