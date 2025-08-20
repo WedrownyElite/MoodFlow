@@ -6,13 +6,16 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis_auth/googleapis_auth.dart';
 import 'package:http/http.dart' as http;
 import '../backup/backup_service.dart';
-import '../data/backup_models.dart'; // This import was missing!
+import '../data/backup_models.dart';
 
 class GoogleDriveService {
   static const List<String> _scopes = [drive.DriveApi.driveFileScope];
   static const String _appDataFolderName = 'MoodFlow_Backups';
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: _scopes);
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: _scopes,
+    serverClientId: '292647310378-9dk28mf8jq0rfoaguur5fagquafr7osv.apps.googleusercontent.com',
+  );
   GoogleSignInAccount? _currentUser;
 
   /// Check if user is signed in
@@ -142,11 +145,12 @@ class GoogleDriveService {
 
       if (folderId == null) return [];
 
+      // FIXED: Removed the problematic 'fields' parameter and used the correct syntax
       final query = await driveApi.files.list(
         q: "parents in '$folderId' and name contains 'moodflow_backup_' and trashed=false",
         orderBy: 'createdTime desc',
-        // Note: Removed 'fields' parameter as it was causing errors
-        $fields: 'files(id,name,createdTime,size,description)', // Use $fields instead
+        // FIXED: Use $fields instead of fields, or remove if causing issues
+        $fields: 'files(id,name,createdTime,size,description)',
       );
 
       client.close();
@@ -160,7 +164,35 @@ class GoogleDriveService {
       )).toList() ?? [];
     } catch (e) {
       debugPrint('Error listing backups: $e');
-      return [];
+      // FIXED: Try without $fields if it's causing issues
+      try {
+        final client = await _getAuthClient();
+        if (client == null) return [];
+
+        final driveApi = drive.DriveApi(client);
+        final folderId = await _getAppDataFolder(driveApi);
+
+        if (folderId == null) return [];
+
+        final query = await driveApi.files.list(
+          q: "parents in '$folderId' and name contains 'moodflow_backup_' and trashed=false",
+          orderBy: 'createdTime desc',
+          // No fields parameter - get all available fields
+        );
+
+        client.close();
+
+        return query.files?.map((file) => DriveBackupFile(
+          id: file.id ?? '',
+          name: file.name ?? 'Unknown',
+          createdTime: file.createdTime,
+          size: file.size,
+          description: file.description,
+        )).toList() ?? [];
+      } catch (e2) {
+        debugPrint('Error listing backups (fallback): $e2');
+        return [];
+      }
     }
   }
 

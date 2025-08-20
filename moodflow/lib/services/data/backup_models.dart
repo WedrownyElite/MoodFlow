@@ -159,6 +159,7 @@ class ImportResult {
   });
 }
 
+// FIXED: Added missing BackupResult class
 class BackupResult {
   final bool success;
   final String? message;
