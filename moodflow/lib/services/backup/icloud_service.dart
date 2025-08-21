@@ -12,9 +12,11 @@ class ICloudService {
 
   /// Check if iCloud is available
   Future<bool> isAvailable() async {
+    if (!Platform.isIOS) return false;
+
     try {
       // Test iCloud availability by attempting to gather files
-      await ICloudStorage.gather(containerId: _containerId);
+      final files = await ICloudStorage.gather(containerId: _containerId);
       return true;
     } catch (e) {
       debugPrint('iCloud not available: $e');
@@ -36,7 +38,8 @@ class ICloudService {
 
       // Create temporary file
       final fileName = 'moodflow_backup_${DateTime.now().millisecondsSinceEpoch}.json';
-      final tempFile = File('/tmp/$fileName');
+      final tempDir = Directory.systemTemp;
+      final tempFile = File('${tempDir.path}/$fileName');
       await tempFile.writeAsString(jsonString);
 
       // Upload to iCloud
@@ -61,14 +64,14 @@ class ICloudService {
 
       return BackupResult(
         true,
-        message: 'Backup uploaded successfully to iCloud. File: $fileName',
+        message: 'Backup uploaded successfully to iCloud (${_formatFileSize(jsonString.length)})',
       );
     } catch (e) {
       return BackupResult(false, error: 'iCloud upload failed: ${e.toString()}');
     }
   }
 
-  /// List available backups
+  /// List available backups (FIXED: Safe property access)
   Future<List<ICloudBackupFile>> listBackups() async {
     try {
       if (!await isAvailable()) return [];
@@ -76,113 +79,50 @@ class ICloudService {
       final files = await ICloudStorage.gather(containerId: _containerId);
 
       // Filter for backup files in our folder
-      final backupFiles = files.where((file) =>
-      file.relativePath.startsWith('$_backupFolderName/') &&
-          file.relativePath.contains('moodflow_backup_')
-      ).toList();
+      final backupFiles = <ICloudFile>[];
 
-      // FIXED: Use only accessible properties
-      final sortedFiles = <ICloudFile>[];
-      for (final file in backupFiles) {
+      for (final file in files) {
         try {
-          // Test if we can access the relativePath property
-          final _ = file.relativePath;
-          sortedFiles.add(file);
+          // FIXED: Safe property access with try-catch
+          final relativePath = file.relativePath;
+          if (relativePath.startsWith('$_backupFolderName/') &&
+              relativePath.contains('moodflow_backup_')) {
+            backupFiles.add(file);
+          }
         } catch (e) {
+          // Skip files we can't access
           debugPrint('Skipping file due to property access error: $e');
           continue;
         }
       }
 
-      // Sort by file name (which contains timestamp) since we can't reliably access date properties
-      sortedFiles.sort((a, b) {
+      // Sort by filename (which contains timestamp) since we can't reliably access date properties
+      backupFiles.sort((a, b) {
         try {
+          final aName = _safeGetFileName(a);
+          final bName = _safeGetFileName(b);
+
           // Extract timestamp from filename for sorting
-          final aName = a.relativePath.split('/').last;
-          final bName = b.relativePath.split('/').last;
+          final aTimestamp = _extractTimestampFromFileName(aName);
+          final bTimestamp = _extractTimestampFromFileName(bName);
 
-          // Files are named like: moodflow_backup_1234567890123.json
-          final aTimestampMatch = RegExp(r'(\d{13})').firstMatch(aName);
-          final bTimestampMatch = RegExp(r'(\d{13})').firstMatch(bName);
-
-          if (aTimestampMatch != null && bTimestampMatch != null) {
-            final aTimestamp = int.parse(aTimestampMatch.group(1)!);
-            final bTimestamp = int.parse(bTimestampMatch.group(1)!);
-            return bTimestamp.compareTo(aTimestamp); // Newest first
-          }
-
-          // Fallback to string comparison
-          return bName.compareTo(aName);
+          return bTimestamp.compareTo(aTimestamp); // Newest first
         } catch (e) {
           debugPrint('Error sorting files: $e');
           return 0;
         }
       });
 
-      return sortedFiles.map((file) => ICloudBackupFile(
-        relativePath: file.relativePath,
-        name: file.relativePath.split('/').last,
-        createdDate: _getFileDate(file),
-        downloadStatus: _getDownloadStatus(file),
+      return backupFiles.map((file) => ICloudBackupFile(
+        relativePath: _safeGetRelativePath(file),
+        name: _safeGetFileName(file),
+        createdDate: _safeGetFileDate(file),
+        downloadStatus: _safeGetDownloadStatus(file),
       )).toList();
     } catch (e) {
       debugPrint('Error listing iCloud backups: $e');
       return [];
     }
-  }
-
-  /// FIXED: Safe method to get file date
-  DateTime _getFileDate(ICloudFile file) {
-    try {
-      // Try to access the date property directly
-      // Different versions of icloud_storage may have different property names
-      // Common property names: createdAt, modifiedAt, dateModified, lastModified
-
-      // Try reflection-like access to get any date field
-      final fileString = file.toString();
-
-      // Extract date from string representation if possible
-      final dateRegex = RegExp(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}');
-      final match = dateRegex.firstMatch(fileString);
-
-      if (match != null) {
-        return DateTime.parse(match.group(0)!);
-      }
-
-      // Try to get file name and extract timestamp from it
-      final fileName = file.relativePath.split('/').last;
-      final timestampRegex = RegExp(r'(\d{13})'); // 13-digit timestamp
-      final timestampMatch = timestampRegex.firstMatch(fileName);
-
-      if (timestampMatch != null) {
-        final timestamp = int.parse(timestampMatch.group(1)!);
-        return DateTime.fromMillisecondsSinceEpoch(timestamp);
-      }
-
-    } catch (e) {
-      debugPrint('Could not get file date: $e');
-    }
-
-    // Fallback to current time if we can't get the actual date
-    return DateTime.now();
-  }
-
-  /// FIXED: Safe method to get download status
-  String _getDownloadStatus(ICloudFile file) {
-    try {
-      // Try to access downloadStatus property directly using reflection
-      // Since we can't access it directly, we'll make an educated guess
-      // based on the file properties we can access
-
-      // For now, return a default status since we can't access the actual property
-      return 'not_downloaded'; // Conservative default
-
-    } catch (e) {
-      debugPrint('Could not get download status: $e');
-    }
-
-    // Fallback status
-    return 'unknown';
   }
 
   /// Download and restore backup
@@ -194,7 +134,8 @@ class ICloudService {
 
       // Create temporary download path
       final fileName = relativePath.split('/').last;
-      final tempDownloadPath = '/tmp/downloaded_$fileName';
+      final tempDir = Directory.systemTemp;
+      final tempDownloadPath = '${tempDir.path}/downloaded_$fileName';
 
       // Download from iCloud
       await ICloudStorage.download(
@@ -230,7 +171,7 @@ class ICloudService {
       if (importResult.success) {
         return BackupResult(
           true,
-          message: 'Backup restored successfully from iCloud. '
+          message: 'Backup restored successfully from iCloud! '
               'Imported ${importResult.importedMoods} moods and ${importResult.importedGoals} goals.',
         );
       } else {
@@ -258,19 +199,114 @@ class ICloudService {
     }
   }
 
-  /// Check download status of a file
-  Future<String> getDownloadStatus(String relativePath) async {
+  /// Check if there are backups available
+  Future<bool> hasBackupsAvailable() async {
     try {
-      final files = await ICloudStorage.gather(containerId: _containerId);
-      final file = files.firstWhere(
-            (f) => f.relativePath == relativePath,
-        orElse: () => throw Exception('File not found'),
-      );
-
-      return _getDownloadStatus(file);
+      final backups = await listBackups();
+      return backups.isNotEmpty;
     } catch (e) {
-      return 'Error checking status';
+      return false;
     }
+  }
+
+  /// Get most recent backup for auto-restore
+  Future<ICloudBackupFile?> getMostRecentBackup() async {
+    try {
+      final backups = await listBackups();
+      if (backups.isNotEmpty) {
+        return backups.first; // Already sorted by timestamp desc
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting recent backup: $e');
+      return null;
+    }
+  }
+
+  /// Perform automatic backup
+  Future<bool> performAutomaticBackup() async {
+    try {
+      if (!await isAvailable()) return false;
+
+      final result = await uploadBackup();
+      return result.success;
+    } catch (e) {
+      debugPrint('Automatic backup failed: $e');
+      return false;
+    }
+  }
+
+  // FIXED: Safe property access methods
+  String _safeGetRelativePath(ICloudFile file) {
+    try {
+      return file.relativePath;
+    } catch (e) {
+      return 'unknown_path';
+    }
+  }
+
+  String _safeGetFileName(ICloudFile file) {
+    try {
+      return file.relativePath.split('/').last;
+    } catch (e) {
+      return 'unknown_file';
+    }
+  }
+
+  DateTime _safeGetFileDate(ICloudFile file) {
+    try {
+      // Try to extract timestamp from filename first
+      final fileName = _safeGetFileName(file);
+      final timestamp = _extractTimestampFromFileName(fileName);
+      if (timestamp > 0) {
+        return DateTime.fromMillisecondsSinceEpoch(timestamp);
+      }
+
+      // Try to access file properties (may not work reliably)
+      final fileString = file.toString();
+      final dateRegex = RegExp(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}');
+      final match = dateRegex.firstMatch(fileString);
+
+      if (match != null) {
+        return DateTime.parse(match.group(0)!);
+      }
+    } catch (e) {
+      debugPrint('Could not get file date: $e');
+    }
+
+    // Fallback to current time
+    return DateTime.now();
+  }
+
+  String _safeGetDownloadStatus(ICloudFile file) {
+    try {
+      // Since we can't reliably access download status, return a safe default
+      return 'unknown';
+    } catch (e) {
+      return 'unknown';
+    }
+  }
+
+  int _extractTimestampFromFileName(String fileName) {
+    try {
+      // Files are named like: moodflow_backup_1234567890123.json
+      final timestampRegex = RegExp(r'(\d{13})'); // 13-digit timestamp
+      final match = timestampRegex.firstMatch(fileName);
+
+      if (match != null) {
+        return int.parse(match.group(1)!);
+      }
+    } catch (e) {
+      debugPrint('Could not extract timestamp from $fileName: $e');
+    }
+
+    return 0;
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }
 
@@ -313,7 +349,7 @@ class ICloudBackupFile {
       case 'not_downloaded':
         return 'Cloud only';
       default:
-        return 'Unknown status';
+        return 'In iCloud';
     }
   }
 }

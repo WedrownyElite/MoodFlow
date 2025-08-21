@@ -17,7 +17,7 @@ import 'screens/debug_data_screen.dart';
 import 'services/notification_manager.dart';
 import 'services/data/enhanced_notification_service.dart';
 import 'services/navigation_service.dart';
-import 'services/backup/auto_backup_service.dart';
+import 'services/backup/cloud_backup_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,17 +25,20 @@ void main() async {
   // Initialize notifications
   await EnhancedNotificationService.initialize();
 
-  // Initialize auto backup system
-  if (await AutoBackupService.isAutoBackupAvailable()) {
-    print('✅ Auto backup system is available');
+  // Initialize real cloud backup system
+  if (await RealCloudBackupService.isCloudBackupAvailable()) {
+    print('✅ Real cloud backup system is available');
 
-    // Enable auto backup by default for new installations
+    // Enable cloud backup by default for new installations
     if (!await _hasExistingData()) {
-      await AutoBackupService.setAutoBackupEnabled(true);
-      print('🔧 Auto backup enabled for new installation');
+      await RealCloudBackupService.setAutoBackupEnabled(true);
+      print('🔧 Cloud backup enabled for new installation');
     }
+
+    // Check for existing backups on startup (for restore prompts)
+    RealCloudBackupService.checkForRestoreOnStartup();
   } else {
-    print('❌ Auto backup system is not available on this platform');
+    print('❌ Real cloud backup system is not available on this platform');
   }
 
   runApp(const MoodTrackerApp());
@@ -82,10 +85,11 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
 
   /// Schedule an initial backup check after app startup
   void _scheduleInitialBackupCheck() {
-    Future.delayed(const Duration(seconds: 30), () async {
+    Future.delayed(const Duration(seconds: 10), () async {
       try {
-        if (await AutoBackupService.isAutoBackupEnabled()) {
-          AutoBackupService.triggerBackupIfNeeded();
+        if (await RealCloudBackupService.isAutoBackupEnabled()) {
+          // Trigger backup if needed (this will check intervals automatically)
+          RealCloudBackupService.triggerBackupIfNeeded();
         }
       } catch (e) {
         print('Initial backup check failed: $e');

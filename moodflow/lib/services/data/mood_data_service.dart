@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../backup/auto_backup_service.dart';
+import '../backup/cloud_backup_service.dart';
 
 class MoodDataService {
   static const List<String> timeSegments = ['Morning', 'Midday', 'Evening'];
@@ -63,8 +63,15 @@ class MoodDataService {
         if (verification != null) {
           print('✅ Verification successful: Data is persisted');
 
-          // Trigger auto backup
-          AutoBackupService.triggerBackupIfNeeded();
+          // NEW: Trigger cloud backup after successful mood save
+          try {
+            RealCloudBackupService.triggerBackupIfNeeded();
+            print('🔄 Cloud backup triggered after mood save');
+          } catch (e) {
+            print('⚠️ Cloud backup trigger failed: $e');
+            // Don't fail the mood save if backup fails
+          }
+
           return true;
         } else {
           print('❌ Verification failed: Data was not persisted');
@@ -121,5 +128,32 @@ class MoodDataService {
     }
 
     print('🗑️ Cleared ${moodKeys.length} mood entries');
+  }
+
+  /// NEW: Force a cloud backup of all current mood data
+  static Future<bool> forceCloudBackup() async {
+    try {
+      final result = await RealCloudBackupService.performManualBackup();
+      if (result.success) {
+        print('✅ Force cloud backup successful: ${result.message}');
+        return true;
+      } else {
+        print('❌ Force cloud backup failed: ${result.error}');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Force cloud backup error: $e');
+      return false;
+    }
+  }
+
+  /// NEW: Check if cloud backup is available and configured
+  static Future<bool> isCloudBackupConfigured() async {
+    try {
+      final status = await RealCloudBackupService.getBackupStatus();
+      return status['available'] == true && status['isSignedIn'] == true;
+    } catch (e) {
+      return false;
+    }
   }
 }
