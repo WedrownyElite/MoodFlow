@@ -9,6 +9,8 @@ import '../services/backup/icloud_service.dart';
 import '../services/data/backup_models.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/backup/auto_backup_service.dart';
+import '../widgets/csv_import_dialog.dart';
+import '../services/import/csv_import_service.dart';
 
 class BackupExportScreen extends StatefulWidget {
   const BackupExportScreen({super.key});
@@ -214,7 +216,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Restore your mood data from previous backups.',
+            'Restore your mood data from previous backups or import custom data.',
             style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
@@ -243,10 +245,17 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
           const SizedBox(height: 24),
 
-          // File Import
+          // File Import Section
+          const Text(
+            'Import from Files',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+
+          // JSON Backup Import
           _buildRestoreCard(
-            title: 'Import from File',
-            description: 'Import from a previously exported backup file',
+            title: 'Import Backup File',
+            description: 'Import from a previously exported JSON backup file',
             icon: Icons.file_upload,
             color: Colors.purple,
             onTap: _importFromFile,
@@ -254,7 +263,18 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
           const SizedBox(height: 16),
 
-          // Google Drive Restore
+          // CSV Import - NEW
+          _buildRestoreCard(
+            title: 'Import CSV Data',
+            description: 'Import mood data from custom CSV files with flexible mapping',
+            icon: Icons.table_chart,
+            color: Colors.teal,
+            onTap: _importFromCSV,
+          ),
+
+          const SizedBox(height: 24),
+
+          // Cloud Restore Section
           if (_googleDriveService.isSignedIn && _driveBackups.isNotEmpty) ...[
             const Text(
               'Google Drive Backups',
@@ -763,6 +783,34 @@ class _BackupExportScreenState extends State<BackupExportScreen>
     }
   }
 
+  Future<void> _importFromCSV() async {
+    try {
+      final result = await showDialog<CSVImportResult>(
+        context: context,
+        builder: (context) => const CSVImportDialog(),
+      );
+
+      if (result != null) {
+        if (result.success) {
+          _showSuccessMessage(
+              'CSV import completed!\n'
+                  'Imported: ${result.importedEntries} mood entries\n'
+                  'Skipped: ${result.skippedEntries} existing entries'
+          );
+
+          // Show detailed results if there were errors
+          if (result.errors.isNotEmpty) {
+            _showImportErrorsDialog(result);
+          }
+        } else {
+          _showErrorMessage(result.error ?? 'CSV import failed');
+        }
+      }
+    } catch (e) {
+      _showErrorMessage('CSV import failed: $e');
+    }
+  }
+  
   // Helper Methods
   void _showLoadingDialog(String message) {
     showDialog(
@@ -807,6 +855,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.green,
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -816,6 +865,62 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showImportErrorsDialog(CSVImportResult result) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import Results'),
+        content: Container(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Import Summary:',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text('✅ Imported: ${result.importedEntries} entries'),
+              Text('⏭️ Skipped: ${result.skippedEntries} existing entries'),
+              Text('📊 Total processed: ${result.totalEntries} entries'),
+
+              if (result.errors.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Errors encountered:',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: result.errors.map((error) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          '• $error',
+                          style: const TextStyle(fontSize: 12, color: Colors.red),
+                        ),
+                      )).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
