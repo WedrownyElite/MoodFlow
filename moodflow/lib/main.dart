@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/main_menu_screen.dart';
 import 'screens/mood_log_screen.dart';
@@ -12,9 +13,11 @@ import 'screens/mood_trends_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/backup_export_screen.dart';
 import 'screens/ai_analysis_screen.dart';
+import 'screens/debug_data_screen.dart';
 import 'services/notification_manager.dart';
 import 'services/data/enhanced_notification_service.dart';
 import 'services/navigation_service.dart';
+import 'services/backup/auto_backup_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +25,33 @@ void main() async {
   // Initialize notifications
   await EnhancedNotificationService.initialize();
 
+  // Initialize auto backup system
+  if (await AutoBackupService.isAutoBackupAvailable()) {
+    print('✅ Auto backup system is available');
+
+    // Enable auto backup by default for new installations
+    if (!await _hasExistingData()) {
+      await AutoBackupService.setAutoBackupEnabled(true);
+      print('🔧 Auto backup enabled for new installation');
+    }
+  } else {
+    print('❌ Auto backup system is not available on this platform');
+  }
+
   runApp(const MoodTrackerApp());
+}
+
+/// Check if the user has existing mood data (not a fresh install)
+Future<bool> _hasExistingData() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final allKeys = prefs.getKeys();
+    final moodKeys = allKeys.where((key) => key.startsWith('mood_')).toList();
+    return moodKeys.isNotEmpty;
+  } catch (e) {
+    print('Error checking existing data: $e');
+    return false;
+  }
 }
 
 class MoodTrackerApp extends StatefulWidget {
@@ -46,6 +75,22 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
 
     // Initialize notification manager
     NotificationManager.initialize();
+
+    // Trigger initial backup check (delayed to not slow down app startup)
+    _scheduleInitialBackupCheck();
+  }
+
+  /// Schedule an initial backup check after app startup
+  void _scheduleInitialBackupCheck() {
+    Future.delayed(const Duration(seconds: 30), () async {
+      try {
+        if (await AutoBackupService.isAutoBackupEnabled()) {
+          AutoBackupService.triggerBackupIfNeeded();
+        }
+      } catch (e) {
+        print('Initial backup check failed: $e');
+      }
+    });
   }
 
   @override
@@ -56,32 +101,44 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
   }
 
   Future<void> _loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    final themeIndex = prefs.getInt(_prefThemeModeKey);
-    final customGradient = prefs.getBool(_prefCustomGradientKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final themeIndex = prefs.getInt(_prefThemeModeKey);
+      final customGradient = prefs.getBool(_prefCustomGradientKey);
 
-    setState(() {
-      if (themeIndex != null) {
-        _themeMode = ThemeMode.values[themeIndex];
-      }
-      _useCustomGradient = customGradient ?? true;
-    });
+      setState(() {
+        if (themeIndex != null) {
+          _themeMode = ThemeMode.values[themeIndex];
+        }
+        _useCustomGradient = customGradient ?? true;
+      });
+    } catch (e) {
+      print('Error loading preferences: $e');
+    }
   }
 
   Future<void> _setThemeMode(ThemeMode mode) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_prefThemeModeKey, mode.index);
-    setState(() {
-      _themeMode = mode;
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_prefThemeModeKey, mode.index);
+      setState(() {
+        _themeMode = mode;
+      });
+    } catch (e) {
+      print('Error saving theme mode: $e');
+    }
   }
 
   Future<void> _setUseCustomGradient(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefCustomGradientKey, value);
-    setState(() {
-      _useCustomGradient = value;
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefCustomGradientKey, value);
+      setState(() {
+        _useCustomGradient = value;
+      });
+    } catch (e) {
+      print('Error saving gradient preference: $e');
+    }
   }
 
   @override
@@ -140,6 +197,9 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
           },
           onUseCustomGradientChanged: _setUseCustomGradient,
         ),
+        // Add debug route (only available in debug mode)
+        if (kDebugMode)
+          '/debug': (context) => const DebugDataScreen(),
       },
     );
   }
