@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../backup/auto_backup_service.dart';
 
 class MoodDataService {
   static const List<String> timeSegments = ['Morning', 'Midday', 'Evening'];
@@ -44,6 +45,8 @@ class MoodDataService {
     });
 
     await prefs.setString(key, jsonData);
+
+    AutoBackupService.triggerBackupIfNeeded();
   }
 
   /// Check if a mood entry was logged on the actual day (within grace period)

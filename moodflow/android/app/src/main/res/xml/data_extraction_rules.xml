@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="sharedpref" path="." />
+        <exclude domain="sharedpref" path="openai_api_key" />
+        <exclude domain="sharedpref" path="google_signin_tokens" />
+        <exclude domain="sharedpref" path="flutter_secure_storage" />
+    </cloud-backup>
+
+    <device-transfer>
+        <include domain="sharedpref" path="." />
+        <exclude domain="sharedpref" path="openai_api_key" />
+        <exclude domain="sharedpref" path="google_signin_tokens" />
+    </device-transfer>
+</data-extraction-rules>

@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Include all shared preferences (where Flutter stores data) -->
+    <include domain="sharedpref" path="." />
+
+    <!-- EXCLUDE sensitive data from backup -->
+    <exclude domain="sharedpref" path="openai_api_key" />
+    <exclude domain="sharedpref" path="google_signin_tokens" />
+    <exclude domain="sharedpref" path="flutter_secure_storage" />
+</full-backup-content>
