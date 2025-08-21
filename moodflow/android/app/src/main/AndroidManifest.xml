@@ -18,7 +18,10 @@
             android:fullBackupContent="@xml/backup_rules"
             android:exported="false"
             android:icon="@mipmap/ic_launcher"
-            android:label="moodflow">
+            android:label="moodflow"
+            android:backupAgent="android.app.backup.BackupAgent"
+            android:killAfterRestore="true"
+            android:restoreAnyVersion="true">
 
         <!-- Notification receivers -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">

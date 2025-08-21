@@ -1,15 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <include domain="sharedpref" path="." />
-        <exclude domain="sharedpref" path="openai_api_key" />
-        <exclude domain="sharedpref" path="google_signin_tokens" />
-        <exclude domain="sharedpref" path="flutter_secure_storage" />
+        <include domain="sharedpref" path="FlutterSharedPreferences.xml" />
+        <include domain="sharedpref" path="notification_plugin_cache.xml" />
+        <include domain="sharedpref" path="scheduled_notifications.xml" />
+        <include domain="sharedpref" path="android.app.ActivityThread.IDS.xml" />
     </cloud-backup>
 
     <device-transfer>
-        <include domain="sharedpref" path="." />
-        <exclude domain="sharedpref" path="openai_api_key" />
-        <exclude domain="sharedpref" path="google_signin_tokens" />
+        <include domain="sharedpref" path="FlutterSharedPreferences.xml" />
+        <include domain="sharedpref" path="notification_plugin_cache.xml" />
+        <include domain="sharedpref" path="scheduled_notifications.xml" />
+        <include domain="sharedpref" path="android.app.ActivityThread.IDS.xml" />
     </device-transfer>
 </data-extraction-rules>
