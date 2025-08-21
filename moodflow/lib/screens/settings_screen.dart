@@ -7,8 +7,10 @@ import '../services/data/enhanced_notification_service.dart' as notifications;
 import '../services/real_notification_service.dart' as real_notifications;
 import '../services/notification_manager.dart';
 import '../services/backup/auto_backup_service.dart';
+import '../services/backup/cloud_backup_service.dart';
+import '../services/backup/startup_restore_service.dart';
 import '../screens/backup_export_screen.dart';
-import 'debug_data_screen.dart'; // Add this import
+import 'debug_data_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final ThemeMode themeMode;
@@ -287,6 +289,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
 
+          const Divider(height: 40),
+
+          _buildSectionHeader('Cloud Backup'),
+          FutureBuilder<Map<String, dynamic>>(
+            future: RealCloudBackupService.getBackupStatus(),
+            builder: (context, snapshot) {
+              final status = snapshot.data ?? {};
+              final isAvailable = status['available'] ?? false;
+              final isSignedIn = status['isSignedIn'] ?? false;
+              final lastBackup = status['lastBackup'] as DateTime?;
+
+              return Column(
+                children: [
+                  ListTile(
+                    leading: Icon(
+                      isAvailable && isSignedIn ? Icons.cloud_done : Icons.cloud_off,
+                      color: isAvailable && isSignedIn ? Colors.green : Colors.grey,
+                    ),
+                    title: Text(
+                      isAvailable && isSignedIn
+                        ? 'Cloud backup active'
+                        : 'Cloud backup not available',
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(status['type'] ?? 'Unknown'),
+                        if (lastBackup != null)
+                          Text('Last backup: ${_formatLastBackupTime(lastBackup)}'),
+                      ],
+                    ),
+                    trailing: isAvailable
+                      ? IconButton(
+                        icon: const Icon(Icons.backup),
+                        onPressed: () async {
+                          _showSnackBar('Starting backup...', Colors.blue);
+                          final result = await RealCloudBackupService.performManualBackup();
+                          _showSnackBar(
+                            result.success
+                              ? 'Backup completed!'
+                              : 'Backup failed: ${result.error}',
+                            result.success ? Colors.green : Colors.red,
+                          );
+                        },
+                      )
+                    : null,
+                  ),
+
+                  if (isAvailable) ...[
+                    ListTile(
+                      title: const Text('Restore from backup'),
+                      subtitle: const Text('Import data from cloud backup'),
+                      leading: const Icon(Icons.cloud_download),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const BackupExportScreen()),
+                        );
+                      },
+                    ),
+
+                    // Debug option to reset restore prompt
+                    if (kDebugMode)
+                      ListTile(
+                        title: const Text('Reset restore prompt'),
+                        subtitle: const Text('For testing - will show restore prompt again'),
+                        leading: const Icon(Icons.refresh),
+                        onTap: () async {
+                          await StartupRestoreService.resetRestorePrompt();
+                          _showSnackBar('Restore prompt reset', Colors.blue);
+                        },
+                      ),
+                  ],
+                ],
+              );
+            },
+          ),
+          
           const Divider(height: 40),
 
           // Notification Settings

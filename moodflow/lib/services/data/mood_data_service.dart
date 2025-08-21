@@ -63,10 +63,11 @@ class MoodDataService {
         if (verification != null) {
           print('✅ Verification successful: Data is persisted');
 
-          // NEW: Trigger cloud backup after successful mood save
+          // UPDATED: Trigger REAL cloud backup after successful mood save
           try {
+            // Use the real cloud backup service instead of auto backup
             RealCloudBackupService.triggerBackupIfNeeded();
-            print('🔄 Cloud backup triggered after mood save');
+            print('🔄 Real cloud backup triggered after mood save');
           } catch (e) {
             print('⚠️ Cloud backup trigger failed: $e');
             // Don't fail the mood save if backup fails

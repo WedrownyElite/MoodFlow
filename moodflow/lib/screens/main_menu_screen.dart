@@ -10,6 +10,7 @@ import 'goals_screen.dart';
 import 'settings_screen.dart';
 import 'ai_analysis_screen.dart';
 import 'backup_export_screen.dart';
+import '../services/backup/startup_restore_service.dart';
 
 class MainMenuScreen extends StatefulWidget {
   final ThemeMode themeMode;
@@ -42,6 +43,19 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
 
     // Check for notification permission on app start
     _checkNotificationPermission();
+
+    // ADDED: Check for cloud backup restore on app start
+    _checkForCloudRestore();
+  }
+
+  Future<void> _checkForCloudRestore() async {
+    // Wait a bit for the UI to settle
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    // Check if we should prompt for restore
+    await StartupRestoreService.checkAndPromptRestore(context);
   }
 
   Future<void> _checkNotificationPermission() async {

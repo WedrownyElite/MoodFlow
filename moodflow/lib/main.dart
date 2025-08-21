@@ -25,18 +25,16 @@ void main() async {
   // Initialize notifications
   await EnhancedNotificationService.initialize();
 
-  // Initialize real cloud backup system
+  // Initialize REAL cloud backup system (not local auto backup)
   if (await RealCloudBackupService.isCloudBackupAvailable()) {
     print('✅ Real cloud backup system is available');
 
-    // Enable cloud backup by default for new installations
-    if (!await _hasExistingData()) {
-      await RealCloudBackupService.setAutoBackupEnabled(true);
-      print('🔧 Cloud backup enabled for new installation');
-    }
+    // Always enable cloud backup for new installations
+    await RealCloudBackupService.setAutoBackupEnabled(true);
+    print('🔧 Cloud backup enabled');
 
-    // Check for existing backups on startup (for restore prompts)
-    RealCloudBackupService.checkForRestoreOnStartup();
+    // Check for existing cloud backups on startup for auto-restore
+    await RealCloudBackupService.checkForRestoreOnStartup();
   } else {
     print('❌ Real cloud backup system is not available on this platform');
   }
