@@ -53,7 +53,7 @@ class BlurTransitionService {
 
   void dispose() {
     _disposed = true;
-    if (!_controller.isDisposed) {
+    if (!_disposed) {
       _controller.dispose();
     }
   }

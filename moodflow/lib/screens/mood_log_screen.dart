@@ -6,7 +6,7 @@ import '../services/ui/mood_gradient_service.dart';
 import '../services/animation/blur_transition_service.dart';
 import '../services/animation/slider_animation_service.dart';
 import '../widgets/animated_mood_slider.dart';
-import '../services/data/enhanced_notification_service.dart';
+import '../services/notifications/enhanced_notification_service.dart';
 
 class MoodLogScreen extends StatefulWidget {
   final bool useCustomGradient;

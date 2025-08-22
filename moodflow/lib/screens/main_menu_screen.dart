@@ -171,7 +171,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _buildSecondaryButton('Backup', Icons.cloud_upload, () => _navigateWithBlur(const BackupExportScreen())),
-                      _buildSecondaryButton('Settings', Icons.settings, () => _navigateWithScale(...)),
+                      _buildSecondaryButton('Settings', Icons.settings, () => _navigateWithScale(
+                        SettingsScreen(
+                          themeMode: widget.themeMode,
+                          useCustomGradient: widget.useCustomGradient,
+                          onThemeModeChanged: widget.onThemeModeChanged,
+                          onUseCustomGradientChanged: widget.onUseCustomGradientChanged,
+                        ),
+                      )),
                     ],
                   ),
                 ],

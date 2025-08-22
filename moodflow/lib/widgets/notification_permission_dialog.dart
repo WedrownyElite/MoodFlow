@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/data/enhanced_notification_service.dart';
+import '../services/notifications/enhanced_notification_service.dart';
 
 class NotificationPermissionDialog extends StatelessWidget {
   const NotificationPermissionDialog({super.key});
