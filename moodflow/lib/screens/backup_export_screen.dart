@@ -9,8 +9,11 @@ import '../services/backup/icloud_service.dart';
 import '../services/data/backup_models.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/backup/auto_backup_service.dart';
-import '../widgets/csv_import_dialog.dart';
-import '../services/import/csv_import_service.dart';
+
+// REMOVE FOR PRODUCTION (CUSTOM CSV IMPORT)
+// Also delete the imports directory, and widgets/custom_csv_import_dialog.dart
+import '../services/import/custom_csv_importer.dart';
+import '../widgets/custom_csv_import_dialog.dart';
 
 class BackupExportScreen extends StatefulWidget {
   const BackupExportScreen({super.key});
@@ -261,17 +264,6 @@ class _BackupExportScreenState extends State<BackupExportScreen>
             onTap: _importFromFile,
           ),
 
-          const SizedBox(height: 16),
-
-          // CSV Import - NEW
-          _buildRestoreCard(
-            title: 'Import CSV Data',
-            description: 'Import mood data from custom CSV files with flexible mapping',
-            icon: Icons.table_chart,
-            color: Colors.teal,
-            onTap: _importFromCSV,
-          ),
-
           const SizedBox(height: 24),
 
           // Cloud Restore Section
@@ -304,6 +296,18 @@ class _BackupExportScreenState extends State<BackupExportScreen>
               onRestore: () => _restoreFromICloud(backup.relativePath),
             )).toList(),
           ],
+
+          // REMOVE FOR PRODUCTION (CUSTOM CSV IMPORT)
+          const SizedBox(height: 16),
+
+          // CUSTOM CSV Import - NEW (you can delete this entire block later)
+          _buildRestoreCard(
+            title: 'Import Your Custom CSV',
+            description: 'Import from your specific MoodLog CSV format (TEMPORARY)',
+            icon: Icons.table_chart,
+            color: Colors.orange,
+            onTap: _importFromCustomCSV,
+          ),
         ],
       ),
     );
@@ -782,34 +786,6 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       _showErrorMessage('Import failed: $e');
     }
   }
-
-  Future<void> _importFromCSV() async {
-    try {
-      final result = await showDialog<CSVImportResult>(
-        context: context,
-        builder: (context) => const CSVImportDialog(),
-      );
-
-      if (result != null) {
-        if (result.success) {
-          _showSuccessMessage(
-              'CSV import completed!\n'
-                  'Imported: ${result.importedEntries} mood entries\n'
-                  'Skipped: ${result.skippedEntries} existing entries'
-          );
-
-          // Show detailed results if there were errors
-          if (result.errors.isNotEmpty) {
-            _showImportErrorsDialog(result);
-          }
-        } else {
-          _showErrorMessage(result.error ?? 'CSV import failed');
-        }
-      }
-    } catch (e) {
-      _showErrorMessage('CSV import failed: $e');
-    }
-  }
   
   // Helper Methods
   void _showLoadingDialog(String message) {
@@ -870,7 +846,37 @@ class _BackupExportScreenState extends State<BackupExportScreen>
     );
   }
 
-  void _showImportErrorsDialog(CSVImportResult result) {
+  // REMOVE FOR PRODUCTION (CUSTOM CSV IMPORT)
+  Future<void> _importFromCustomCSV() async {
+    try {
+      final result = await showDialog<CustomImportResult>(
+        context: context,
+        builder: (context) => const CustomCSVImportDialog(),
+      );
+
+      if (result != null) {
+        if (result.success) {
+          _showSuccessMessage(
+              'Custom CSV import completed!\n'
+                  'Imported/Overwrote: ${result.imported} mood entries\n'
+                  'Note: This import overwrites any existing data for the same dates'
+          );
+
+          // Show errors if any
+          if (result.errors.isNotEmpty) {
+            _showCustomImportErrors(result);
+          }
+        } else {
+          _showErrorMessage(result.error ?? 'Custom CSV import failed');
+        }
+      }
+    } catch (e) {
+      _showErrorMessage('Custom CSV import failed: $e');
+    }
+  }
+
+  // REMOVE FOR PRODUCTION (CUSTOM CSV IMPORT)
+  void _showCustomImportErrors(CustomImportResult result) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -881,21 +887,11 @@ class _BackupExportScreenState extends State<BackupExportScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Import Summary:',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text('✅ Imported: ${result.importedEntries} entries'),
-              Text('⏭️ Skipped: ${result.skippedEntries} existing entries'),
-              Text('📊 Total processed: ${result.totalEntries} entries'),
-
+              Text('✅ Imported: ${result.imported} entries'),
+              Text('⏭️ Skipped: ${result.skipped} existing entries'),
               if (result.errors.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const Text(
-                  'Errors encountered:',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-                ),
+                const Text('Errors:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
                 const SizedBox(height: 8),
                 Flexible(
                   child: SingleChildScrollView(
@@ -903,10 +899,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: result.errors.map((error) => Padding(
                         padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          '• $error',
-                          style: const TextStyle(fontSize: 12, color: Colors.red),
-                        ),
+                        child: Text('• $error', style: const TextStyle(fontSize: 12, color: Colors.red)),
                       )).toList(),
                     ),
                   ),
