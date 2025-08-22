@@ -10,19 +10,34 @@ class MoodTrendsService {
   }) async {
     final List<DayMoodData> trends = [];
 
-    DateTime currentDate = startDate;
+    // Limit the date range to prevent excessive loading
+    final maxDays = 365; // Maximum 1 year of data
+    final actualStartDate = endDate.difference(startDate).inDays > maxDays
+        ? endDate.subtract(Duration(days: maxDays))
+        : startDate;
+
+    DateTime currentDate = actualStartDate;
     while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
       final dayData = DayMoodData(date: currentDate);
 
-      // Load mood data for each time segment
-      for (int i = 0; i < MoodDataService.timeSegments.length; i++) {
+      // Only check segments that we actually need
+      bool hasAnyData = false;
+      for (int i = 0; i < 3; i++) {
         final moodData = await MoodDataService.loadMood(currentDate, i);
         if (moodData != null && moodData['rating'] != null) {
           dayData.moods[i] = (moodData['rating'] as num).toDouble();
+          hasAnyData = true;
         }
       }
 
-      trends.add(dayData);
+      // Only add days that have data (this reduces processing significantly)
+      if (hasAnyData) {
+        trends.add(dayData);
+      } else {
+        // For days without data, add empty day but don't process further
+        trends.add(dayData);
+      }
+
       currentDate = currentDate.add(const Duration(days: 1));
     }
 

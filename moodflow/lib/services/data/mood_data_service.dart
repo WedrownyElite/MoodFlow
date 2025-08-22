@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../backup/cloud_backup_service.dart';
 
 class MoodDataService {
   static const List<String> timeSegments = ['Morning', 'Midday', 'Evening'];
+  static Timer? _backupThrottleTimer;
+  static DateTime? _lastBackupAttempt;
 
   /// Returns key for storing mood data
   static String getKeyForDateSegment(DateTime date, int segmentIndex) {
@@ -28,7 +32,9 @@ class MoodDataService {
       }
 
       final data = jsonDecode(jsonString) as Map<String, dynamic>;
-      print('📖 Loaded fresh mood for $key: $data');
+      if (kDebugMode && DateTime.now().millisecond % 100 == 0) {
+        print('📖 Loaded fresh mood for $key: $data');
+      }
       return data;
     } catch (e) {
       print('❌ Error loading mood: $e');
@@ -73,7 +79,7 @@ class MoodDataService {
           // Trigger cloud backup after successful save
           try {
             // Don't use triggerBackupIfNeeded - do immediate backup
-            _performImmediateCloudBackup();
+            _scheduleThrottledBackup();
             print('🔄 Immediate cloud backup triggered after mood save');
           } catch (e) {
             print('⚠️ Cloud backup trigger failed: $e');
@@ -95,16 +101,30 @@ class MoodDataService {
 
   /// Perform immediate cloud backup without delay or interval checks
   static void _performImmediateCloudBackup() {
-    // Run in background without waiting
-    Future.delayed(const Duration(milliseconds: 100), () async {
+    // Use throttling instead of immediate backup
+    _scheduleThrottledBackup();
+  }
+
+  static void _scheduleThrottledBackup() {
+    final now = DateTime.now();
+
+    // Don't backup more than once every 30 minutes
+    if (_lastBackupAttempt != null &&
+        now.difference(_lastBackupAttempt!).inMinutes < 30) {
+      return;
+    }
+
+    // Cancel existing timer and set new one
+    _backupThrottleTimer?.cancel();
+    _backupThrottleTimer = Timer(const Duration(minutes: 2), () async {
       try {
+        _lastBackupAttempt = DateTime.now();
         final isEnabled = await RealCloudBackupService.isAutoBackupEnabled();
         if (isEnabled && await RealCloudBackupService.isCloudBackupAvailable()) {
           await RealCloudBackupService.performAutomaticBackup();
-          print('✅ Immediate cloud backup completed');
         }
       } catch (e) {
-        print('❌ Immediate cloud backup failed: $e');
+        print('❌ Throttled cloud backup failed: $e');
       }
     });
   }

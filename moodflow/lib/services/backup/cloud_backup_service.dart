@@ -68,6 +68,39 @@ class RealCloudBackupService {
     return true;
   }
 
+  static Future<void> _cleanupOldBackups() async {
+    try {
+      final backups = await listAvailableBackups();
+
+      // Keep only the 5 most recent backups
+      if (backups.length > 5) {
+        final sortedBackups = List.from(backups);
+        // Sort by date (newest first)
+        sortedBackups.sort((a, b) {
+          if (Platform.isAndroid) {
+            return (b as DriveBackupFile).createdTime?.compareTo((a as DriveBackupFile).createdTime ?? DateTime.now()) ?? 0;
+          } else {
+            return (b as ICloudBackupFile).createdDate.compareTo((a as ICloudBackupFile).createdDate);
+          }
+        });
+
+        // Delete old backups (keep first 5, delete the rest)
+        for (int i = 5; i < sortedBackups.length; i++) {
+          final backup = sortedBackups[i];
+          String backupId;
+          if (Platform.isAndroid) {
+            backupId = (backup as DriveBackupFile).id;
+          } else {
+            backupId = (backup as ICloudBackupFile).relativePath;
+          }
+          await deleteBackup(backupId);
+        }
+      }
+    } catch (e) {
+      print('Error cleaning up old backups: $e');
+    }
+  }
+  
   /// Perform automatic cloud backup
   static Future<bool> performAutomaticBackup() async {
     try {
@@ -99,6 +132,7 @@ class RealCloudBackupService {
       if (result.success) {
         await _setLastBackupTime(DateTime.now());
         print('✅ Automatic cloud backup completed successfully');
+        await _cleanupOldBackups();
         return true;
       } else {
         print('❌ Automatic cloud backup failed: ${result.error}');

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/data/mood_trends_service.dart';
 import '../services/data/mood_data_service.dart';
@@ -64,7 +66,7 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
     final today = DateTime.now();
     final todayDateOnly = DateTime(today.year, today.month, today.day);
 
-    // CHECK CACHE FIRST:
+    // Simple cache check - only recalculate if day changed
     if (_lastCalculationDate != null &&
         _lastCalculationDate!.isAtSameMomentAs(todayDateOnly) &&
         _cachedLiveStreak != null &&
@@ -77,7 +79,8 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
       return;
     }
 
-    await Future.delayed(const Duration(milliseconds: 50));
+    // Add a small delay to prevent UI blocking
+    await Future.delayed(const Duration(milliseconds: 100));
     setState(() => _isLoadingStreaks = true);
 
     int liveStreak = 0;
@@ -96,7 +99,7 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
       streakCalculationDate = todayDate.subtract(const Duration(days: 1));
     }
 
-// Check if user has logged any mood today
+    // Check if user has logged any mood today
     bool hasLoggedToday = false;
     for (int segment = 0; segment < 3; segment++) {
       final moodData = await MoodDataService.loadMood(todayDate, segment);
@@ -106,7 +109,7 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
       }
     }
 
-// Determine starting date for streak calculation
+    // Determine starting date for streak calculation
     DateTime streakStartDate;
     if (hasLoggedToday) {
       // User has logged today, so include today in streak calculation
@@ -116,12 +119,12 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
       streakStartDate = todayDate.subtract(const Duration(days: 1));
     }
 
-// Calculate streaks starting from the determined date
+    // Calculate streaks starting from the determined date
     DateTime currentDate = streakStartDate;
     bool liveBroken = false;
     bool completionBroken = false;
 
-//  Check up to 365 days back and refresh data in real-time
+    // Check up to 365 days back and refresh data in real-time
     for (int i = 0; i < 365; i++) {
       bool hasAnyMood = false;
       bool wasLoggedOnTime = false;
@@ -166,12 +169,12 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
         _liveStreak = liveStreak;
         _completionStreak = completionStreak;
         _isLoadingStreaks = false;
-
-        // CACHE THE RESULTS:
-        _lastCalculationDate = todayDateOnly;
-        _cachedLiveStreak = liveStreak;
-        _cachedCompletionStreak = completionStreak;
       });
+
+      // Cache the results
+      _lastCalculationDate = todayDateOnly;
+      _cachedLiveStreak = liveStreak;
+      _cachedCompletionStreak = completionStreak;
     }
   }
 

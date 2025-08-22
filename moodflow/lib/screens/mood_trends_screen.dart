@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 import '../services/data/mood_trends_service.dart';
 import '../services/data/mood_data_service.dart';
 import '../widgets/mood_line_chart.dart';
@@ -22,6 +23,10 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
   List<DayMoodData> _trendData = [];
   MoodStatistics _statistics = MoodStatistics.empty();
   bool _isLoading = true;
+  
+  DateTime? _lastCalculatedDate;
+  MoodStatistics? _cachedStatistics;
+  List<DayMoodData>? _lastTrendData;
 
   // Custom date range
   DateTime? _customStartDate;
@@ -46,6 +51,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
     final endDate = DateTime.now();
     late DateTime startDate;
 
+    // Reduce data range for better performance
     switch (_selectedRange) {
       case TimeRange.week:
         startDate = endDate.subtract(const Duration(days: 7));
@@ -60,13 +66,18 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
         startDate = endDate.subtract(const Duration(days: 365));
         break;
       case TimeRange.all:
-        startDate = endDate.subtract(const Duration(days: 1095)); // 3 years max
+        startDate = endDate.subtract(const Duration(days: 730)); // Limit to 2 years max
         break;
       case TimeRange.custom:
         if (_customStartDate != null && _customEndDate != null) {
           startDate = _customStartDate!;
+          // Limit custom range to 2 years max
+          final daysDiff = _customEndDate!.difference(_customStartDate!).inDays;
+          if (daysDiff > 730) {
+            startDate = _customEndDate!.subtract(const Duration(days: 730));
+          }
         } else {
-          startDate = endDate.subtract(const Duration(days: 30)); // Fallback
+          startDate = endDate.subtract(const Duration(days: 30));
         }
         break;
     }
@@ -75,16 +86,19 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
         ? _customEndDate!
         : endDate;
 
-    final trends = await MoodTrendsService.getMoodTrends(
-      startDate: startDate,
-      endDate: actualEndDate,
-    );
+    // Load data in background to prevent UI blocking
+    final trends = await compute(_loadTrendsInBackground, {
+      'startDate': startDate.millisecondsSinceEpoch,
+      'endDate': actualEndDate.millisecondsSinceEpoch,
+    });
 
-    // FIXED: Calculate statistics based on the filtered date range
+    if (!mounted) return;
+
+    // Calculate statistics efficiently
     final statistics = await MoodTrendsService.calculateStatisticsForDateRange(
-        trends,
-        startDate,
-        actualEndDate
+      trends,
+      startDate,
+      actualEndDate,
     );
 
     setState(() {
@@ -92,6 +106,17 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
       _statistics = statistics;
       _isLoading = false;
     });
+  }
+
+// Add this static method at the bottom of the file
+  static Future<List<DayMoodData>> _loadTrendsInBackground(Map<String, dynamic> params) async {
+    final startDate = DateTime.fromMillisecondsSinceEpoch(params['startDate']);
+    final endDate = DateTime.fromMillisecondsSinceEpoch(params['endDate']);
+
+    return await MoodTrendsService.getMoodTrends(
+      startDate: startDate,
+      endDate: endDate,
+    );
   }
 
   String _getRangeDisplayName(TimeRange range) {
