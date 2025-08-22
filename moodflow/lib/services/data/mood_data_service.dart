@@ -9,6 +9,69 @@ class MoodDataService {
   static Timer? _backupThrottleTimer;
   static DateTime? _lastBackupAttempt;
 
+  // Flag to prevent operations before proper initialization
+  static bool _isInitialized = false;
+  static Completer<SharedPreferences>? _prefsCompleter;
+  static SharedPreferences? _cachedPrefs;
+
+  /// Initialize the service safely
+  static Future<void> initialize() async {
+    if (_isInitialized) return;
+
+    try {
+      print('🔄 Initializing MoodDataService...');
+
+      // Ensure we have bindings before accessing SharedPreferences
+      if (!WidgetsBinding.instance.debugCheckZone()) {
+        throw StateError('MoodDataService: Flutter bindings not initialized');
+      }
+
+      // Get SharedPreferences instance and cache it
+      _cachedPrefs = await SharedPreferences.getInstance();
+      _isInitialized = true;
+
+      print('✅ MoodDataService initialized successfully');
+    } catch (e) {
+      print('❌ MoodDataService initialization failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Get SharedPreferences instance safely
+  static Future<SharedPreferences> _getPrefs() async {
+    // If we have cached prefs and they're ready, use them
+    if (_cachedPrefs != null && _isInitialized) {
+      return _cachedPrefs!;
+    }
+
+    // If another call is already getting prefs, wait for it
+    if (_prefsCompleter != null) {
+      return await _prefsCompleter!.future;
+    }
+
+    // Create a new completer for this request
+    _prefsCompleter = Completer<SharedPreferences>();
+
+    try {
+      // Ensure initialization before accessing SharedPreferences
+      if (!_isInitialized) {
+        await initialize();
+      }
+
+      final prefs = _cachedPrefs ?? await SharedPreferences.getInstance();
+      _cachedPrefs = prefs;
+
+      _prefsCompleter!.complete(prefs);
+      _prefsCompleter = null;
+
+      return prefs;
+    } catch (e) {
+      _prefsCompleter!.completeError(e);
+      _prefsCompleter = null;
+      rethrow;
+    }
+  }
+
   /// Returns key for storing mood data
   static String getKeyForDateSegment(DateTime date, int segmentIndex) {
     final dateString = date.toIso8601String().substring(0, 10);
@@ -16,13 +79,12 @@ class MoodDataService {
   }
 
   /// Loads saved mood (rating + note + timestamp) for given date and segment
-  /// FIXED: Always reload from SharedPreferences to get fresh data
   static Future<Map<String, dynamic>?> loadMood(DateTime date, int segmentIndex) async {
     try {
       final key = getKeyForDateSegment(date, segmentIndex);
+      final prefs = await _getPrefs();
 
-      final prefs = await SharedPreferences.getInstance();
-      
+      // Force reload to get fresh data
       await prefs.reload();
 
       final jsonString = prefs.getString(key);
@@ -43,10 +105,9 @@ class MoodDataService {
   }
 
   /// Saves mood (rating + note + timestamp) for given date and segment
-  /// FIXED: Improved save process with verification
   static Future<bool> saveMood(DateTime date, int segmentIndex, double rating, String note) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _getPrefs();
       final key = getKeyForDateSegment(date, segmentIndex);
 
       // Check if this is an existing entry to preserve original timestamp
@@ -64,7 +125,7 @@ class MoodDataService {
 
       final jsonData = jsonEncode(moodData);
 
-      // Use commit() instead of setString() for immediate persistence
+      // Use commit() for immediate persistence
       final success = await prefs.setString(key, jsonData);
 
       if (success) {
@@ -77,13 +138,7 @@ class MoodDataService {
           print('✅ Mood saved and verified for $key: $moodData');
 
           // Trigger cloud backup after successful save
-          try {
-            // Don't use triggerBackupIfNeeded - do immediate backup
-            _scheduleThrottledBackup();
-            print('🔄 Immediate cloud backup triggered after mood save');
-          } catch (e) {
-            print('⚠️ Cloud backup trigger failed: $e');
-          }
+          _scheduleThrottledBackup();
 
           return true;
         } else {
@@ -99,12 +154,7 @@ class MoodDataService {
     }
   }
 
-  /// Perform immediate cloud backup without delay or interval checks
-  static void _performImmediateCloudBackup() {
-    // Use throttling instead of immediate backup
-    _scheduleThrottledBackup();
-  }
-
+  /// Schedule throttled backup to prevent too frequent backups
   static void _scheduleThrottledBackup() {
     final now = DateTime.now();
 
@@ -119,8 +169,20 @@ class MoodDataService {
     _backupThrottleTimer = Timer(const Duration(minutes: 2), () async {
       try {
         _lastBackupAttempt = DateTime.now();
-        final isEnabled = await RealCloudBackupService.isAutoBackupEnabled();
-        if (isEnabled && await RealCloudBackupService.isCloudBackupAvailable()) {
+
+        // Safely check if cloud backup is available and enabled
+        bool isEnabled = false;
+        bool isAvailable = false;
+
+        try {
+          isEnabled = await RealCloudBackupService.isAutoBackupEnabled();
+          isAvailable = await RealCloudBackupService.isCloudBackupAvailable();
+        } catch (e) {
+          print('❌ Error checking cloud backup status: $e');
+          return;
+        }
+
+        if (isEnabled && isAvailable) {
           await RealCloudBackupService.performAutomaticBackup();
         }
       } catch (e) {
@@ -159,30 +221,38 @@ class MoodDataService {
 
   /// Debug method to check all stored mood data
   static Future<void> debugPrintAllMoods() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.reload(); // Ensure fresh data
-    final allKeys = prefs.getKeys();
-    final moodKeys = allKeys.where((key) => key.startsWith('mood_')).toList();
+    try {
+      final prefs = await _getPrefs();
+      await prefs.reload(); // Ensure fresh data
+      final allKeys = prefs.getKeys();
+      final moodKeys = allKeys.where((key) => key.startsWith('mood_')).toList();
 
-    print('🔍 Found ${moodKeys.length} mood entries:');
-    for (final key in moodKeys) {
-      final value = prefs.getString(key);
-      print('  $key: $value');
+      print('🔍 Found ${moodKeys.length} mood entries:');
+      for (final key in moodKeys) {
+        final value = prefs.getString(key);
+        print('  $key: $value');
+      }
+    } catch (e) {
+      print('❌ Error debugging moods: $e');
     }
   }
 
   /// Clear all mood data (for testing purposes)
   static Future<void> clearAllMoods() async {
-    final prefs = await SharedPreferences.getInstance();
-    final allKeys = prefs.getKeys();
-    final moodKeys = allKeys.where((key) => key.startsWith('mood_')).toList();
+    try {
+      final prefs = await _getPrefs();
+      final allKeys = prefs.getKeys();
+      final moodKeys = allKeys.where((key) => key.startsWith('mood_')).toList();
 
-    for (final key in moodKeys) {
-      await prefs.remove(key);
+      for (final key in moodKeys) {
+        await prefs.remove(key);
+      }
+
+      await prefs.reload(); // Ensure changes are reflected
+      print('🗑️ Cleared ${moodKeys.length} mood entries');
+    } catch (e) {
+      print('❌ Error clearing moods: $e');
     }
-
-    await prefs.reload(); // Ensure changes are reflected
-    print('🗑️ Cleared ${moodKeys.length} mood entries');
   }
 
   /// Force a cloud backup of all current mood data
@@ -210,5 +280,14 @@ class MoodDataService {
     } catch (e) {
       return false;
     }
+  }
+
+  /// Cleanup method
+  static void dispose() {
+    _backupThrottleTimer?.cancel();
+    _backupThrottleTimer = null;
+    _prefsCompleter = null;
+    _cachedPrefs = null;
+    _isInitialized = false;
   }
 }

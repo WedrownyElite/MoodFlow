@@ -20,33 +20,64 @@ import 'services/navigation_service.dart';
 import 'services/backup/cloud_backup_service.dart';
 
 void main() async {
+  // CRITICAL: Ensure Flutter bindings are initialized FIRST
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize notifications
-  await EnhancedNotificationService.initialize();
-
-  if (kDebugMode) {
-    if (await RealCloudBackupService.isCloudBackupAvailable()) {
-      print('✅ Real cloud backup system is available');
-      await RealCloudBackupService.setAutoBackupEnabled(true);
-      print('🔧 Cloud backup enabled');
-      await RealCloudBackupService.checkForRestoreOnStartup();
-    } else {
-      print('❌ Real cloud backup system is not available on this platform');
-    }
-  } else {
-    // PRODUCTION: Silent cloud backup initialization
-    try {
-      if (await RealCloudBackupService.isCloudBackupAvailable()) {
-        await RealCloudBackupService.setAutoBackupEnabled(true);
-        await RealCloudBackupService.checkForRestoreOnStartup();
-      }
-    } catch (e) {
-      // Silent fail in production
-    }
-  }
+  // Initialize services in the correct order
+  await _initializeServices();
 
   runApp(const MoodTrackerApp());
+}
+
+/// Initialize all services in the correct order to prevent binding issues
+Future<void> _initializeServices() async {
+  try {
+    // 1. Initialize notifications FIRST (this often causes the binding errors)
+    print('🔄 Initializing notification services...');
+    await EnhancedNotificationService.initialize();
+    print('✅ Notification services initialized');
+
+    // 2. Initialize notification manager
+    NotificationManager.initialize();
+    print('✅ Notification manager initialized');
+
+    // 3. Initialize cloud backup services
+    await _initializeCloudBackup();
+
+  } catch (e) {
+    print('❌ Error during service initialization: $e');
+    // Continue with app launch even if some services fail
+  }
+}
+
+/// Initialize cloud backup with proper error handling
+Future<void> _initializeCloudBackup() async {
+  try {
+    if (kDebugMode) {
+      if (await RealCloudBackupService.isCloudBackupAvailable()) {
+        print('✅ Real cloud backup system is available');
+        await RealCloudBackupService.setAutoBackupEnabled(true);
+        print('🔧 Cloud backup enabled');
+        await RealCloudBackupService.checkForRestoreOnStartup();
+        print('✅ Cloud backup initialization complete');
+      } else {
+        print('❌ Real cloud backup system is not available on this platform');
+      }
+    } else {
+      // PRODUCTION: Silent cloud backup initialization
+      try {
+        if (await RealCloudBackupService.isCloudBackupAvailable()) {
+          await RealCloudBackupService.setAutoBackupEnabled(true);
+          await RealCloudBackupService.checkForRestoreOnStartup();
+        }
+      } catch (e) {
+        // Silent fail in production
+        print('⚠️ Cloud backup initialization failed silently: $e');
+      }
+    }
+  } catch (e) {
+    print('❌ Cloud backup initialization error: $e');
+  }
 }
 
 /// Check if the user has existing mood data (not a fresh install)
@@ -79,13 +110,12 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
   @override
   void initState() {
     super.initState();
-    _loadPreferences();
 
-    // Initialize notification manager
-    NotificationManager.initialize();
-
-    // Trigger initial backup check (delayed to not slow down app startup)
-    _scheduleInitialBackupCheck();
+    // Load preferences after a short delay to ensure everything is ready
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _loadPreferences();
+      _scheduleInitialBackupCheck();
+    });
   }
 
   /// Schedule an initial backup check after app startup
@@ -115,12 +145,14 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
       final themeIndex = prefs.getInt(_prefThemeModeKey);
       final customGradient = prefs.getBool(_prefCustomGradientKey);
 
-      setState(() {
-        if (themeIndex != null) {
-          _themeMode = ThemeMode.values[themeIndex];
-        }
-        _useCustomGradient = customGradient ?? true;
-      });
+      if (mounted) {
+        setState(() {
+          if (themeIndex != null) {
+            _themeMode = ThemeMode.values[themeIndex];
+          }
+          _useCustomGradient = customGradient ?? true;
+        });
+      }
     } catch (e) {
       print('Error loading preferences: $e');
     }
@@ -130,9 +162,11 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_prefThemeModeKey, mode.index);
-      setState(() {
-        _themeMode = mode;
-      });
+      if (mounted) {
+        setState(() {
+          _themeMode = mode;
+        });
+      }
     } catch (e) {
       print('Error saving theme mode: $e');
     }
@@ -142,9 +176,11 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_prefCustomGradientKey, value);
-      setState(() {
-        _useCustomGradient = value;
-      });
+      if (mounted) {
+        setState(() {
+          _useCustomGradient = value;
+        });
+      }
     } catch (e) {
       print('Error saving gradient preference: $e');
     }
