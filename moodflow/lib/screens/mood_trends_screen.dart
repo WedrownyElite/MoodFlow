@@ -448,8 +448,10 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
     final borderColor = theme.dividerColor;
     final buttonBackgroundColor = isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300;
 
-    return Column(
-      children: [
+    return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          children: [
         // Time range buttons
         Row(
           children: [
@@ -622,7 +624,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
           ],
         ),
       ],
-    );
+    ));
   }
 
   Widget _buildChartDateRangeInfo() {

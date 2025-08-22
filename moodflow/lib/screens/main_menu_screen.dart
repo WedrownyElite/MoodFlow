@@ -135,53 +135,57 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
         child: SafeArea(
           child: BlurTransitionWidget(
             blurService: _blurService,
-            child: Center(
-              child: Column(
-                children: [
-                  // Primary action - larger, prominent
-                  _buildPrimaryButton(
-                    'Log Mood',
-                    Icons.edit_note,
-                        () => _navigateToMoodLog(),
-                  ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Primary action - larger, prominent
+                    _buildPrimaryButton(
+                      'Log Mood',
+                      Icons.edit_note,
+                          () => _navigateToMoodLog(),
+                    ),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  // Quick access grid (2x2)
-                  Row(
-                    children: [
-                      Expanded(child: _buildQuickButton('History', Icons.history, () => _navigateWithBlur(const MoodHistoryScreen()))),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildQuickButton('Trends', Icons.show_chart, () => _navigateWithBlur(const MoodTrendsScreen()))),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(child: _buildQuickButton('Goals', Icons.flag, () => _navigateWithBlur(const GoalsScreen()))),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildQuickButton('AI Analysis', Icons.psychology, () => _navigateWithBlur(const AIAnalysisScreen()))),
-                    ],
-                  ),
+                    // Quick access grid (2x2)
+                    Row(
+                      children: [
+                        Expanded(child: _buildQuickButton('History', Icons.history, () => _navigateWithBlur(const MoodHistoryScreen()))),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildQuickButton('Trends', Icons.show_chart, () => _navigateWithBlur(const MoodTrendsScreen()))),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(child: _buildQuickButton('Goals', Icons.flag, () => _navigateWithBlur(const GoalsScreen()))),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildQuickButton('AI Analysis', Icons.psychology, () => _navigateWithBlur(const AIAnalysisScreen()))),
+                      ],
+                    ),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  // Secondary actions row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildSecondaryButton('Backup', Icons.cloud_upload, () => _navigateWithBlur(const BackupExportScreen())),
-                      _buildSecondaryButton('Settings', Icons.settings, () => _navigateWithScale(
-                        SettingsScreen(
-                          themeMode: widget.themeMode,
-                          useCustomGradient: widget.useCustomGradient,
-                          onThemeModeChanged: widget.onThemeModeChanged,
-                          onUseCustomGradientChanged: widget.onUseCustomGradientChanged,
-                        ),
-                      )),
-                    ],
-                  ),
-                ],
+                    // Secondary actions row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildSecondaryButton('Backup', Icons.cloud_upload, () => _navigateWithBlur(const BackupExportScreen())),
+                        _buildSecondaryButton('Settings', Icons.settings, () => _navigateWithScale(
+                          SettingsScreen(
+                            themeMode: widget.themeMode,
+                            useCustomGradient: widget.useCustomGradient,
+                            onThemeModeChanged: widget.onThemeModeChanged,
+                            onUseCustomGradientChanged: widget.onUseCustomGradientChanged,
+                          ),
+                        )),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

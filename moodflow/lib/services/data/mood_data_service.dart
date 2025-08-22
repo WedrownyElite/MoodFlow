@@ -63,6 +63,7 @@ class MoodDataService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = getKeyForDateSegment(date, segmentIndex);
+      
       _cache.remove(key);
 
       // Check if this is an existing entry to preserve original timestamp
