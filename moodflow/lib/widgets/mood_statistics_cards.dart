@@ -25,6 +25,10 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
   int _completionStreak = 0;
   bool _isLoadingStreaks = true;
 
+  DateTime? _lastCalculationDate;
+  int? _cachedLiveStreak;
+  int? _cachedCompletionStreak;
+
   @override
   void initState() {
     super.initState();
@@ -57,8 +61,23 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
 
   /// Calculate detailed streaks in real-time to reflect current mood entries
   Future<void> _calculateDetailedStreaks() async {
+    final today = DateTime.now();
+    final todayDateOnly = DateTime(today.year, today.month, today.day);
+
+    // CHECK CACHE FIRST:
+    if (_lastCalculationDate != null &&
+        _lastCalculationDate!.isAtSameMomentAs(todayDateOnly) &&
+        _cachedLiveStreak != null &&
+        _cachedCompletionStreak != null) {
+      setState(() {
+        _liveStreak = _cachedLiveStreak!;
+        _completionStreak = _cachedCompletionStreak!;
+        _isLoadingStreaks = false;
+      });
+      return;
+    }
+
     await Future.delayed(const Duration(milliseconds: 50));
-    
     setState(() => _isLoadingStreaks = true);
 
     int liveStreak = 0;
@@ -147,6 +166,11 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
         _liveStreak = liveStreak;
         _completionStreak = completionStreak;
         _isLoadingStreaks = false;
+
+        // CACHE THE RESULTS:
+        _lastCalculationDate = todayDateOnly;
+        _cachedLiveStreak = liveStreak;
+        _cachedCompletionStreak = completionStreak;
       });
     }
   }

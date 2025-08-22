@@ -404,6 +404,12 @@ class MoodLineChartPainter extends CustomPainter {
   final bool showLegend;
   final Function(String)? onLegendTap;
 
+  List<ChartPoint>? _cachedMorningPoints;
+  List<ChartPoint>? _cachedMiddayPoints;
+  List<ChartPoint>? _cachedEveningPoints;
+  List<ChartPoint>? _cachedAveragePoints;
+  Size? _lastSize;
+
   MoodLineChartPainter(
       this.trendData, {
         this.isMaximized = false,
@@ -414,6 +420,12 @@ class MoodLineChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+
+    if (_lastSize != size) {
+      _clearCache();
+      _lastSize = size;
+    }
+    
     if (trendData.isEmpty) return;
 
     // Asymmetric padding - more left, less right
@@ -443,6 +455,39 @@ class MoodLineChartPainter extends CustomPainter {
     if (isMaximized && showLegend) {
       _drawLegend(canvas, size);
     }
+  }
+
+  void _clearCache() {
+    _cachedMorningPoints = null;
+    _cachedMiddayPoints = null;
+    _cachedEveningPoints = null;
+    _cachedAveragePoints = null;
+  }
+
+  List<ChartPoint> _getCachedPoints(int segment) {
+    switch (segment) {
+      case 0:
+        return _cachedMorningPoints ??= MoodTrendsService.getChartData(trendData, segment);
+      case 1:
+        return _cachedMiddayPoints ??= MoodTrendsService.getChartData(trendData, segment);
+      case 2:
+        return _cachedEveningPoints ??= MoodTrendsService.getChartData(trendData, segment);
+      default:
+        return [];
+    }
+  }
+
+  List<ChartPoint> _getCachedAveragePoints() {
+    return _cachedAveragePoints ??= MoodTrendsService.getDailyAverageChart(trendData);
+  }
+
+  @override
+  bool shouldRepaint(covariant MoodLineChartPainter oldDelegate) {
+    // REPLACE the existing shouldRepaint with this optimized version:
+    return trendData != oldDelegate.trendData ||
+        isMaximized != oldDelegate.isMaximized ||
+        lineVisibility != oldDelegate.lineVisibility ||
+        showLegend != oldDelegate.showLegend;
   }
 
   void _drawGrid(Canvas canvas, Size size, double leftPadding, double topPadding, double chartWidth, double chartHeight) {
@@ -759,9 +804,6 @@ class MoodLineChartPainter extends CustomPainter {
       textPainter.paint(canvas, Offset(itemX + circleRadius + 6, textY));
     }
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 // Data class for aggregated points

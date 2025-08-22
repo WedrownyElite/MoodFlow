@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/mood_data_service.dart';
-import '../data/enhanced_notification_service.dart';
+import '../notifications/enhanced_notification_service.dart';
 
 class MoodGradientService {
   static const List<String> timeSegments = MoodDataService.timeSegments;

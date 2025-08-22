@@ -3,9 +3,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import '../services/data/enhanced_notification_service.dart' as notifications;
-import '../services/real_notification_service.dart' as real_notifications;
-import '../services/notification_manager.dart';
+import '../services/notifications/enhanced_notification_service.dart' as notifications;
+import '../services/notifications/real_notification_service.dart' as real_notifications;
 import '../services/backup/auto_backup_service.dart';
 import '../services/backup/cloud_backup_service.dart';
 import '../services/backup/startup_restore_service.dart';
@@ -382,18 +381,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(height: 40),
             _buildSectionHeader('Debug & Testing'),
 
-            ListTile(
-              title: const Text('Debug Data'),
-              subtitle: const Text('Test data persistence and troubleshoot issues'),
-              leading: const Icon(Icons.bug_report, color: Colors.purple),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const DebugDataScreen()),
-                );
-              },
-            ),
+            if (kDebugMode)
+              ListTile(
+                title: const Text('Debug Data'),
+                subtitle: const Text('Test data persistence and troubleshoot issues'),
+                leading: const Icon(Icons.bug_report, color: Colors.purple),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DebugDataScreen()),
+                  );
+                },
+              ),
 
             // Additional debug options
             ListTile(

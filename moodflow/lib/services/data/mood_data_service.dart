@@ -4,6 +4,8 @@ import '../backup/cloud_backup_service.dart';
 
 class MoodDataService {
   static const List<String> timeSegments = ['Morning', 'Midday', 'Evening'];
+  static final Map<String, Map<String, dynamic>?> _cache = {};
+  static DateTime? _lastCacheCleanup;
 
   /// Returns key for storing mood data
   static String getKeyForDateSegment(DateTime date, int segmentIndex) {
@@ -14,14 +16,27 @@ class MoodDataService {
   /// Loads saved mood (rating + note + timestamp) for given date and segment
   static Future<Map<String, dynamic>?> loadMood(DateTime date, int segmentIndex) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final key = getKeyForDateSegment(date, segmentIndex);
+
+      // Return from cache if available
+      if (_cache.containsKey(key)) {
+        return _cache[key];
+      }
+
+      // Clean cache periodically
+      _cleanCacheIfNeeded();
+
+      final prefs = await SharedPreferences.getInstance();
       final jsonString = prefs.getString(key);
 
-      if (jsonString == null) return null;
+      if (jsonString == null) {
+        _cache[key] = null;
+        return null;
+      }
 
       final data = jsonDecode(jsonString) as Map<String, dynamic>;
-      print('📖 Loaded mood for $key: $data'); // Debug logging
+      print('📖 Loaded mood for $key: $data');
+      _cache[key] = data;
       return data;
     } catch (e) {
       print('❌ Error loading mood: $e');
@@ -29,11 +44,26 @@ class MoodDataService {
     }
   }
 
+  static void _cleanCacheIfNeeded() {
+    final now = DateTime.now();
+    if (_lastCacheCleanup == null || now.difference(_lastCacheCleanup!).inMinutes > 30) {
+      _cache.clear();
+      _lastCacheCleanup = now;
+      print('🧹 Cache cleaned');
+    }
+  }
+
+  static void clearCache() {
+    _cache.clear();
+    print('🧹 Cache manually cleared');
+  }
+
   /// Saves mood (rating + note + timestamp) for given date and segment
   static Future<bool> saveMood(DateTime date, int segmentIndex, double rating, String note) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = getKeyForDateSegment(date, segmentIndex);
+      _cache.remove(key);
 
       // Check if this is an existing entry to preserve original timestamp
       final existingData = await loadMood(date, segmentIndex);

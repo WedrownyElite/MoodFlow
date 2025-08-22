@@ -14,8 +14,8 @@ import 'screens/settings_screen.dart';
 import 'screens/backup_export_screen.dart';
 import 'screens/ai_analysis_screen.dart';
 import 'screens/debug_data_screen.dart';
-import 'services/notification_manager.dart';
-import 'services/data/enhanced_notification_service.dart';
+import 'services/notifications/enhanced_notification_service.dart';
+import 'services/notifications/notification_manager.dart';
 import 'services/navigation_service.dart';
 import 'services/backup/cloud_backup_service.dart';
 
@@ -25,18 +25,25 @@ void main() async {
   // Initialize notifications
   await EnhancedNotificationService.initialize();
 
-  // Initialize REAL cloud backup system (not local auto backup)
-  if (await RealCloudBackupService.isCloudBackupAvailable()) {
-    print('✅ Real cloud backup system is available');
-
-    // Always enable cloud backup for new installations
-    await RealCloudBackupService.setAutoBackupEnabled(true);
-    print('🔧 Cloud backup enabled');
-
-    // Check for existing cloud backups on startup for auto-restore
-    await RealCloudBackupService.checkForRestoreOnStartup();
+  if (kDebugMode) {
+    if (await RealCloudBackupService.isCloudBackupAvailable()) {
+      print('✅ Real cloud backup system is available');
+      await RealCloudBackupService.setAutoBackupEnabled(true);
+      print('🔧 Cloud backup enabled');
+      await RealCloudBackupService.checkForRestoreOnStartup();
+    } else {
+      print('❌ Real cloud backup system is not available on this platform');
+    }
   } else {
-    print('❌ Real cloud backup system is not available on this platform');
+    // PRODUCTION: Silent cloud backup initialization
+    try {
+      if (await RealCloudBackupService.isCloudBackupAvailable()) {
+        await RealCloudBackupService.setAutoBackupEnabled(true);
+        await RealCloudBackupService.checkForRestoreOnStartup();
+      }
+    } catch (e) {
+      // Silent fail in production
+    }
   }
 
   runApp(const MoodTrackerApp());
@@ -201,7 +208,7 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
         ),
         // Add debug route (only available in debug mode)
         if (kDebugMode)
-          '/debug': (context) => const DebugDataScreen(),
+          '/debug': (context) => kDebugMode ? const DebugDataScreen() : const SizedBox(),
       },
     );
   }

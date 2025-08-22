@@ -15,6 +15,9 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
   List<DayMoodData> _dayMoodData = [];
   bool _isLoading = true;
   DateTime _selectedMonth = DateTime.now();
+  bool _hasMoreData = true;
+  int _currentPage = 0;
+  static const int _pageSize = 15;
 
   @override
   void initState() {
@@ -22,20 +25,34 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
     _loadMoodHistory();
   }
 
-  Future<void> _loadMoodHistory() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadMoodHistory({bool loadMore = false}) async {
+    if (!loadMore) {
+      setState(() => _isLoading = true);
+      _currentPage = 0;
+      _dayMoodData.clear();
+      _hasMoreData = true;
+    }
 
     final dayDataMap = <String, DayMoodData>{};
-    
-    // Load mood entries for the selected month
     final startDate = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
     final endDate = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
-    
-    DateTime currentDate = startDate;
-    while (currentDate.isBefore(endDate.add(const Duration(days: 1)))) {
+
+    // LOAD IN PAGES
+    final skip = _currentPage * _pageSize;
+    final totalDays = endDate.difference(startDate).inDays + 1;
+
+    if (skip >= totalDays) {
+      setState(() => _hasMoreData = false);
+      return;
+    }
+
+    DateTime currentDate = endDate.subtract(Duration(days: skip));
+    int loaded = 0;
+
+    while (currentDate.isAfter(startDate.subtract(const Duration(days: 1))) && loaded < _pageSize) {
       final segments = <SegmentMoodData>[];
       bool hasAnyMood = false;
-      
+
       for (int segment = 0; segment < MoodDataService.timeSegments.length; segment++) {
         final moodData = await MoodDataService.loadMood(currentDate, segment);
         if (moodData != null && moodData['rating'] != null) {
@@ -47,25 +64,30 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
           hasAnyMood = true;
         }
       }
-      
+
       if (hasAnyMood) {
         final dateKey = DateFormat('yyyy-MM-dd').format(currentDate);
         dayDataMap[dateKey] = DayMoodData(
           date: currentDate,
           segments: segments,
         );
+        loaded++;
       }
-      
-      currentDate = currentDate.add(const Duration(days: 1));
+
+      currentDate = currentDate.subtract(const Duration(days: 1));
     }
 
-    // Sort by date (most recent first)
-    final sortedDays = dayDataMap.values.toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
+    final newData = dayDataMap.values.toList();
 
     setState(() {
-      _dayMoodData = sortedDays;
+      if (loadMore) {
+        _dayMoodData.addAll(newData);
+      } else {
+        _dayMoodData = newData;
+      }
       _isLoading = false;
+      _currentPage++;
+      _hasMoreData = newData.length == _pageSize;
     });
   }
 
@@ -239,17 +261,35 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : _dayMoodData.isEmpty
                     ? _buildEmptyState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _dayMoodData.length,
-                        itemBuilder: (context, index) {
-                          final dayData = _dayMoodData[index];
-                          return DayMoodCard(
-                            dayData: dayData,
-                            onTap: () => _showDayDetail(dayData),
-                          );
-                        },
-                      ),
+                : NotificationListener<ScrollNotification>(
+                  onNotification: (ScrollNotification scrollInfo) {
+                    if (!_isLoading && _hasMoreData &&
+                        scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
+                      _loadMoodHistory(loadMore: true);
+                    }
+                    return false;
+                  },
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _dayMoodData.length + (_hasMoreData ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _dayMoodData.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+    
+                      final dayData = _dayMoodData[index];
+                      return DayMoodCard(
+                        dayData: dayData,
+                        onTap: () => _showDayDetail(dayData),
+                      );
+                    },
+                  ),
+                ),
           ),
         ],
       ),

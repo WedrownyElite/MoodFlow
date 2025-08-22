@@ -5,6 +5,7 @@ class BlurTransitionService {
   late AnimationController _controller;
   late Animation<double> _blurAnimation;
   bool _isTransitioning = false;
+  bool _disposed = false;
 
   BlurTransitionService({
     required TickerProvider vsync,
@@ -33,24 +34,27 @@ class BlurTransitionService {
 
   /// Execute a blur transition with a callback for the content change
   Future<void> executeTransition(Future<void> Function() onContentChange) async {
-    if (_isTransitioning) return;
-    
+    if (_isTransitioning || _disposed) return; // CHECK DISPOSED
+
     _isTransitioning = true;
-    
+
     try {
-      // Blur in
       await _controller.forward();
-      
-      // Execute the content change while blurred
       await onContentChange();
-      
-      // Small delay to let content settle
       await Future.delayed(const Duration(milliseconds: 100));
-      
-      // Blur out
-      await _controller.reverse();
+
+      if (!_disposed) { // CHECK BEFORE REVERSE
+        await _controller.reverse();
+      }
     } finally {
       _isTransitioning = false;
+    }
+  }
+
+  void dispose() {
+    _disposed = true;
+    if (!_controller.isDisposed) {
+      _controller.dispose();
     }
   }
 
@@ -59,11 +63,6 @@ class BlurTransitionService {
     sigmaX: blurValue,
     sigmaY: blurValue,
   );
-
-  /// Dispose of the animation controller
-  void dispose() {
-    _controller.dispose();
-  }
 }
 
 /// Widget wrapper that applies blur transition to its child

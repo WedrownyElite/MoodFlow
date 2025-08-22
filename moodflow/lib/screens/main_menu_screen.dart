@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/animation/blur_transition_service.dart';
 import '../services/animation/scale_transition_service.dart';
-import '../services/data/enhanced_notification_service.dart';
+import '../services/notifications/enhanced_notification_service.dart';
 import '../widgets/notification_permission_dialog.dart';
 import 'mood_log_screen.dart';
 import 'mood_trends_screen.dart';
@@ -137,83 +137,42 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
             blurService: _blurService,
             child: Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Mood Tracker',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  // Primary action - larger, prominent
+                  _buildPrimaryButton(
+                    'Log Mood',
+                    Icons.edit_note,
+                        () => _navigateToMoodLog(),
                   ),
-                  const SizedBox(height: 32),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.edit_note),
-                    label: const Text('Log Mood'),
-                    onPressed: _blurService.isTransitioning ? null : () {
-                      final brightness = widget.themeMode == ThemeMode.system
-                          ? MediaQuery.platformBrightnessOf(context)
-                          : (widget.themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light);
 
-                      _navigateWithBlur(
-                        MoodLogScreen(
-                          useCustomGradient: widget.useCustomGradient,
-                          isDarkMode: brightness == Brightness.dark,
-                        ),
-                      );
-                    },
-                  ),
                   const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.flag),
-                    label: const Text('Goals'),
-                    onPressed: _blurService.isTransitioning ? null : () {
-                      _navigateWithBlur(const GoalsScreen());
-                    },
+
+                  // Quick access grid (2x2)
+                  Row(
+                    children: [
+                      Expanded(child: _buildQuickButton('History', Icons.history, () => _navigateWithBlur(const MoodHistoryScreen()))),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildQuickButton('Trends', Icons.show_chart, () => _navigateWithBlur(const MoodTrendsScreen()))),
+                    ],
                   ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.history),
-                    label: const Text('View History'),
-                    onPressed: _blurService.isTransitioning ? null : () {
-                      _navigateWithBlur(const MoodHistoryScreen());
-                    },
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _buildQuickButton('Goals', Icons.flag, () => _navigateWithBlur(const GoalsScreen()))),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildQuickButton('AI Analysis', Icons.psychology, () => _navigateWithBlur(const AIAnalysisScreen()))),
+                    ],
                   ),
+
                   const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.show_chart),
-                    label: const Text('View Trends'),
-                    onPressed: _blurService.isTransitioning ? null : () {
-                      _navigateWithBlur(const MoodTrendsScreen());
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.psychology),
-                    label: const Text('AI Analysis'),
-                    onPressed: _blurService.isTransitioning ? null : () {
-                      _navigateWithBlur(const AIAnalysisScreen());
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.cloud_upload),
-                    label: const Text('Backup & Export'),
-                    onPressed: _blurService.isTransitioning ? null : () {
-                      _navigateWithBlur(const BackupExportScreen());
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.settings),
-                    label: const Text('Settings'),
-                    onPressed: () {
-                      _navigateWithScale(
-                        SettingsScreen(
-                          themeMode: widget.themeMode,
-                          useCustomGradient: widget.useCustomGradient,
-                          onThemeModeChanged: widget.onThemeModeChanged,
-                          onUseCustomGradientChanged: widget.onUseCustomGradientChanged,
-                        ),
-                      );
-                    },
+
+                  // Secondary actions row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildSecondaryButton('Backup', Icons.cloud_upload, () => _navigateWithBlur(const BackupExportScreen())),
+                      _buildSecondaryButton('Settings', Icons.settings, () => _navigateWithScale(...)),
+                    ],
                   ),
                 ],
               ),
@@ -221,6 +180,71 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _navigateToMoodLog() async {
+    if (_blurService.isTransitioning) return;
+
+    final brightness = widget.themeMode == ThemeMode.system
+        ? MediaQuery.platformBrightnessOf(context)
+        : (widget.themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light);
+
+    await _blurService.executeTransition(() async {
+      Navigator.pushNamed(
+        context,
+        '/mood-log',
+        arguments: {
+          'useCustomGradient': widget.useCustomGradient,
+          'isDarkMode': brightness == Brightness.dark,
+        },
+      );
+    });
+  }
+  
+  Widget _buildPrimaryButton(String label, IconData icon, VoidCallback onPressed) {
+    return SizedBox(
+      width: double.infinity,
+      height: 64,
+      child: ElevatedButton.icon(
+        icon: Icon(icon, size: 28),
+        label: Text(label, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).primaryColor,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickButton(String label, IconData icon, VoidCallback onPressed) {
+    return SizedBox(
+      height: 80,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.all(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 24),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 12), textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSecondaryButton(String label, IconData icon, VoidCallback onPressed) {
+    return TextButton.icon(
+      icon: Icon(icon, size: 20),
+      label: Text(label),
+      onPressed: onPressed,
     );
   }
 }
