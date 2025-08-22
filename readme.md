@@ -1,4 +1,9 @@
+<div align="center">
+  <img src="screenshots/moodflow_banner.png" alt="MoodFlow Banner" style="width:100%; max-height:500px; object-fit:cover; border-radius:12px;">
+</div>
+
 # MoodFlow 🌟
+<img src="screenshots/moodflow_icon.png" alt="MoodFlow Icon" width="128">
 
 A comprehensive mood tracking application built with Flutter, designed to help users monitor their emotional wellbeing throughout the day with intelligent insights and goal tracking.
 
@@ -45,6 +50,7 @@ A comprehensive mood tracking application built with Flutter, designed to help u
 - **Architecture**: Service-oriented with separation of concerns
 
 ## 📦 Installation
+<img src="screenshots/moodflow_icon.png" alt="MoodFlow Icon" width="64">
 
 ### Prerequisites
 - Flutter SDK (3.8.1 or higher)
