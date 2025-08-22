@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/notifications/enhanced_notification_service.dart' as notifications;
 import '../services/notifications/real_notification_service.dart' as real_notifications;
-import '../services/backup/auto_backup_service.dart';
 import '../services/backup/cloud_backup_service.dart';
 import '../services/backup/startup_restore_service.dart';
 import '../screens/backup_export_screen.dart';
@@ -137,6 +136,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const Divider(height: 40),
 
+          _buildSectionHeader('Automatic Cloud Backup'),
+          FutureBuilder<Map<String, dynamic>>(
+            future: RealCloudBackupService.getBackupStatus(),
+            builder: (context, snapshot) {
+              final status = snapshot.data ?? {};
+              final isAvailable = status['available'] ?? false;
+              final isEnabled = status['isSignedIn'] ?? false;
+
+              return Column(
+                children: [
+                  if (isAvailable && isEnabled) ...[
+                    SwitchListTile(
+                      title: const Text('Automatic cloud backup'),
+                      subtitle: const Text('Backup data immediately when you make changes'),
+                      value: status['autoBackupEnabled'] ?? true,
+                      onChanged: (value) async {
+                        await RealCloudBackupService.setAutoBackupEnabled(value);
+                        setState(() {});
+                        _showSnackBar(
+                          value ? 'Auto backup enabled' : 'Auto backup disabled',
+                          value ? Colors.green : Colors.orange,
+                        );
+                      },
+                    ),
+                  ] else if (isAvailable && !isEnabled) ...[
+                    ListTile(
+                      title: const Text('Sign in for automatic backup'),
+                      subtitle: const Text('Sign in to enable automatic cloud backup'),
+                      leading: const Icon(Icons.cloud_off),
+                      trailing: ElevatedButton(
+                        onPressed: () async {
+                          final success = await RealCloudBackupService.signInToCloudService();
+                          if (success) {
+                            _showSnackBar('Signed in successfully!', Colors.green);
+                            setState(() {});
+                          } else {
+                            _showSnackBar('Sign in failed', Colors.red);
+                          }
+                        },
+                        child: const Text('Sign In'),
+                      ),
+                    ),
+                  ] else ...[
+                    const ListTile(
+                      title: Text('Cloud backup not available'),
+                      subtitle: Text('Your device doesn\'t support cloud backup'),
+                      leading: Icon(Icons.info_outline, color: Colors.grey),
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+          
           _buildSectionHeader('Cloud Backup'),
           FutureBuilder<Map<String, dynamic>>(
             future: RealCloudBackupService.getBackupStatus(),
@@ -192,66 +245,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const BackupExportScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const BackupExportScreen(initialTabIndex: 2), // Restore tab
+                          ),
                         );
                       },
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
-
-          const Divider(height: 40),
-
-// Auto Cloud Backup Settings
-          _buildSectionHeader('Automatic Cloud Backup'),
-          FutureBuilder<Map<String, dynamic>>(
-            future: RealCloudBackupService.getBackupStatus(),
-            builder: (context, snapshot) {
-              final status = snapshot.data ?? {};
-              final isAvailable = status['available'] ?? false;
-              final isEnabled = status['isSignedIn'] ?? false;
-
-              return Column(
-                children: [
-                  if (isAvailable && isEnabled) ...[
-                    SwitchListTile(
-                      title: const Text('Automatic cloud backup'),
-                      subtitle: const Text('Backup data immediately when you make changes'),
-                      value: status['autoBackupEnabled'] ?? true,
-                      onChanged: (value) async {
-                        await RealCloudBackupService.setAutoBackupEnabled(value);
-                        setState(() {});
-                        _showSnackBar(
-                          value ? 'Auto backup enabled' : 'Auto backup disabled',
-                          value ? Colors.green : Colors.orange,
-                        );
-                      },
-                    ),
-                  ] else if (isAvailable && !isEnabled) ...[
-                    ListTile(
-                      title: const Text('Sign in for automatic backup'),
-                      subtitle: const Text('Sign in to enable automatic cloud backup'),
-                      leading: const Icon(Icons.cloud_off),
-                      trailing: ElevatedButton(
-                        onPressed: () async {
-                          final success = await RealCloudBackupService.signInToCloudService();
-                          if (success) {
-                            _showSnackBar('Signed in successfully!', Colors.green);
-                            setState(() {});
-                          } else {
-                            _showSnackBar('Sign in failed', Colors.red);
-                          }
-                        },
-                        child: const Text('Sign In'),
-                      ),
-                    ),
-                  ] else ...[
-                    const ListTile(
-                      title: Text('Cloud backup not available'),
-                      subtitle: Text('Your device doesn\'t support cloud backup'),
-                      leading: Icon(Icons.info_outline, color: Colors.grey),
                     ),
                   ],
                 ],
@@ -286,22 +284,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   );
                 },
               ),
-
-            // Additional debug options
-            ListTile(
-              title: const Text('Test Backup System'),
-              subtitle: const Text('Run comprehensive backup tests'),
-              leading: const Icon(Icons.science, color: Colors.blue),
-              onTap: () async {
-                _showSnackBar('Running backup tests...', Colors.blue);
-                try {
-                  await AutoBackupService.manualBackupTest();
-                  _showSnackBar('Backup test completed - check logs', Colors.green);
-                } catch (e) {
-                  _showSnackBar('Backup test failed: $e', Colors.red);
-                }
-              },
-            ),
 
             // Keep existing debug notification tests...
             _buildSubsectionHeader('Notification Tests'),

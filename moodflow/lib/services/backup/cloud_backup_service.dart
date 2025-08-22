@@ -187,6 +187,7 @@ class RealCloudBackupService {
 
       if (Platform.isAndroid) {
         platformType = 'Google Drive';
+        await _googleDriveService.initialize();
         isSignedIn = _googleDriveService.isSignedIn;
         userEmail = _googleDriveService.userEmail;
       } else if (Platform.isIOS) {

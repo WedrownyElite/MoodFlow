@@ -7,7 +7,6 @@ import '../services/backup/google_drive_service.dart';
 import '../services/backup/icloud_service.dart';
 import '../services/data/backup_models.dart';
 import 'package:file_picker/file_picker.dart';
-import '../services/backup/auto_backup_service.dart';
 import '../services/backup/cloud_backup_service.dart';
 
 // REMOVE FOR PRODUCTION (CUSTOM CSV IMPORT)
@@ -16,7 +15,8 @@ import '../services/import/custom_csv_importer.dart';
 import '../widgets/custom_csv_import_dialog.dart';
 
 class BackupExportScreen extends StatefulWidget {
-  const BackupExportScreen({super.key});
+  final int? initialTabIndex;
+  const BackupExportScreen({super.key, this.initialTabIndex});
 
   @override
   State<BackupExportScreen> createState() => _BackupExportScreenState();
@@ -40,14 +40,26 @@ class _BackupExportScreenState extends State<BackupExportScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex ?? 0,
+    );
     _checkICloudAvailability();
+    _initializeGoogleDrive();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initializeGoogleDrive() async {
+    await _googleDriveService.initialize();
+    if (mounted) {
+      setState(() {}); // Refresh UI to show correct sign-in status
+    }
   }
 
   Future<void> _checkICloudAvailability() async {
@@ -73,7 +85,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
           indicatorColor: Colors.white,
           tabs: const [
             Tab(icon: Icon(Icons.file_download), text: 'Export'),
-            Tab(icon: Icon(Icons.cloud), text: 'Cloud Backup'),
+            Tab(icon: Icon(Icons.drive_folder_upload), text: 'Drive Backup'),
             Tab(icon: Icon(Icons.cloud_upload), text: 'Restore'),
           ],
         ),
@@ -148,12 +160,12 @@ class _BackupExportScreenState extends State<BackupExportScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Cloud Backup',
+            'Google Drive Backup',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
-            'Automatically backup your data to the cloud for safekeeping.',
+            'Backup your mood data as JSON files to Google Drive.',
             style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
@@ -163,7 +175,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
             title: 'Google Drive',
             description: _googleDriveService.isSignedIn
                 ? 'Signed in as ${_googleDriveService.userEmail}'
-                : 'Sign in to backup to Google Drive',
+                : 'Sign in to backup JSON files to Google Drive',
             icon: Icons.cloud,
             color: Colors.blue,
             isSignedIn: _googleDriveService.isSignedIn,
@@ -177,9 +189,9 @@ class _BackupExportScreenState extends State<BackupExportScreen>
           if (Platform.isIOS) ...[
             _buildCloudBackupCard(
               title: 'iCloud',
-              description: _isICloudAvailable
-                  ? 'iCloud is available for backup'
-                  : 'iCloud is not available',
+              description: _googleDriveService.isSignedIn
+                  ? 'Signed in as ${_googleDriveService.userEmail}'
+                  : 'Sign in to backup JSON files to Google Drive',
               icon: Icons.cloud_circle,
               color: Colors.grey,
               isSignedIn: _isICloudAvailable,
@@ -1028,92 +1040,6 @@ class _BackupExportScreenState extends State<BackupExportScreen>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildAutoBackupSection() {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: AutoBackupService.getBackupStatus(),
-      builder: (context, snapshot) {
-        final status = snapshot.data ?? {};
-        final isAvailable = status['available'] ?? false;
-        final isEnabled = status['enabled'] ?? false;
-
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      isAvailable ? Icons.backup : Icons.backup_outlined,
-                      color: isAvailable ? Colors.green : Colors.grey,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            Platform.isAndroid ? 'Android Auto Backup' : 'iCloud Backup',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            isAvailable
-                                ? 'Automatic backup is enabled'
-                                : 'Not available on this device',
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                Text(
-                  Platform.isAndroid
-                      ? 'Your mood data is automatically backed up to Google Drive. When you reinstall the app, your data will be restored automatically.'
-                      : 'Your mood data syncs with iCloud and will be available on all your iOS devices.',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 14,
-                  ),
-                ),
-
-                if (isAvailable) ...[
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      await AutoBackupService.requestBackup();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(Platform.isAndroid
-                              ? 'Backup requested - will complete when device is charging and on WiFi'
-                              : 'iCloud sync triggered'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.backup),
-                    label: Text(Platform.isAndroid ? 'Request Backup' : 'Sync Now'),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import '../services/data/mood_data_service.dart';
-import '../services/backup/auto_backup_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DebugDataScreen extends StatefulWidget {
@@ -116,34 +115,6 @@ class _DebugDataScreenState extends State<DebugDataScreen> {
     setState(() => _isLoading = false);
   }
 
-  Future<void> _testAutoBackup() async {
-    setState(() => _isLoading = true);
-
-    try {
-      _addLog("🔄 Testing auto backup...");
-
-      final isAvailable = await AutoBackupService.isAutoBackupAvailable();
-      _addLog("📱 Auto backup available: $isAvailable");
-
-      final isEnabled = await AutoBackupService.isAutoBackupEnabled();
-      _addLog("⚙️ Auto backup enabled: $isEnabled");
-
-      final lastBackup = await AutoBackupService.getLastBackupTime();
-      _addLog("🕐 Last backup: ${lastBackup?.toString() ?? 'Never'}");
-
-      _addLog("🚀 Performing manual backup test...");
-      await AutoBackupService.manualBackupTest();
-
-      final backups = await AutoBackupService.getLocalBackups();
-      _addLog("📁 Local backups found: ${backups.length}");
-
-    } catch (e) {
-      _addLog("❌ Auto backup test error: $e");
-    }
-
-    setState(() => _isLoading = false);
-  }
-
   Future<void> _clearAllData() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -205,11 +176,6 @@ class _DebugDataScreenState extends State<DebugDataScreen> {
                   icon: const Icon(Icons.list, size: 16),
                   label: const Text('List All Data'),
                   onPressed: _isLoading ? null : _listAllStoredData,
-                ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.backup, size: 16),
-                  label: const Text('Test Backup'),
-                  onPressed: _isLoading ? null : _testAutoBackup,
                 ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.delete_forever, size: 16),

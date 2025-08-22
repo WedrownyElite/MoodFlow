@@ -26,9 +26,19 @@ class GoogleDriveService {
   /// Sign in to Google Drive
   Future<bool> signIn() async {
     try {
+      // First try silent sign-in
+      _currentUser = await _googleSignIn.signInSilently();
+
+      if (_currentUser != null) {
+        debugPrint('✅ Silent sign-in successful: ${_currentUser!.email}');
+        return true;
+      }
+
+      // If silent sign-in fails, prompt for interactive sign-in
       final account = await _googleSignIn.signIn();
       if (account != null) {
         _currentUser = account;
+        debugPrint('✅ Interactive sign-in successful: ${_currentUser!.email}');
         return true;
       }
       return false;
@@ -153,7 +163,7 @@ class GoogleDriveService {
     }
   }
 
-  /// List available backups (FIXED: Removed problematic $fields)
+  /// List available backups (Removed problematic $fields)
   Future<List<DriveBackupFile>> listBackups() async {
     try {
       final client = await _getAuthClient();
@@ -167,11 +177,12 @@ class GoogleDriveService {
         return [];
       }
 
-      // FIXED: Removed the problematic $fields parameter
+      // Removed the problematic $fields parameter
       final query = await driveApi.files.list(
         q: "parents in '$folderId' and name contains 'moodflow_backup_' and trashed=false",
         orderBy: 'createdTime desc',
-        pageSize: 50, // Limit results for performance
+        pageSize: 50,
+        $fields: 'files(id,name,createdTime,size,description)', // Add this line
       );
 
       client.close();
@@ -179,12 +190,12 @@ class GoogleDriveService {
       return query.files?.map((file) => DriveBackupFile(
         id: file.id ?? 'unknown',
         name: file.name ?? 'Unknown Backup',
-        createdTime: file.createdTime,
+        createdTime: file.createdTime ?? DateTime.now(),
         size: file.size?.toString(),
         description: file.description,
       )).toList() ?? [];
     } catch (e) {
-      debugPrint('Error listing backups: $e');
+      debugPrint('Error listing backups: $e'); 
       return [];
     }
   }
@@ -300,6 +311,20 @@ class GoogleDriveService {
     } catch (e) {
       debugPrint('Automatic backup failed: $e');
       return false;
+    }
+  }
+
+  Future<void> initialize() async {
+    try {
+      _currentUser = await _googleSignIn.signInSilently();
+      if (_currentUser != null) {
+        debugPrint('✅ User already signed in: ${_currentUser!.email}');
+      } else {
+        debugPrint('❌ No existing sign-in found');
+      }
+    } catch (e) {
+      debugPrint('Error checking sign-in status: $e');
+      _currentUser = null;
     }
   }
 
