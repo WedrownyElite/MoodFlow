@@ -35,9 +35,9 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   late BlurTransitionService _blurService;
   late SliderAnimationService _sliderService;
 
-  // Cache all segment data
-  final Map<int, double> _cachedMoodValues = {};
-  final Map<int, TextEditingController> _cachedNoteControllers = {};
+  // Store values in memory only during the session
+  final Map<int, double> _sessionMoodValues = {};
+  final Map<int, TextEditingController> _noteControllers = {};
   final Map<int, bool> _accessibilityCache = {};
 
   LinearGradient? _currentGradient;
@@ -46,6 +46,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
 
   bool _isInitialLoading = true;
   Timer? _debounceTimer;
+  Timer? _saveDebounceTimer;
 
   @override
   void initState() {
@@ -53,44 +54,23 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
 
     // Initialize controllers for all segments first
     for (int i = 0; i < timeSegments.length; i++) {
-      _cachedNoteControllers[i] = TextEditingController();
-      _cachedMoodValues[i] = 5.0; // Default value
+      _noteControllers[i] = TextEditingController();
+      _sessionMoodValues[i] = 5.0; // Default value
     }
 
     // Determine the correct starting segment synchronously
     _initializeCorrectSegment();
   }
 
-  /// Synchronously determine and set the correct starting segment
   void _initializeCorrectSegment() {
-    // Get current segment immediately based on time and provided parameters
     if (widget.initialSegment != null) {
       currentSegment = widget.initialSegment!;
     } else {
-      // Determine current segment based on time of day
       currentSegment = _getHighestAccessibleSegmentSync();
     }
 
-    // Initialize services with the correct segment
     _initializeServicesSync();
-
-    // Then do async initialization
     _initializeAsync();
-  }
-
-  /// Get current segment index synchronously based on time
-  int _getCurrentSegmentIndexSync() {
-    final now = DateTime.now();
-    final currentMinutes = now.hour * 60 + now.minute;
-
-    // Use default times if we can't load settings yet
-    const defaultMiddayMinutes = 13 * 60; // 1 PM
-    const defaultEveningMinutes = 19 * 60; // 7 PM
-
-    // Return the HIGHEST accessible segment, not just based on time
-    if (currentMinutes >= defaultEveningMinutes) return 2; // Evening
-    if (currentMinutes >= defaultMiddayMinutes) return 1;  // Midday
-    return 0; // Morning (fallback)
   }
 
   int _getHighestAccessibleSegmentSync() {
@@ -100,14 +80,12 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     const defaultMiddayMinutes = 13 * 60; // 1 PM
     const defaultEveningMinutes = 19 * 60; // 7 PM
 
-    // Return highest accessible segment - start from highest and work down
     if (currentMinutes >= defaultEveningMinutes) return 2; // Evening
     if (currentMinutes >= defaultMiddayMinutes) return 1;  // Midday
     return 0; // Morning
   }
 
   void _initializeServicesSync() {
-    // Initialize page controller with the correct segment immediately
     _pageController = PageController(initialPage: currentSegment);
 
     _pageController.addListener(() {
@@ -117,16 +95,13 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       }
     });
 
-    // Initialize blur transition service
     _blurService = BlurTransitionService(vsync: this);
 
-    // Initialize slider animation service with current segment's value
     _sliderService = SliderAnimationService(
       vsync: this,
-      initialValue: _cachedMoodValues[currentSegment] ?? 5.0,
+      initialValue: _sessionMoodValues[currentSegment] ?? 5.0,
     );
 
-    // Gradient animation controller
     _gradientAnimationController = AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 500)
@@ -135,52 +110,81 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       if (mounted) setState(() {});
     });
 
-    // Initialize gradient synchronously first
     _initGradientSync();
   }
 
-  /// Async initialization that doesn't affect the initial view
   Future<void> _initializeAsync() async {
-    // Load accessibility and refine current segment if needed
     await _loadAllAccessibility();
 
-    // Find the highest accessible segment based on actual settings
     int highestAccessible = 0;
-    for (int i = 2; i >= 0; i--) { // Check from evening down to morning
+    for (int i = 2; i >= 0; i--) {
       if (_accessibilityCache[i] == true) {
         highestAccessible = i;
         break;
       }
     }
 
-    // Only change segment if we found a higher accessible segment
     if (highestAccessible > currentSegment && (_accessibilityCache[highestAccessible] ?? false)) {
       currentSegment = highestAccessible;
       if (mounted) {
-        _pageController.jumpToPage(currentSegment); // No animation for correction
+        _pageController.jumpToPage(currentSegment);
       }
     }
 
-    // Preload all data
-    await _preloadAllData();
+    // Load all data fresh from storage
+    await _loadAllDataFresh();
 
     if (mounted) {
       setState(() {
         _isInitialLoading = false;
       });
 
-      // Update gradient with current segment's mood after loading
       if (widget.useCustomGradient) {
-        _updateGradientForMood(_cachedMoodValues[currentSegment] ?? 5.0);
+        _updateGradientForMood(_sessionMoodValues[currentSegment] ?? 5.0);
       }
 
-      // Set slider to the saved mood value immediately (no animation on startup)
-      final savedMoodValue = _cachedMoodValues[currentSegment] ?? 5.0;
+      final savedMoodValue = _sessionMoodValues[currentSegment] ?? 5.0;
       _sliderService.setValueImmediate(savedMoodValue);
     }
   }
 
-  /// Load accessibility for all segments first
+  /// Load all data fresh from storage to ensure accuracy
+  Future<void> _loadAllDataFresh() async {
+    print('🔄 Loading all mood data fresh from storage...');
+
+    for (int i = 0; i < timeSegments.length; i++) {
+      if (_accessibilityCache[i] == true) {
+        await _loadDataForSegmentFresh(i);
+      }
+    }
+
+    print('✅ Fresh data loading complete');
+  }
+
+  /// Always load fresh data from storage
+  Future<void> _loadDataForSegmentFresh(int segment) async {
+    try {
+      print('📖 Loading fresh data for segment $segment...');
+
+      // Always load fresh from storage, no cache
+      final moodData = await MoodDataService.loadMood(DateTime.now(), segment);
+
+      final rating = (moodData?['rating'] ?? 5).toDouble();
+      final note = (moodData?['note'] ?? '');
+
+      // Update session values
+      _sessionMoodValues[segment] = rating;
+      _noteControllers[segment]?.text = note;
+
+      print('✅ Loaded segment $segment: rating=$rating, note="$note"');
+    } catch (e) {
+      print('❌ Error loading segment $segment: $e');
+      // Set defaults on error
+      _sessionMoodValues[segment] = 5.0;
+      _noteControllers[segment]?.text = '';
+    }
+  }
+
   Future<void> _loadAllAccessibility() async {
     for (int i = 0; i < timeSegments.length; i++) {
       final canAccess = await _canAccessSegmentAsync(i);
@@ -188,33 +192,13 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     }
   }
 
-  Future<void> _preloadAllData() async {
-    // Load all segments' data
-    final loadFutures = <Future<void>>[];
-
-    for (int i = 0; i < timeSegments.length; i++) {
-      if (_accessibilityCache[i] == true) {
-        loadFutures.add(_loadDataForSegment(i));
-      }
-    }
-
-    await Future.wait(loadFutures);
-  }
-
-  Future<void> _loadDataForSegment(int segment) async {
-    final moodData = await MoodDataService.loadMood(DateTime.now(), segment);
-
-    _cachedMoodValues[segment] = (moodData?['rating'] ?? 5).toDouble();
-    _cachedNoteControllers[segment]?.text = (moodData?['note'] ?? '');
-  }
-
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _saveDebounceTimer?.cancel();
     _pageController.dispose();
 
-    // Dispose all controllers
-    for (final controller in _cachedNoteControllers.values) {
+    for (final controller in _noteControllers.values) {
       controller.dispose();
     }
 
@@ -224,22 +208,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     super.dispose();
   }
 
-  Future<int> _getCurrentSegmentIndexAsync() async {
-    final settings = await EnhancedNotificationService.loadSettings();
-    final now = DateTime.now();
-    final currentMinutes = now.hour * 60 + now.minute;
-
-    final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
-    final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
-
-    // Return the highest accessible segment
-    if (currentMinutes >= eveningMinutes) return 2; // Evening
-    if (currentMinutes >= middayMinutes) return 1;  // Midday
-    return 0; // Morning
-  }
-
   bool _canAccessSegment(int index) {
-    // Use cached results from _accessibilityCache
     return _accessibilityCache[index] ?? false;
   }
 
@@ -249,12 +218,12 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     final currentMinutes = now.hour * 60 + now.minute;
 
     switch (index) {
-      case 0: // Morning - always accessible from midnight
+      case 0:
         return true;
-      case 1: // Midday - accessible after user's midday time
+      case 1:
         final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
         return currentMinutes >= middayMinutes;
-      case 2: // Evening - accessible after user's evening time
+      case 2:
         final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
         return currentMinutes >= eveningMinutes;
       default:
@@ -262,28 +231,45 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     }
   }
 
+  /// FIXED: Improved save process with immediate verification
   Future<void> _saveMoodData(int segment) async {
-    final moodValue = _cachedMoodValues[segment] ?? 5.0;
-    final noteText = _cachedNoteControllers[segment]?.text ?? '';
+    final moodValue = _sessionMoodValues[segment] ?? 5.0;
+    final noteText = _noteControllers[segment]?.text ?? '';
 
-    await MoodDataService.saveMood(DateTime.now(), segment, moodValue, noteText);
+    print('💾 Saving mood data for segment $segment: rating=$moodValue, note="$noteText"');
 
-    if (widget.useCustomGradient && segment == currentSegment) {
-      _updateGradientForMood(moodValue);
+    try {
+      final success = await MoodDataService.saveMood(DateTime.now(), segment, moodValue, noteText);
+
+      if (success) {
+        print('✅ Mood saved successfully for segment $segment');
+
+        if (widget.useCustomGradient && segment == currentSegment) {
+          _updateGradientForMood(moodValue);
+        }
+      } else {
+        print('❌ Failed to save mood for segment $segment');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to save mood. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Error saving mood for segment $segment: $e');
     }
-
-    // Force a brief delay to ensure data is written to storage
-    await Future.delayed(const Duration(milliseconds: 100));
   }
 
   void _initGradientSync() {
-    // Initialize with fallback gradient immediately
     final gradient = MoodGradientService.fallbackGradient(widget.isDarkMode);
     _currentGradient = gradient;
     _targetGradient = gradient;
     _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient).animate(_gradientAnimationController);
 
-    // Then asynchronously update if using custom gradient
     if (widget.useCustomGradient) {
       _initGradient();
     }
@@ -291,7 +277,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
 
   void _initGradient() async {
     if (widget.useCustomGradient) {
-      final moodValue = _cachedMoodValues[currentSegment] ?? 5.0;
+      final moodValue = _sessionMoodValues[currentSegment] ?? 5.0;
       final gradient = await MoodGradientService.computeGradientForMood(moodValue, currentSegment);
       if (mounted) {
         setState(() {
@@ -316,29 +302,27 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     _currentGradient = newGradient;
   }
 
+  /// FIXED: Improved navigation with fresh data loading
   Future<void> _navigateToSegment(int newIndex) async {
-    // Check accessibility first
     final canAccess = await _canAccessSegmentAsync(newIndex);
     if (!canAccess || _blurService.isTransitioning) return;
 
-    // Use smooth blur transition for segment navigation
+    print('🔄 Navigating to segment $newIndex');
+
     await _blurService.executeTransition(() async {
       setState(() {
         currentSegment = newIndex;
       });
       _pageController.jumpToPage(newIndex);
-
       await Future.delayed(const Duration(milliseconds: 50));
     });
 
-    // Load data for the new segment
-    await _loadDataForSegment(newIndex);
+    // Always load fresh data when navigating
+    await _loadDataForSegmentFresh(newIndex);
 
-    // Animate slider to new segment's mood value with reduced duration
-    final newMoodValue = _cachedMoodValues[newIndex] ?? 5.0;
+    final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
     await _sliderService.animateToValue(newMoodValue);
 
-    // Update gradient
     if (widget.useCustomGradient) {
       _updateGradientForMood(newMoodValue);
     }
@@ -369,11 +353,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   Widget _buildMoodPage(int index) {
     final canEdit = index == currentSegment && (_accessibilityCache[index] ?? false);
 
-    if (!_cachedMoodValues.containsKey(index) || !_cachedNoteControllers.containsKey(index)) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final noteController = _cachedNoteControllers[index]!;
+    final noteController = _noteControllers[index]!;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -406,12 +386,20 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
               sliderService: _sliderService,
               enabled: canEdit,
               onChanged: (value) {
-                _cachedMoodValues[index] = value;
+                // FIXED: Update session value immediately
+                _sessionMoodValues[index] = value;
+
                 if (widget.useCustomGradient && index == currentSegment) {
                   _updateGradientForMood(value);
                 }
               },
-              onChangeEnd: canEdit ? (_) => _saveMoodData(index) : null,
+              onChangeEnd: canEdit ? (value) {
+                // FIXED: Save with debouncing to avoid excessive saves
+                _saveDebounceTimer?.cancel();
+                _saveDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+                  _saveMoodData(index);
+                });
+              } : null,
             ),
           ),
           const SizedBox(height: 32),
@@ -434,8 +422,9 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                 style: const TextStyle(color: Colors.black),
                 decoration: const InputDecoration(border: InputBorder.none, hintText: 'Write your thoughts here...'),
                 onChanged: (text) {
+                  // FIXED: Save notes with debouncing
                   _debounceTimer?.cancel();
-                  _debounceTimer = Timer(const Duration(milliseconds: 800), () {
+                  _debounceTimer = Timer(const Duration(milliseconds: 1000), () {
                     _saveMoodData(index);
                   });
                 },
@@ -486,21 +475,22 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: timeSegments.length,
                         onPageChanged: (newIndex) async {
-                          // This should rarely trigger since we use jumpToPage
                           if (!_canAccessSegment(newIndex)) {
                             _pageController.jumpToPage(currentSegment);
                             return;
                           }
 
                           setState(() => _isInitialLoading = true);
-                          await _loadDataForSegment(newIndex);
+
+                          // FIXED: Load fresh data when page changes
+                          await _loadDataForSegmentFresh(newIndex);
+
                           setState(() {
                             currentSegment = newIndex;
                             _isInitialLoading = false;
                           });
 
-                          // Update slider to the new segment's mood value
-                          final newMoodValue = _cachedMoodValues[newIndex] ?? 5.0;
+                          final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
                           await _sliderService.animateToValue(newMoodValue);
 
                           if (widget.useCustomGradient) {
@@ -562,7 +552,6 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
             ),
           ),
 
-          // Initial loading overlay (only shown on app start)
           if (_isInitialLoading)
             Container(
               color: Colors.black54,
