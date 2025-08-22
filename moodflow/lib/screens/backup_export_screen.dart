@@ -8,6 +8,7 @@ import '../services/backup/icloud_service.dart';
 import '../services/data/backup_models.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/backup/auto_backup_service.dart';
+import '../services/backup/cloud_backup_service.dart';
 
 // REMOVE FOR PRODUCTION (CUSTOM CSV IMPORT)
 // Also delete the imports directory, and widgets/custom_csv_import_dialog.dart
@@ -247,6 +248,17 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
           const SizedBox(height: 24),
 
+          // Cloud Restore Section - NEW
+          const Text(
+            'Cloud Backups',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+
+          _buildCloudRestoreSection(),
+
+          const SizedBox(height: 24),
+
           // File Import Section
           const Text(
             'Import from Files',
@@ -263,43 +275,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
             onTap: _importFromFile,
           ),
 
-          const SizedBox(height: 24),
-
-          // Cloud Restore Section
-          if (_googleDriveService.isSignedIn && _driveBackups.isNotEmpty) ...[
-            const Text(
-              'Google Drive Backups',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            ..._driveBackups.map((backup) => _buildBackupRestoreCard(
-              title: backup.name,
-              subtitle: backup.formattedDate,
-              size: backup.formattedSize,
-              onRestore: () => _restoreFromGoogleDrive(backup.id),
-            )).toList(),
-            const SizedBox(height: 16),
-          ],
-
-          // iCloud Restore
-          if (_isICloudAvailable && _iCloudBackups.isNotEmpty) ...[
-            const Text(
-              'iCloud Backups',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            ..._iCloudBackups.map((backup) => _buildBackupRestoreCard(
-              title: backup.name,
-              subtitle: backup.formattedDate,
-              size: backup.statusText,
-              onRestore: () => _restoreFromICloud(backup.relativePath),
-            )).toList(),
-          ],
-
-          // REMOVE FOR PRODUCTION (CUSTOM CSV IMPORT)
+          // Keep your existing custom CSV import
           const SizedBox(height: 16),
-
-          // CUSTOM CSV Import - NEW (you can delete this entire block later)
           _buildRestoreCard(
             title: 'Import Your Custom CSV',
             description: 'Import from your specific MoodLog CSV format (TEMPORARY)',
@@ -310,6 +287,143 @@ class _BackupExportScreenState extends State<BackupExportScreen>
         ],
       ),
     );
+  }
+
+  Widget _buildCloudRestoreSection() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: RealCloudBackupService.getBackupStatus(),
+      builder: (context, snapshot) {
+        final status = snapshot.data ?? {};
+        final isAvailable = status['available'] ?? false;
+        final isSignedIn = status['isSignedIn'] ?? false;
+
+        if (!isAvailable) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Cloud backup not available on this device'),
+            ),
+          );
+        }
+
+        if (!isSignedIn) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  const Text('Sign in to view cloud backups'),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final success = await RealCloudBackupService.signInToCloudService();
+                      if (success) {
+                        setState(() {});
+                        _showSuccessMessage('Signed in successfully!');
+                      } else {
+                        _showErrorMessage('Sign in failed');
+                      }
+                    },
+                    child: const Text('Sign In'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return FutureBuilder<List<dynamic>>(
+          future: RealCloudBackupService.listAvailableBackups(),
+          builder: (context, backupSnapshot) {
+            if (backupSnapshot.connectionState == ConnectionState.waiting) {
+              return const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(width: 16),
+                      Text('Loading cloud backups...'),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final backups = backupSnapshot.data ?? [];
+
+            if (backups.isEmpty) {
+              return const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No cloud backups found'),
+                ),
+              );
+            }
+
+            return Column(
+              children: backups.map((backup) {
+                return _buildCloudBackupRestoreCard(backup);
+              }).toList(),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCloudBackupRestoreCard(dynamic backup) {
+    // Handle both Google Drive and iCloud backup formats
+    String title = 'Cloud Backup';
+    String subtitle = 'Unknown date';
+    String backupId = '';
+
+    if (backup is DriveBackupFile) {
+      title = backup.name;
+      subtitle = backup.formattedDate;
+      backupId = backup.id;
+    } else if (backup is ICloudBackupFile) {
+      title = backup.name;
+      subtitle = backup.formattedDate;
+      backupId = backup.relativePath;
+    } else {
+      // Fallback for other formats
+      title = backup.toString();
+    }
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.cloud_download),
+        title: Text(title),
+        subtitle: Text(subtitle),
+        trailing: ElevatedButton(
+          onPressed: () => _restoreFromCloudBackup(backupId),
+          child: const Text('Restore'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _restoreFromCloudBackup(String backupId) async {
+    final confirmed = await _showRestoreConfirmation();
+    if (!confirmed) return;
+
+    try {
+      _showLoadingDialog('Restoring from cloud backup...');
+
+      final result = await RealCloudBackupService.restoreFromBackup(backupId);
+
+      Navigator.of(context).pop(); // Close loading dialog
+
+      if (result.success) {
+        _showSuccessMessage(result.message ?? 'Cloud restore completed successfully!');
+      } else {
+        _showErrorMessage(result.error ?? 'Cloud restore failed');
+      }
+    } catch (e) {
+      Navigator.of(context).pop(); // Close loading dialog
+      _showErrorMessage('Cloud restore failed: $e');
+    }
   }
 
   Widget _buildExportCard({

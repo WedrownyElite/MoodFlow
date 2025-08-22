@@ -60,18 +60,12 @@ class RealCloudBackupService {
     final cloudService = _getCloudService();
     if (cloudService == null) return false;
 
-    // Check if user is signed in (for Google Drive)
+    // For Android, check if user is signed in
     if (Platform.isAndroid && !_googleDriveService.isSignedIn) {
-      return false; // Don't auto-backup if not signed in
+      return false;
     }
 
-    final lastBackup = await getLastBackupTime();
-    if (lastBackup == null) return true; // Never backed up
-
-    final intervalHours = await getBackupInterval();
-    final timeSinceLastBackup = DateTime.now().difference(lastBackup);
-
-    return timeSinceLastBackup.inHours >= intervalHours;
+    return true;
   }
 
   /// Perform automatic cloud backup

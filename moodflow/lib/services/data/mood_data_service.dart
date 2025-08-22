@@ -72,8 +72,9 @@ class MoodDataService {
 
           // Trigger cloud backup after successful save
           try {
-            RealCloudBackupService.triggerBackupIfNeeded();
-            print('🔄 Real cloud backup triggered after mood save');
+            // Don't use triggerBackupIfNeeded - do immediate backup
+            _performImmediateCloudBackup();
+            print('🔄 Immediate cloud backup triggered after mood save');
           } catch (e) {
             print('⚠️ Cloud backup trigger failed: $e');
           }
@@ -90,6 +91,22 @@ class MoodDataService {
       print('❌ Error saving mood: $e');
       return false;
     }
+  }
+
+  /// Perform immediate cloud backup without delay or interval checks
+  static void _performImmediateCloudBackup() {
+    // Run in background without waiting
+    Future.delayed(const Duration(milliseconds: 100), () async {
+      try {
+        final isEnabled = await RealCloudBackupService.isAutoBackupEnabled();
+        if (isEnabled && await RealCloudBackupService.isCloudBackupAvailable()) {
+          await RealCloudBackupService.performAutomaticBackup();
+          print('✅ Immediate cloud backup completed');
+        }
+      } catch (e) {
+        print('❌ Immediate cloud backup failed: $e');
+      }
+    });
   }
 
   /// Helper method to load mood data directly from prefs without reload

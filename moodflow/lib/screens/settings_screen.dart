@@ -35,19 +35,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   notifications.NotificationSettings? _notificationSettings;
   bool _isLoadingNotifications = true;
 
-  // Auto backup settings
-  bool _autoBackupEnabled = true;
-  bool _autoBackupAvailable = false;
-  DateTime? _lastBackupTime;
-  int _backupIntervalHours = 24;
-
   @override
   void initState() {
     super.initState();
     _selectedThemeMode = widget.themeMode;
     _customGradientEnabled = widget.useCustomGradient;
     _loadNotificationSettings();
-    _loadAutoBackupSettings();
   }
 
   Future<void> _loadNotificationSettings() async {
@@ -58,99 +51,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  Future<void> _loadAutoBackupSettings() async {
-    try {
-      final available = await AutoBackupService.isAutoBackupAvailable();
-      final enabled = await AutoBackupService.isAutoBackupEnabled();
-      final lastBackup = await AutoBackupService.getLastBackupTime();
-      final interval = await AutoBackupService.getBackupInterval();
-
-      setState(() {
-        _autoBackupAvailable = available;
-        _autoBackupEnabled = enabled;
-        _lastBackupTime = lastBackup;
-        _backupIntervalHours = interval;
-      });
-    } catch (e) {
-      print('Error loading auto backup settings: $e');
-    }
-  }
-
   Future<void> _updateNotificationSettings(notifications.NotificationSettings settings) async {
     await notifications.EnhancedNotificationService.saveSettings(settings);
     setState(() {
       _notificationSettings = settings;
     });
-  }
-
-  Future<void> _updateAutoBackupEnabled(bool enabled) async {
-    await AutoBackupService.setAutoBackupEnabled(enabled);
-    setState(() {
-      _autoBackupEnabled = enabled;
-    });
-
-    if (enabled) {
-      _showSnackBar('Auto backup enabled', Colors.green);
-    } else {
-      _showSnackBar('Auto backup disabled', Colors.orange);
-    }
-  }
-
-  Future<void> _updateBackupInterval(int hours) async {
-    await AutoBackupService.setBackupInterval(hours);
-    setState(() {
-      _backupIntervalHours = hours;
-    });
-    _showSnackBar('Backup interval updated to ${hours}h', Colors.blue);
-  }
-
-  Future<void> _performManualBackup() async {
-    _showSnackBar('Starting backup...', Colors.blue);
-
-    final success = await AutoBackupService.performAutomaticBackup();
-
-    if (success) {
-      _showSnackBar('Backup completed successfully!', Colors.green);
-      _loadAutoBackupSettings(); // Refresh backup info
-    } else {
-      _showSnackBar('Backup failed. Check debug logs.', Colors.red);
-    }
-  }
-
-  Future<void> _showBackupIntervalDialog() async {
-    final intervals = [6, 12, 24, 48, 72, 168]; // Hours
-    final intervalNames = ['6 hours', '12 hours', '1 day', '2 days', '3 days', '1 week'];
-
-    final selectedInterval = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Backup Interval'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: intervals.asMap().entries.map((entry) {
-            final hours = entry.value;
-            final name = intervalNames[entry.key];
-
-            return RadioListTile<int>(
-              title: Text(name),
-              value: hours,
-              groupValue: _backupIntervalHours,
-              onChanged: (value) => Navigator.pop(context, value),
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-
-    if (selectedInterval != null) {
-      await _updateBackupInterval(selectedInterval);
-    }
   }
 
   void _handleThemeChange(ThemeMode? mode) {
@@ -232,64 +137,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const Divider(height: 40),
 
-          // Auto Backup Settings
-          _buildSectionHeader('Auto Backup'),
-          if (_autoBackupAvailable) ...[
-            SwitchListTile(
-              title: const Text('Enable auto backup'),
-              subtitle: Text(_autoBackupEnabled
-                  ? 'Your data is automatically backed up'
-                  : 'Manual backups only'),
-              value: _autoBackupEnabled,
-              onChanged: _updateAutoBackupEnabled,
-            ),
-
-            if (_autoBackupEnabled) ...[
-              ListTile(
-                title: const Text('Backup interval'),
-                subtitle: Text(_getBackupIntervalText()),
-                trailing: const Icon(Icons.schedule),
-                onTap: _showBackupIntervalDialog,
-              ),
-
-              ListTile(
-                title: const Text('Last backup'),
-                subtitle: Text(_lastBackupTime != null
-                    ? _formatLastBackupTime(_lastBackupTime!)
-                    : 'Never'),
-                trailing: const Icon(Icons.history),
-              ),
-            ],
-
-            ListTile(
-              title: const Text('Backup now'),
-              subtitle: const Text('Create a backup immediately'),
-              leading: const Icon(Icons.backup),
-              onTap: _performManualBackup,
-            ),
-
-            ListTile(
-              title: const Text('Manage backups'),
-              subtitle: const Text('View, export, and restore backups'),
-              leading: const Icon(Icons.folder),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BackupExportScreen()),
-                );
-              },
-            ),
-          ] else ...[
-            const ListTile(
-              title: Text('Auto backup not available'),
-              subtitle: Text('Platform does not support automatic backup'),
-              leading: Icon(Icons.info_outline, color: Colors.orange),
-            ),
-          ],
-
-          const Divider(height: 40),
-
           _buildSectionHeader('Cloud Backup'),
           FutureBuilder<Map<String, dynamic>>(
             future: RealCloudBackupService.getBackupStatus(),
@@ -349,18 +196,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         );
                       },
                     ),
+                  ],
+                ],
+              );
+            },
+          ),
 
-                    // Debug option to reset restore prompt
-                    if (kDebugMode)
-                      ListTile(
-                        title: const Text('Reset restore prompt'),
-                        subtitle: const Text('For testing - will show restore prompt again'),
-                        leading: const Icon(Icons.refresh),
-                        onTap: () async {
-                          await StartupRestoreService.resetRestorePrompt();
-                          _showSnackBar('Restore prompt reset', Colors.blue);
+          const Divider(height: 40),
+
+// Auto Cloud Backup Settings
+          _buildSectionHeader('Automatic Cloud Backup'),
+          FutureBuilder<Map<String, dynamic>>(
+            future: RealCloudBackupService.getBackupStatus(),
+            builder: (context, snapshot) {
+              final status = snapshot.data ?? {};
+              final isAvailable = status['available'] ?? false;
+              final isEnabled = status['isSignedIn'] ?? false;
+
+              return Column(
+                children: [
+                  if (isAvailable && isEnabled) ...[
+                    SwitchListTile(
+                      title: const Text('Automatic cloud backup'),
+                      subtitle: const Text('Backup data immediately when you make changes'),
+                      value: status['autoBackupEnabled'] ?? true,
+                      onChanged: (value) async {
+                        await RealCloudBackupService.setAutoBackupEnabled(value);
+                        setState(() {});
+                        _showSnackBar(
+                          value ? 'Auto backup enabled' : 'Auto backup disabled',
+                          value ? Colors.green : Colors.orange,
+                        );
+                      },
+                    ),
+                  ] else if (isAvailable && !isEnabled) ...[
+                    ListTile(
+                      title: const Text('Sign in for automatic backup'),
+                      subtitle: const Text('Sign in to enable automatic cloud backup'),
+                      leading: const Icon(Icons.cloud_off),
+                      trailing: ElevatedButton(
+                        onPressed: () async {
+                          final success = await RealCloudBackupService.signInToCloudService();
+                          if (success) {
+                            _showSnackBar('Signed in successfully!', Colors.green);
+                            setState(() {});
+                          } else {
+                            _showSnackBar('Sign in failed', Colors.red);
+                          }
                         },
+                        child: const Text('Sign In'),
                       ),
+                    ),
+                  ] else ...[
+                    const ListTile(
+                      title: Text('Cloud backup not available'),
+                      subtitle: Text('Your device doesn\'t support cloud backup'),
+                      leading: Icon(Icons.info_outline, color: Colors.grey),
+                    ),
                   ],
                 ],
               );
@@ -456,18 +348,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
-  }
-
-  String _getBackupIntervalText() {
-    switch (_backupIntervalHours) {
-      case 6: return 'Every 6 hours';
-      case 12: return 'Every 12 hours';
-      case 24: return 'Daily';
-      case 48: return 'Every 2 days';
-      case 72: return 'Every 3 days';
-      case 168: return 'Weekly';
-      default: return 'Every $_backupIntervalHours hours';
-    }
   }
 
   String _formatLastBackupTime(DateTime time) {
