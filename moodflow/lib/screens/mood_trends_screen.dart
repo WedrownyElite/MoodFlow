@@ -87,10 +87,10 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
         : endDate;
 
     // Load data in background to prevent UI blocking
-    final trends = await compute(_loadTrendsInBackground, {
-      'startDate': startDate.millisecondsSinceEpoch,
-      'endDate': actualEndDate.millisecondsSinceEpoch,
-    });
+    final trends = await MoodTrendsService.getMoodTrends(
+      startDate: startDate,
+      endDate: actualEndDate,
+    );
 
     if (!mounted) return;
 

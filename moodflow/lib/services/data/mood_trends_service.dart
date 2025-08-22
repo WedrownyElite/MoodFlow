@@ -20,23 +20,16 @@ class MoodTrendsService {
     while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
       final dayData = DayMoodData(date: currentDate);
 
-      // Only check segments that we actually need
-      bool hasAnyData = false;
+      // Check all segments for this day
       for (int i = 0; i < 3; i++) {
         final moodData = await MoodDataService.loadMood(currentDate, i);
         if (moodData != null && moodData['rating'] != null) {
           dayData.moods[i] = (moodData['rating'] as num).toDouble();
-          hasAnyData = true;
         }
       }
 
-      // Only add days that have data (this reduces processing significantly)
-      if (hasAnyData) {
-        trends.add(dayData);
-      } else {
-        // For days without data, add empty day but don't process further
-        trends.add(dayData);
-      }
+      // Always add the day (whether it has data or not) to maintain date continuity
+      trends.add(dayData);
 
       currentDate = currentDate.add(const Duration(days: 1));
     }

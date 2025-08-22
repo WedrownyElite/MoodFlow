@@ -18,6 +18,7 @@ import 'services/notifications/enhanced_notification_service.dart';
 import 'services/notifications/notification_manager.dart';
 import 'services/navigation_service.dart';
 import 'services/backup/cloud_backup_service.dart';
+import 'services/data/mood_data_service.dart';
 
 void main() async {
   // CRITICAL: Ensure Flutter bindings are initialized FIRST
@@ -41,7 +42,11 @@ Future<void> _initializeServices() async {
     NotificationManager.initialize();
     print('✅ Notification manager initialized');
 
-    // 3. Initialize cloud backup services
+    // 3. Initialize MoodDataService
+    await MoodDataService.initialize();
+    print('✅ MoodDataService initialized');
+
+    // 4. Initialize cloud backup services
     await _initializeCloudBackup();
 
   } catch (e) {

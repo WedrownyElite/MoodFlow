@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../backup/cloud_backup_service.dart';
 
@@ -22,9 +23,7 @@ class MoodDataService {
       print('🔄 Initializing MoodDataService...');
 
       // Ensure we have bindings before accessing SharedPreferences
-      if (!WidgetsBinding.instance.debugCheckZone()) {
-        throw StateError('MoodDataService: Flutter bindings not initialized');
-      }
+      WidgetsFlutterBinding.ensureInitialized();
 
       // Get SharedPreferences instance and cache it
       _cachedPrefs = await SharedPreferences.getInstance();
