@@ -94,11 +94,15 @@ lib/
 │   ├── mood_trends_screen.dart
 │   ├── goals_screen.dart
 │   ├── ai_analysis_screen.dart
-│   └── settings_screen.dart
+│   ├── settings_screen.dart
+│   └── [additional files]
 ├── services/                 # Business logic
 │   ├── ai/                 # AI services
 │   ├── animation/           # Animation services
 │   ├── data/               # Data management
+│   ├── backup/              # Backup services
+│   ├── import/               # Import services
+│   ├── notifications/           # Notification services
 │   └── ui/                 # UI utilities
 ├── widgets/                 # Reusable components
 │   ├── animated_mood_slider.dart
@@ -130,6 +134,12 @@ lib/
 - Identify your peak emotional times of day
 - Track logging streaks and consistency
 
+### AI Analysis
+- Currently, requires your own OpenAI API Key
+- Specify date ranges to analyze
+- Key Insights (Trends for negative and positive moods)
+- Recommendations based on given factors (NOT PROFESSIONAL)
+
 ## 🔧 Configuration
 
 ### Notifications
@@ -158,10 +168,10 @@ flutter test integration_test
 
 ## 📊 Data & Privacy
 
-- **Local Storage**: All data stored locally on device using SharedPreferences
-- **No Cloud Sync**: Your mood data never leaves your device
+- **Local Storage**: Data stored locally on device using SharedPreferences
+- **Cloud Sync**: Your data can be saved through the iCloud and Google Cloud
 - **No Analytics**: No user tracking or data collection
-- **Export/Import**: Manual backup through device storage access
+- **Export/Import**: Manual backup through device storage access available
 
 ## 🤝 Contributing
 
@@ -199,11 +209,11 @@ For support and questions:
 ## 🗺️ Roadmap
 
 ### Upcoming Features
-- [ ] Data export/import functionality
+- [X] Data export/import functionality
 - [ ] Mood correlation with weather/activities
 - [X] Advanced AI statistical analysis
 - [ ] Widget support for home screen
-- [ ] Backup and sync options
+- [X] Backup and sync options
 - [ ] Accessibility improvements
 
 ### Long-term Goals
@@ -223,7 +233,23 @@ For support and questions:
 ### Trends & Analytics
 | Trends Overview | Detailed Analytics |
 |-----------------|-------------------|
-| ![Trends 1](screenshots/trends1.jpg) | ![Trends 2](screenshots/trends2.jpg) |
+| ![Trends Overview](screenshots/trends1.jpg) | ![Detailed Analytics](screenshots/trends2.jpg) |
+
+### AI Analysis
+| AI Analysis | Disclaimer |
+|-------------|------------|
+| ![AI Analysis](screenshots/aianalyze.jpg) | ![Disclaimer](screenshots/aianalyzedisclaimer.jpg) |
+
+### AI Analysis Results
+| Result 1 | Result 2 |
+|----------|----------|
+| ![Result 1](screenshots/airesult1.jpg) | ![Result 2](screenshots/airesult2.jpg) |
+
+### Backup & Export
+| Export | Cloud Backup | Restore |
+|--------|--------------|---------|
+| ![Export](screenshots/export.jpg) | ![Cloud Backup](screenshots/cloudbackup.jpg) | ![Restore](screenshots/restore.jpg) |
+
 
 ### Goals & Progress
 | Goals Dashboard | Goal Details |
@@ -231,9 +257,11 @@ For support and questions:
 | ![Goals 1](screenshots/goals1.jpg) | ![Goals 2](screenshots/goals2.jpg) |
 
 ### Settings & Customization
-| Themes & Basic Notifications | Advanced Notifications | Notification Preferences |
-|------------------------------|------------------------|--------------------------|
-| ![Settings 1](screenshots/settings1.jpg) | ![Settings 2](screenshots/settings2.jpg) | ![Settings 3](screenshots/settings3.jpg) |
+| Themes & Basic Notifications | Backup Options | Advanced Notifications |
+|------------------------------|----------------|------------------------|
+| ![Settings 1](screenshots/settings1.jpg) | ![Settings Backup](screenshots/settingsbackup.jpg) | ![Settings 3](screenshots/settings2.jpg) |
+
+
 
 *Extensive notification customization with granular control over reminders, timing, and preferences*
 
