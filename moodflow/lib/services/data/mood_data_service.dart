@@ -71,6 +71,39 @@ class MoodDataService {
     }
   }
 
+  // Cache for recent mood queries
+  static final Map<String, Map<String, dynamic>?> _moodCache = {};
+  static DateTime? _lastCacheClean;
+
+  /// Load mood with caching
+  static Future<Map<String, dynamic>?> loadMoodCached(DateTime date, int segmentIndex) async {
+    final key = getKeyForDateSegment(date, segmentIndex);
+
+    // Clean cache every 5 minutes
+    final now = DateTime.now();
+    if (_lastCacheClean == null || now.difference(_lastCacheClean!).inMinutes > 5) {
+      _moodCache.clear();
+      _lastCacheClean = now;
+    }
+
+    // Check cache first
+    if (_moodCache.containsKey(key)) {
+      return _moodCache[key];
+    }
+
+    // Load from storage
+    final result = await loadMood(date, segmentIndex);
+
+    // Cache the result (limit cache size)
+    if (_moodCache.length > 100) {
+      final firstKey = _moodCache.keys.first;
+      _moodCache.remove(firstKey);
+    }
+    _moodCache[key] = result;
+
+    return result;
+  }
+
   /// Returns key for storing mood data
   static String getKeyForDateSegment(DateTime date, int segmentIndex) {
     final dateString = date.toIso8601String().substring(0, 10);

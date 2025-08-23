@@ -1,73 +1,101 @@
 // Updated mood_trends_service.dart - Fixed streak calculation
 import 'dart:math';
+import 'dart:convert';
 import '../data/mood_data_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MoodTrendsService {
-  /// Get mood data for a date range
+  /// Get mood data for a date range - OPTIMIZED VERSION
   static Future<List<DayMoodData>> getMoodTrends({
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    final List<DayMoodData> trends = [];
+    final trends = <DayMoodData>[];
 
-    // Limit the date range to prevent excessive loading
-    final maxDays = 365; // Maximum 1 year of data
-    final actualStartDate = endDate.difference(startDate).inDays > maxDays
-        ? endDate.subtract(Duration(days: maxDays))
-        : startDate;
+    // Hard limit to prevent excessive loading
+    final daysDiff = endDate.difference(startDate).inDays;
+    if (daysDiff > 365) {
+      endDate = startDate.add(const Duration(days: 365));
+    }
 
-    DateTime currentDate = actualStartDate;
+    // Pre-load all SharedPreferences keys at once
+    final prefs = await SharedPreferences.getInstance();
+    final allKeys = prefs.getKeys().where((key) => key.startsWith('mood_')).toSet();
+
+    DateTime currentDate = startDate;
     while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
       final dayData = DayMoodData(date: currentDate);
 
-      // Check all segments for this day
+      // Check all segments for this day using pre-loaded keys
       for (int i = 0; i < 3; i++) {
-        final moodData = await MoodDataService.loadMood(currentDate, i);
-        if (moodData != null && moodData['rating'] != null) {
-          dayData.moods[i] = (moodData['rating'] as num).toDouble();
+        final key = MoodDataService.getKeyForDateSegment(currentDate, i);
+        if (allKeys.contains(key)) {
+          final jsonString = prefs.getString(key);
+          if (jsonString != null) {
+            try {
+              final data = jsonDecode(jsonString) as Map<String, dynamic>;
+              if (data['rating'] != null) {
+                dayData.moods[i] = (data['rating'] as num).toDouble();
+              }
+            } catch (e) {
+              // Skip invalid data
+            }
+          }
         }
       }
 
-      // Always add the day (whether it has data or not) to maintain date continuity
       trends.add(dayData);
-
       currentDate = currentDate.add(const Duration(days: 1));
     }
 
     return trends;
   }
 
-  /// Calculate total days logged across ALL time (independent of date range)
-  static Future<int> getTotalDaysLogged() async {
-    final today = DateTime.now();
-    final startDate = today.subtract(const Duration(days: 3650)); // Check last 10 years
-
-    int totalDaysLogged = 0;
+  /// Process a batch of days efficiently
+  static Future<List<DayMoodData>> _processDayBatch(DateTime startDate, DateTime endDate) async {
+    final batch = <DayMoodData>[];
 
     DateTime currentDate = startDate;
-    while (currentDate.isBefore(today) || currentDate.isAtSameMomentAs(today)) {
-      bool hasAnyMood = false;
+    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+      final dayData = DayMoodData(date: currentDate);
 
       // Check all segments for this day
-      for (int segment = 0; segment < MoodDataService.timeSegments.length; segment++) {
-        final moodData = await MoodDataService.loadMood(currentDate, segment);
+      for (int i = 0; i < 3; i++) {
+        final moodData = await MoodDataService.loadMoodCached(currentDate, i);
         if (moodData != null && moodData['rating'] != null) {
-          hasAnyMood = true;
-          break; // Found at least one mood for this day
+          dayData.moods[i] = (moodData['rating'] as num).toDouble();
         }
       }
 
-      if (hasAnyMood) {
-        totalDaysLogged++;
-      }
-
+      batch.add(dayData);
       currentDate = currentDate.add(const Duration(days: 1));
     }
 
-    return totalDaysLogged;
+    return batch;
   }
 
-  /// NEW: Calculate statistics for a specific date range (affects most stats)
+// Cache for expensive calculations
+  static final Map<String, int> _totalDaysCache = {};
+  static DateTime? _lastTotalDaysCacheTime;
+
+  /// Get total days logged with caching
+  static Future<int> getTotalDaysLogged() async {
+    final prefs = await SharedPreferences.getInstance();
+    final moodKeys = prefs.getKeys().where((key) => key.startsWith('mood_')).toList();
+
+    // Extract unique dates from keys (format: mood_YYYY-MM-DD_segment)
+    final uniqueDates = <String>{};
+    for (final key in moodKeys) {
+      final parts = key.split('_');
+      if (parts.length >= 2) {
+        uniqueDates.add(parts[1]); // The date part
+      }
+    }
+
+    return uniqueDates.length;
+  }
+
+  /// Calculate statistics for a specific date range (affects most stats)
   /// But keeps global stats for days logged and streaks
   static Future<MoodStatistics> calculateStatisticsForDateRange(
       List<DayMoodData> trends,
@@ -165,50 +193,40 @@ class MoodTrendsService {
 
   /// Calculate current streak globally with real-time updates
   static Future<int> _calculateCurrentStreakGlobal() async {
+    final prefs = await SharedPreferences.getInstance();
+    final allKeys = prefs.getKeys().where((key) => key.startsWith('mood_')).toSet();
+
     int streak = 0;
-    final now = DateTime.now();
-    final todayDate = DateTime(now.year, now.month, now.day);
+    final today = DateTime.now();
+    DateTime currentDate = DateTime(today.year, today.month, today.day);
 
-    // Check if user has logged any mood today
-    bool hasLoggedToday = false;
-    for (int segment = 0; segment < 3; segment++) {
-      final mood = await MoodDataService.loadMood(todayDate, segment);
-      if (mood != null && mood['rating'] != null) {
-        hasLoggedToday = true;
-        break;
-      }
-    }
-
-    // Determine starting date for streak calculation
-    DateTime streakStartDate;
-    if (hasLoggedToday) {
-      // User has logged today, so include today in streak calculation
-      streakStartDate = todayDate;
-    } else {
-      // User hasn't logged today, so start from yesterday
-      streakStartDate = todayDate.subtract(const Duration(days: 1));
-    }
-
-    // Calculate streak starting from the determined date
-    DateTime currentDate = streakStartDate;
-
-    for (int i = 0; i < 365; i++) { // Max 1 year
+    // Check up to 365 days back maximum
+    for (int i = 0; i < 365; i++) {
       bool hasAnyMood = false;
 
-      // Check if this day has any moods
+      // Check if any segment has data for this day
       for (int segment = 0; segment < 3; segment++) {
-        final mood = await MoodDataService.loadMood(currentDate, segment);
-        if (mood != null && mood['rating'] != null) {
-          hasAnyMood = true;
-          break;
+        final key = MoodDataService.getKeyForDateSegment(currentDate, segment);
+        if (allKeys.contains(key)) {
+          final jsonString = prefs.getString(key);
+          if (jsonString != null) {
+            try {
+              final data = jsonDecode(jsonString) as Map<String, dynamic>;
+              if (data['rating'] != null) {
+                hasAnyMood = true;
+                break;
+              }
+            } catch (e) {
+              // Skip invalid data
+            }
+          }
         }
       }
 
       if (hasAnyMood) {
         streak++;
       } else {
-        // No mood logged for this day - break the streak
-        break;
+        break; // Streak broken
       }
 
       currentDate = currentDate.subtract(const Duration(days: 1));

@@ -32,6 +32,10 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
   DateTime? _customStartDate;
   DateTime? _customEndDate;
 
+  final Map<String, List<DayMoodData>> _trendCache = {};
+  final Map<String, MoodStatistics> _statsCache = {};
+  String? _lastCacheKey;
+
   @override
   void initState() {
     super.initState();
@@ -48,67 +52,103 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
   Future<void> _loadTrendData() async {
     setState(() => _isLoading = true);
 
-    final endDate = DateTime.now();
-    late DateTime startDate;
+    try {
+      final endDate = DateTime.now();
+      late DateTime startDate;
 
-    // Reduce data range for better performance
-    switch (_selectedRange) {
-      case TimeRange.week:
-        startDate = endDate.subtract(const Duration(days: 7));
-        break;
-      case TimeRange.month:
-        startDate = endDate.subtract(const Duration(days: 30));
-        break;
-      case TimeRange.quarter:
-        startDate = endDate.subtract(const Duration(days: 90));
-        break;
-      case TimeRange.year:
-        startDate = endDate.subtract(const Duration(days: 365));
-        break;
-      case TimeRange.all:
-        startDate = endDate.subtract(const Duration(days: 730)); // Limit to 2 years max
-        break;
-      case TimeRange.custom:
-        if (_customStartDate != null && _customEndDate != null) {
-          startDate = _customStartDate!;
-          // Limit custom range to 2 years max
-          final daysDiff = _customEndDate!.difference(_customStartDate!).inDays;
-          if (daysDiff > 730) {
-            startDate = _customEndDate!.subtract(const Duration(days: 730));
-          }
-        } else {
+      // Optimize date ranges - keep them reasonable
+      switch (_selectedRange) {
+        case TimeRange.week:
+          startDate = endDate.subtract(const Duration(days: 7));
+          break;
+        case TimeRange.month:
           startDate = endDate.subtract(const Duration(days: 30));
-        }
-        break;
+          break;
+        case TimeRange.quarter:
+          startDate = endDate.subtract(const Duration(days: 90));
+          break;
+        case TimeRange.year:
+          startDate = endDate.subtract(const Duration(days: 365));
+          break;
+        case TimeRange.all:
+          startDate = endDate.subtract(const Duration(days: 365)); // Max 1 year
+          break;
+        case TimeRange.custom:
+          if (_customStartDate != null && _customEndDate != null) {
+            startDate = _customStartDate!;
+            final daysDiff = _customEndDate!.difference(_customStartDate!).inDays;
+            if (daysDiff > 365) {
+              startDate = _customEndDate!.subtract(const Duration(days: 365));
+            }
+          } else {
+            startDate = endDate.subtract(const Duration(days: 30));
+          }
+          break;
+      }
+
+      final actualEndDate = _selectedRange == TimeRange.custom && _customEndDate != null
+          ? _customEndDate!
+          : endDate;
+
+      // Load trends (should be much faster now)
+      final trends = await MoodTrendsService.getMoodTrends(
+        startDate: startDate,
+        endDate: actualEndDate,
+      );
+
+      if (!mounted) return;
+
+      // Calculate statistics
+      final statistics = await MoodTrendsService.calculateStatisticsForDateRange(
+          trends, startDate, actualEndDate
+      );
+
+      setState(() {
+        _trendData = trends;
+        _statistics = statistics;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading trend data: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-
-    final actualEndDate = _selectedRange == TimeRange.custom && _customEndDate != null
-        ? _customEndDate!
-        : endDate;
-
-    // Load data in background to prevent UI blocking
-    final trends = await MoodTrendsService.getMoodTrends(
-      startDate: startDate,
-      endDate: actualEndDate,
-    );
-
-    if (!mounted) return;
-
-    // Calculate statistics efficiently
-    final statistics = await MoodTrendsService.calculateStatisticsForDateRange(
-      trends,
-      startDate,
-      actualEndDate,
-    );
-
-    setState(() {
-      _trendData = trends;
-      _statistics = statistics;
-      _isLoading = false;
-    });
   }
 
-// Add this static method at the bottom of the file
+  Future<List<DayMoodData>> _loadTrendsInIsolate(DateTime startDate, DateTime endDate) async {
+    // For very large date ranges, consider using compute() to run in isolate
+    final daysDiff = endDate.difference(startDate).inDays;
+
+    if (daysDiff > 90) {
+      // Use isolate for large datasets
+      return await compute(_loadTrendsInBackground, {
+        'startDate': startDate.millisecondsSinceEpoch,
+        'endDate': endDate.millisecondsSinceEpoch,
+      });
+    } else {
+      // Load directly for smaller datasets
+      return await MoodTrendsService.getMoodTrends(
+        startDate: startDate,
+        endDate: endDate,
+      );
+    }
+  }
+
+  Future<MoodStatistics> _calculateStatisticsAsync(
+      List<DayMoodData> trends,
+      DateTime startDate,
+      DateTime endDate
+      ) async {
+    // Add small delays during heavy calculation to keep UI responsive
+    await Future.delayed(const Duration(milliseconds: 1));
+
+    return await MoodTrendsService.calculateStatisticsForDateRange(
+        trends, startDate, endDate
+    );
+  }
+
+  // Add this static method at the bottom of the file
   static Future<List<DayMoodData>> _loadTrendsInBackground(Map<String, dynamic> params) async {
     final startDate = DateTime.fromMillisecondsSinceEpoch(params['startDate']);
     final endDate = DateTime.fromMillisecondsSinceEpoch(params['endDate']);
