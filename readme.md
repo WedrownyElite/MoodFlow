@@ -79,7 +79,7 @@ You can download the latest version of MoodFlow here:
 ### Setup
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/moodflow.git
+git clone https://github.com/wedrownyelite/MoodFlow.git
 cd moodflow
 ```
 
@@ -126,7 +126,8 @@ lib/
 │   ├── backup/              # Backup services
 │   ├── import/               # Import services
 │   ├── notifications/           # Notification services
-│   └── ui/                 # UI utilities
+│   ├── ui/                    # UI utilities
+│   └── [additional directories]
 ├── widgets/                 # Reusable components
 │   ├── animated_mood_slider.dart
 │   ├── mood_line_chart.dart
