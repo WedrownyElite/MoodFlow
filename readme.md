@@ -7,6 +7,11 @@
 
 A comprehensive mood tracking application built with Flutter, designed to help users monitor their emotional wellbeing throughout the day with intelligent insights and goal tracking.
 
+## 📥 Download
+
+You can download the latest version of MoodFlow here:  
+➡️ [Download APK](https://github.com/wedrownyelite/MoodFlow/releases/latest)
+
 ## 📱 Features
 
 ### Core Functionality
