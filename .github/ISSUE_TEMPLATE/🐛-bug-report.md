@@ -1,72 +1,35 @@
 ---
-name: "\U0001F41B Bug Report"
-about: Report a problem or unexpected behavior in MoodFlow
-title: "[BUG]"
-labels: ''
-assignees: ''
-
+name: "🐛 Bug report"
+about: "Report a problem or unexpected behavior in MoodFlow"
+title: "[Bug]: "
+labels: ["bug"]
+assignees: []
 ---
 
-name: 🐛 Bug Report
-description: Report a problem or unexpected behavior in MoodFlow
-title: "[Bug]: "
-labels: [bug]
-assignees: []
-body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for taking the time to report a bug! Please fill out the details below so we can fix it quickly.
+## Description
+A clear and concise description of the issue.
 
-  - type: input
-    id: version
-    attributes:
-      label: App Version
-      description: What version of MoodFlow are you using? (e.g., 1.0.0)
-      placeholder: "1.0.0"
-    validations:
-      required: true
+## Steps to Reproduce
+1. Go to '...'
+2. Tap '...'
+3. See error
 
-  - type: input
-    id: device
-    attributes:
-      label: Device & OS
-      description: Device model and Android version
-      placeholder: "Pixel 6, Android 13"
-    validations:
-      required: true
+## Expected Behavior
+What you expected to happen.
 
-  - type: textarea
-    id: steps
-    attributes:
-      label: Steps to Reproduce
-      description: Explain how we can reproduce the issue.
-      placeholder: |
-        1. Open the app
-        2. Tap on ...
-        3. App crashes
-    validations:
-      required: true
+## Actual Behavior
+What actually happened instead.
 
-  - type: textarea
-    id: expected
-    attributes:
-      label: Expected Behavior
-      description: What did you expect to happen?
-    validations:
-      required: true
+## Screenshots / Logs
+If applicable, add screenshots or a logcat snippet to help explain.
 
-  - type: textarea
-    id: actual
-    attributes:
-      label: Actual Behavior
-      description: What actually happened instead?
-    validations:
-      required: true
+## Environment
+- App version: e.g., 1.0.0
+- Device: e.g., Pixel 6
+- OS version: e.g., Android 13
+- Build type: Release / Debug
 
-  - type: textarea
-    id: screenshots
-    attributes:
-      label: Screenshots / Logs
-      description: If possible, add screenshots or crash logs to help explain.
-      placeholder: "Paste logcat snippet or upload screenshot"
+## Additional Context
+Anything else we should know? Workarounds you found?
+
+<!-- Thanks for helping improve MoodFlow! -->
