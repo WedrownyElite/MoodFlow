@@ -1,6 +1,17 @@
-// Copyright (c) 2025 OddologyInc. All rights reserved.
-// Use of this source code is governed by a MIT license that can be
-// found in the LICENSE file.
+// ─────────────────────────────────────────────────────────────
+//  MoodFlow
+//  Copyright (c) 2025 OddologyInc. All rights reserved.
+//
+//  This software is licensed under the MoodFlow Custom License.
+//  
+//  - Free for personal, educational, and research use.
+//  - Modification and redistribution allowed with attribution 
+//    and inclusion of this license.
+//  - Commercial use and rebranding strictly prohibited.
+//
+//  See the LICENSE file in the root of this repository for full terms.
+// ─────────────────────────────────────────────────────────────
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
