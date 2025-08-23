@@ -49,7 +49,7 @@ flutter test
 
 ---
 
-## 🐛Reporting Bugs
+## 🐛 Reporting Bugs
 When reporting a bug, please include:
 - **App version** (eg. 1.0.0)
 - **OS & device** (eg. Endoird 13, Pixel 6)
