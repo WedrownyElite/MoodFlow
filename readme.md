@@ -7,6 +7,18 @@
 
 A comprehensive mood tracking application built with Flutter, designed to help users monitor their emotional wellbeing throughout the day with intelligent insights and goal tracking.
 
+## 📝 License
+
+This project is licensed under the **MoodFlow License**.
+
+**TL;DR:**
+- ✅ Free for personal, educational, and research use  
+- ✅ Modification and redistribution allowed with attribution and inclusion of this license  
+- ❌ Commercial use prohibited  
+- ❌ Rebranding or publishing as a different app prohibited  
+
+See the full [LICENSE](LICENSE) file for complete terms.
+
 ## 📥 Download
 
 You can download the latest version of MoodFlow here:  
@@ -199,18 +211,6 @@ We welcome contributions! Please follow these steps:
 - Maintain consistent code formatting
 - Add tests for new features
 - Update documentation as needed
-
-## 📝 License
-
-This project is licensed under the **MoodFlow License**.
-
-**TL;DR:**
-- ✅ Free for personal, educational, and research use  
-- ✅ Modification and redistribution allowed with attribution and inclusion of this license  
-- ❌ Commercial use prohibited  
-- ❌ Rebranding or publishing as a different app prohibited  
-
-See the full [LICENSE](LICENSE) file for complete terms.
 
 ## 🐛 Bug Reports & Feature Requests
 
