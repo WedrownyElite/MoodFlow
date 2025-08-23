@@ -3,7 +3,6 @@ import '../services/animation/blur_transition_service.dart';
 import '../services/animation/scale_transition_service.dart';
 import '../services/notifications/enhanced_notification_service.dart';
 import '../widgets/notification_permission_dialog.dart';
-import 'mood_log_screen.dart';
 import 'mood_trends_screen.dart';
 import 'mood_history_screen.dart';
 import 'goals_screen.dart';

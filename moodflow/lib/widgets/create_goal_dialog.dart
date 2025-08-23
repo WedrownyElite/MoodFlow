@@ -171,7 +171,7 @@ class _CreateGoalDialogState extends State<CreateGoalDialog> {
                     });
                   },
                 );
-              }).toList(),
+              }),
               
               const SizedBox(height: 16),
               

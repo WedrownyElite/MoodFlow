@@ -1,6 +1,5 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/ai/mood_analysis_service.dart';
 import '../widgets/date_range_picker_dialog.dart';
 
@@ -274,7 +273,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           // Date range selector
           Container(
             padding: const EdgeInsets.all(16),
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             child: Row(
               children: [
                 Expanded(
@@ -571,9 +570,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
+                          color: color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: color.withOpacity(0.3)),
+                          border: Border.all(color: color.withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           recommendation.priority.name.toUpperCase(),

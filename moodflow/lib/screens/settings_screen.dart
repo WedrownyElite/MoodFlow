@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import '../services/notifications/enhanced_notification_service.dart' as notifications;
 import '../services/notifications/real_notification_service.dart' as real_notifications;
 import '../services/backup/cloud_backup_service.dart';
-import '../services/backup/startup_restore_service.dart';
 import '../screens/backup_export_screen.dart';
 import 'debug_data_screen.dart';
 

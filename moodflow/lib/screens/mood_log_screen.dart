@@ -41,7 +41,6 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   final Map<int, bool> _accessibilityCache = {};
 
   LinearGradient? _currentGradient;
-  LinearGradient? _targetGradient;
   Animation<LinearGradient>? _gradientAnimation;
 
   bool _isInitialLoading = true;
@@ -267,7 +266,6 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   void _initGradientSync() {
     final gradient = MoodGradientService.fallbackGradient(widget.isDarkMode);
     _currentGradient = gradient;
-    _targetGradient = gradient;
     _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient).animate(_gradientAnimationController);
 
     if (widget.useCustomGradient) {
@@ -282,7 +280,6 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       if (mounted) {
         setState(() {
           _currentGradient = gradient;
-          _targetGradient = gradient;
           _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient).animate(_gradientAnimationController);
         });
       }
@@ -292,7 +289,6 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   void _updateGradientForMood(double mood) async {
     if (!widget.useCustomGradient) return;
     final newGradient = await MoodGradientService.computeGradientForMood(mood, currentSegment);
-    _targetGradient = newGradient;
     _gradientAnimation = LinearGradientTween(
       begin: _currentGradient ?? newGradient,
       end: newGradient,

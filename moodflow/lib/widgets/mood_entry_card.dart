@@ -112,10 +112,10 @@ class MoodEntryCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _getMoodColor(entry.rating).withOpacity(0.1),
+                      color: _getMoodColor(entry.rating).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: _getMoodColor(entry.rating).withOpacity(0.3),
+                        color: _getMoodColor(entry.rating).withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(

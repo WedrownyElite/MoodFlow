@@ -107,7 +107,7 @@ class MoodDataService {
   /// Returns key for storing mood data
   static String getKeyForDateSegment(DateTime date, int segmentIndex) {
     final dateString = date.toIso8601String().substring(0, 10);
-    return 'mood_${dateString}_${segmentIndex}';
+    return 'mood_${dateString}_$segmentIndex';
   }
 
   /// Loads saved mood (rating + note + timestamp) for given date and segment

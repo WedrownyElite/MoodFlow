@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
 import '../services/data/mood_trends_service.dart';
-import '../services/data/mood_data_service.dart';
 
 enum ChartAggregation { daily, weekly, monthly }
 
@@ -195,7 +194,7 @@ class _MoodLineChartState extends State<MoodLineChart> {
           builder: (context, setDialogState) {
             return Dialog(
               insetPadding: EdgeInsets.zero,
-              child: Container(
+              child: SizedBox(
                 width: double.maxFinite,
                 height: double.maxFinite,
                 child: Column(
@@ -304,7 +303,7 @@ class _MoodLineChartState extends State<MoodLineChart> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
+                      color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Row(
@@ -404,12 +403,6 @@ class MoodLineChartPainter extends CustomPainter {
   final bool showLegend;
   final Function(String)? onLegendTap;
 
-  List<ChartPoint>? _cachedMorningPoints;
-  List<ChartPoint>? _cachedMiddayPoints;
-  List<ChartPoint>? _cachedEveningPoints;
-  List<ChartPoint>? _cachedAveragePoints;
-  Size? _lastSize;
-
   MoodLineChartPainter(
       this.trendData, {
         this.isMaximized = false,
@@ -420,11 +413,6 @@ class MoodLineChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-
-    if (_lastSize != size) {
-      _clearCache();
-      _lastSize = size;
-    }
     
     if (trendData.isEmpty) return;
 
@@ -455,30 +443,6 @@ class MoodLineChartPainter extends CustomPainter {
     if (isMaximized && showLegend) {
       _drawLegend(canvas, size);
     }
-  }
-
-  void _clearCache() {
-    _cachedMorningPoints = null;
-    _cachedMiddayPoints = null;
-    _cachedEveningPoints = null;
-    _cachedAveragePoints = null;
-  }
-
-  List<ChartPoint> _getCachedPoints(int segment) {
-    switch (segment) {
-      case 0:
-        return _cachedMorningPoints ??= MoodTrendsService.getChartData(trendData, segment);
-      case 1:
-        return _cachedMiddayPoints ??= MoodTrendsService.getChartData(trendData, segment);
-      case 2:
-        return _cachedEveningPoints ??= MoodTrendsService.getChartData(trendData, segment);
-      default:
-        return [];
-    }
-  }
-
-  List<ChartPoint> _getCachedAveragePoints() {
-    return _cachedAveragePoints ??= MoodTrendsService.getDailyAverageChart(trendData);
   }
 
   @override
@@ -742,7 +706,7 @@ class MoodLineChartPainter extends CustomPainter {
 
     // Draw legend background
     final legendBgPaint = Paint()
-      ..color = Colors.white.withOpacity(0.95)
+      ..color = Colors.white.withValues(alpha: 0.95)
       ..style = PaintingStyle.fill;
 
     final legendBorderPaint = Paint()
@@ -1114,7 +1078,7 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
 
     // Draw legend background
     final legendBgPaint = Paint()
-      ..color = Colors.white.withOpacity(0.95)
+      ..color = Colors.white.withValues(alpha: 0.95)
       ..style = PaintingStyle.fill;
 
     final legendBorderPaint = Paint()

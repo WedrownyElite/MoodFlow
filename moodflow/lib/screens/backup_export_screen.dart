@@ -456,7 +456,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 24),
@@ -511,7 +511,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: color, size: 24),
@@ -582,7 +582,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 24),
@@ -648,27 +648,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
             title: Text(item.name ?? 'Backup'),
             subtitle: Text(item.formattedDate ?? ''),
             trailing: Text(item.formattedSize ?? ''),
-          )).toList(),
+          )),
       ],
-    );
-  }
-
-  Widget _buildBackupRestoreCard({
-    required String title,
-    required String subtitle,
-    required String size,
-    required VoidCallback onRestore,
-  }) {
-    return Card(
-      child: ListTile(
-        leading: const Icon(Icons.cloud_download),
-        title: Text(title),
-        subtitle: Text('$subtitle • $size'),
-        trailing: ElevatedButton(
-          onPressed: onRestore,
-          child: const Text('Restore'),
-        ),
-      ),
     );
   }
 
@@ -793,28 +774,6 @@ class _BackupExportScreenState extends State<BackupExportScreen>
     }
   }
 
-  Future<void> _restoreFromGoogleDrive(String fileId) async {
-    final confirmed = await _showRestoreConfirmation();
-    if (!confirmed) return;
-
-    try {
-      _showLoadingDialog('Restoring from Google Drive...');
-
-      final result = await _googleDriveService.downloadAndRestoreBackup(fileId);
-
-      Navigator.of(context).pop(); // Close loading dialog
-
-      if (result.success) {
-        _showSuccessMessage(result.message ?? 'Restore completed successfully!');
-      } else {
-        _showErrorMessage(result.error ?? 'Restore failed');
-      }
-    } catch (e) {
-      Navigator.of(context).pop(); // Close loading dialog
-      _showErrorMessage('Restore failed: $e');
-    }
-  }
-
   // iCloud Methods (iOS only)
   Future<void> _backupToICloud() async {
     try {
@@ -848,28 +807,6 @@ class _BackupExportScreenState extends State<BackupExportScreen>
     } catch (e) {
       setState(() => _isICloudLoading = false);
       _showErrorMessage('Failed to load iCloud backups: $e');
-    }
-  }
-
-  Future<void> _restoreFromICloud(String relativePath) async {
-    final confirmed = await _showRestoreConfirmation();
-    if (!confirmed) return;
-
-    try {
-      _showLoadingDialog('Restoring from iCloud...');
-
-      final result = await _iCloudService.downloadAndRestoreBackup(relativePath);
-
-      Navigator.of(context).pop(); // Close loading dialog
-
-      if (result.success) {
-        _showSuccessMessage(result.message ?? 'iCloud restore completed!');
-      } else {
-        _showErrorMessage(result.error ?? 'iCloud restore failed');
-      }
-    } catch (e) {
-      Navigator.of(context).pop(); // Close loading dialog
-      _showErrorMessage('iCloud restore failed: $e');
     }
   }
 
@@ -1006,7 +943,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Import Results'),
-        content: Container(
+        content: SizedBox(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,

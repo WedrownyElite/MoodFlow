@@ -40,7 +40,7 @@ class MoodGradientService {
       }
     }
 
-    // Find the index of currentSegment within accessible segments
+    // Find the index of currentSegment with in accessible segments
     final accessibleIndices = <int>[];
     for (int i = 0; i < timeSegments.length; i++) {
       if (await canAccessSegment(i, now)) {

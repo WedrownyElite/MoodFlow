@@ -230,7 +230,7 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
           // Month selector
           Container(
             padding: const EdgeInsets.all(16),
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -265,7 +265,7 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
                   onNotification: (ScrollNotification scrollInfo) {
                     if (!_isLoading && _hasMoreData &&
                         scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
-                      _loadMoodHistory(loadMore: true);
+                      _loadMoodHistory(loadMore: true); 
                     }
                     return false;
                   },
@@ -405,13 +405,13 @@ class DayMoodCard extends StatelessWidget {
     // Get appropriate text colors from the theme
     final primaryTextColor = theme.textTheme.bodyLarge?.color ??
         (isDarkMode ? Colors.white : Colors.black87);
-    final secondaryTextColor = theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ??
+    final secondaryTextColor = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
         (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600);
 
     // For "Today", use a more visible primary color or enhanced text color
     final todayTextColor = isToday
         ? (isDarkMode
-        ? theme.colorScheme.primary.withOpacity(0.9) // Use colorScheme primary in dark mode
+        ? theme.colorScheme.primary.withValues(alpha: 0.9) // Use colorScheme primary in dark mode
         : theme.primaryColor) // Use regular primary in light mode
         : primaryTextColor;
 
@@ -442,10 +442,10 @@ class DayMoodCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _getMoodColor(dayAverage).withOpacity(0.1),
+                      color: _getMoodColor(dayAverage).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: _getMoodColor(dayAverage).withOpacity(0.3),
+                        color: _getMoodColor(dayAverage).withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -566,12 +566,12 @@ class _SegmentIndicator extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
         color: hasData 
-            ? _getMoodColor(segmentData.rating).withOpacity(0.1)
+            ? _getMoodColor(segmentData.rating).withValues(alpha: 0.1)
             : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: hasData 
-              ? _getMoodColor(segmentData.rating).withOpacity(0.3)
+              ? _getMoodColor(segmentData.rating).withValues(alpha: 0.3)
               : Colors.grey.shade300,
         ),
       ),
@@ -789,7 +789,7 @@ class _DayDetailSheetState extends State<DayDetailSheet> {
                     ),
                     borderRadius: BorderRadius.circular(12),
                     color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey.shade800.withOpacity(0.3)
+                        ? Colors.grey.shade800.withValues(alpha: 0.3)
                         : Colors.transparent,
                   ),
                   child: ListTile(
@@ -837,7 +837,7 @@ class _DayDetailSheetState extends State<DayDetailSheet> {
                         : Text(
                       'No mood logged',
                       style: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                     ),
                     trailing: hasData

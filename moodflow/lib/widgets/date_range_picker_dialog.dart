@@ -221,7 +221,7 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                       decoration: BoxDecoration(
                         border: Border.all(color: borderColor),
                         borderRadius: BorderRadius.circular(8),
-                        color: isDarkMode ? Colors.grey.shade800.withOpacity(0.3) : Colors.transparent,
+                        color: isDarkMode ? Colors.grey.shade800.withValues(alpha: 0.3) : Colors.transparent,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,7 +260,7 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                       decoration: BoxDecoration(
                         border: Border.all(color: borderColor),
                         borderRadius: BorderRadius.circular(8),
-                        color: isDarkMode ? Colors.grey.shade800.withOpacity(0.3) : Colors.transparent,
+                        color: isDarkMode ? Colors.grey.shade800.withValues(alpha: 0.3) : Colors.transparent,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,12 +298,12 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(isDarkMode ? 0.08 : 0.1),
+                  color: Theme.of(context).primaryColor.withValues(alpha: isDarkMode ? 0.08 : 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isDarkMode
-                        ? Theme.of(context).primaryColor.withOpacity(0.25)
-                        : Theme.of(context).primaryColor.withOpacity(0.3),
+                        ? Theme.of(context).primaryColor.withValues(alpha: 0.25)
+                        : Theme.of(context).primaryColor.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(

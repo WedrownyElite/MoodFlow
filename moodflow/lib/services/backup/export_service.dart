@@ -1,7 +1,5 @@
-﻿import 'dart:io';
-import 'dart:typed_data';
+import 'dart:io';
 import 'package:csv/csv.dart';
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -337,7 +335,7 @@ class ExportService {
                         _buildTableCell(_truncateText(entry.note, 50)),
                         _buildTableCell(DateFormat('MM/dd HH:mm').format(entry.loggedAt)),
                       ],
-                    )).toList(),
+                    )),
                   ],
                 ),
               ],
@@ -395,7 +393,7 @@ class ExportService {
                     ),
                   ],
                 ),
-              )).toList(),
+              )),
             ],
           );
         },

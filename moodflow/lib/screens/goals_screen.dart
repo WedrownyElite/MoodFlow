@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../services/data/mood_analytics_service.dart';
-import '../services/data/mood_data_service.dart';
 import '../widgets/goal_card.dart';
 import '../widgets/create_goal_dialog.dart';
 
@@ -147,7 +145,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           goal: goal,
                           onComplete: () => _markGoalComplete(goal),
                           onDelete: () => _deleteGoal(goal),
-                        )).toList(),
+                        )),
                         const SizedBox(height: 32),
                       ],
 
@@ -164,7 +162,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         ...completedGoals.map((goal) => GoalCard(
                           goal: goal,
                           onDelete: () => _deleteGoal(goal),
-                        )).toList(),
+                        )),
                       ],
                     ],
                   ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/data/mood_trends_service.dart';
 import '../services/data/mood_data_service.dart';
@@ -608,15 +607,15 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
     return Card(
       elevation: 2,
       color: isDarkMode
-          ? insightColor.withOpacity(0.08)
-          : insightColor.withOpacity(0.1),
+          ? insightColor.withValues(alpha: 0.08)
+          : insightColor.withValues(alpha: 0.1),
       child: Container(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             Icon(
                 insightIcon,
-                color: isDarkMode ? insightColor.withOpacity(0.8) : insightColor,
+                color: isDarkMode ? insightColor.withValues(alpha: 0.8) : insightColor,
                 size: 24
             ),
             const SizedBox(width: 12),
@@ -630,8 +629,8 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: isDarkMode
-                          ? textColor.withOpacity(0.7)
-                          : textColor.withOpacity(0.8),
+                          ? textColor.withValues(alpha: 0.7)
+                          : textColor.withValues(alpha: 0.8),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -649,8 +648,8 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
                     style: TextStyle(
                       fontSize: 12,
                       color: isDarkMode
-                          ? textColor.withOpacity(0.6)
-                          : textColor.withOpacity(0.7),
+                          ? textColor.withValues(alpha: 0.6)
+                          : textColor.withValues(alpha: 0.7),
                     ),
                   ),
                 ],

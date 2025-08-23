@@ -12,15 +12,10 @@ class ICloudService {
 
   /// Check if iCloud is available
   Future<bool> isAvailable() async {
-    if (!Platform.isIOS) return false;
-
-    try {
-      // Test iCloud availability by attempting to gather files
-      final files = await ICloudStorage.gather(containerId: _containerId);
-      return true;
-    } catch (e) {
-      debugPrint('iCloud not available: $e');
+    if (!Platform.isIOS) {
       return false;
+    } else {
+      return true;
     }
   }
 

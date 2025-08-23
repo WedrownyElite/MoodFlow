@@ -19,6 +19,7 @@ import 'services/notifications/notification_manager.dart';
 import 'services/navigation_service.dart';
 import 'services/backup/cloud_backup_service.dart';
 import 'services/data/mood_data_service.dart';
+import 'services/utils/logger.dart';
 
 void main() async {
   // CRITICAL: Ensure Flutter bindings are initialized FIRST
@@ -34,23 +35,23 @@ void main() async {
 Future<void> _initializeServices() async {
   try {
     // 1. Initialize notifications FIRST (this often causes the binding errors)
-    print('🔄 Initializing notification services...');
+    Logger.notificationService('🔄 Initializing notification services...');
     await EnhancedNotificationService.initialize();
-    print('✅ Notification services initialized');
+    Logger.notificationService('✅ Notification services initialized');
 
     // 2. Initialize notification manager
     NotificationManager.initialize();
-    print('✅ Notification manager initialized');
+    Logger.notificationService('✅ Notification manager initialized');
 
     // 3. Initialize MoodDataService
     await MoodDataService.initialize();
-    print('✅ MoodDataService initialized');
+    Logger.moodService('✅ MoodDataService initialized');
 
     // 4. Initialize cloud backup services
     await _initializeCloudBackup();
 
   } catch (e) {
-    print('❌ Error during service initialization: $e');
+    Logger.moodService('❌ Error during service initialization: $e');
     // Continue with app launch even if some services fail
   }
 }
@@ -60,13 +61,13 @@ Future<void> _initializeCloudBackup() async {
   try {
     if (kDebugMode) {
       if (await RealCloudBackupService.isCloudBackupAvailable()) {
-        print('✅ Real cloud backup system is available');
+        Logger.cloudService('✅ Real cloud backup system is available');
         await RealCloudBackupService.setAutoBackupEnabled(true);
-        print('🔧 Cloud backup enabled');
+        Logger.cloudService('🔧 Cloud backup enabled');
         await RealCloudBackupService.checkForRestoreOnStartup();
-        print('✅ Cloud backup initialization complete');
+        Logger.cloudService('✅ Cloud backup initialization complete');
       } else {
-        print('❌ Real cloud backup system is not available on this platform');
+        Logger.cloudService('❌ Real cloud backup system is not available on this platform');
       }
     } else {
       // PRODUCTION: Silent cloud backup initialization
@@ -77,24 +78,11 @@ Future<void> _initializeCloudBackup() async {
         }
       } catch (e) {
         // Silent fail in production
-        print('⚠️ Cloud backup initialization failed silently: $e');
+        Logger.cloudService('⚠️ Cloud backup initialization failed silently: $e');
       }
     }
   } catch (e) {
-    print('❌ Cloud backup initialization error: $e');
-  }
-}
-
-/// Check if the user has existing mood data (not a fresh install)
-Future<bool> _hasExistingData() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final allKeys = prefs.getKeys();
-    final moodKeys = allKeys.where((key) => key.startsWith('mood_')).toList();
-    return moodKeys.isNotEmpty;
-  } catch (e) {
-    print('Error checking existing data: $e');
-    return false;
+    Logger.cloudService('❌ Cloud backup initialization error: $e');
   }
 }
 
@@ -132,7 +120,7 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
           RealCloudBackupService.triggerBackupIfNeeded();
         }
       } catch (e) {
-        print('Initial backup check failed: $e');
+        Logger.backupService('Initial backup check failed: $e');
       }
     });
   }
@@ -159,7 +147,7 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
         });
       }
     } catch (e) {
-      print('Error loading preferences: $e');
+      Logger.dataService('Error loading preferences: $e');
     }
   }
 
@@ -173,7 +161,7 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
         });
       }
     } catch (e) {
-      print('Error saving theme mode: $e');
+      Logger.dataService('Error saving theme mode: $e');
     }
   }
 
@@ -187,7 +175,7 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
         });
       }
     } catch (e) {
-      print('Error saving gradient preference: $e');
+      Logger.dataService('Error saving gradient preference: $e');
     }
   }
 

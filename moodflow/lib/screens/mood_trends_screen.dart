@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/foundation.dart';
 import '../services/data/mood_trends_service.dart';
-import '../services/data/mood_data_service.dart';
 import '../widgets/mood_line_chart.dart';
 import '../widgets/mood_heatmap.dart';
 import '../widgets/mood_statistics_cards.dart';
@@ -23,18 +21,10 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
   List<DayMoodData> _trendData = [];
   MoodStatistics _statistics = MoodStatistics.empty();
   bool _isLoading = true;
-  
-  DateTime? _lastCalculatedDate;
-  MoodStatistics? _cachedStatistics;
-  List<DayMoodData>? _lastTrendData;
 
   // Custom date range
   DateTime? _customStartDate;
   DateTime? _customEndDate;
-
-  final Map<String, List<DayMoodData>> _trendCache = {};
-  final Map<String, MoodStatistics> _statsCache = {};
-  String? _lastCacheKey;
 
   @override
   void initState() {
@@ -114,49 +104,6 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
         setState(() => _isLoading = false);
       }
     }
-  }
-
-  Future<List<DayMoodData>> _loadTrendsInIsolate(DateTime startDate, DateTime endDate) async {
-    // For very large date ranges, consider using compute() to run in isolate
-    final daysDiff = endDate.difference(startDate).inDays;
-
-    if (daysDiff > 90) {
-      // Use isolate for large datasets
-      return await compute(_loadTrendsInBackground, {
-        'startDate': startDate.millisecondsSinceEpoch,
-        'endDate': endDate.millisecondsSinceEpoch,
-      });
-    } else {
-      // Load directly for smaller datasets
-      return await MoodTrendsService.getMoodTrends(
-        startDate: startDate,
-        endDate: endDate,
-      );
-    }
-  }
-
-  Future<MoodStatistics> _calculateStatisticsAsync(
-      List<DayMoodData> trends,
-      DateTime startDate,
-      DateTime endDate
-      ) async {
-    // Add small delays during heavy calculation to keep UI responsive
-    await Future.delayed(const Duration(milliseconds: 1));
-
-    return await MoodTrendsService.calculateStatisticsForDateRange(
-        trends, startDate, endDate
-    );
-  }
-
-  // Add this static method at the bottom of the file
-  static Future<List<DayMoodData>> _loadTrendsInBackground(Map<String, dynamic> params) async {
-    final startDate = DateTime.fromMillisecondsSinceEpoch(params['startDate']);
-    final endDate = DateTime.fromMillisecondsSinceEpoch(params['endDate']);
-
-    return await MoodTrendsService.getMoodTrends(
-      startDate: startDate,
-      endDate: endDate,
-    );
   }
 
   String _getRangeDisplayName(TimeRange range) {
@@ -249,10 +196,10 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withOpacity(0.1),
+        color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.3),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -335,7 +282,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -509,8 +456,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
     final isDarkMode = theme.brightness == Brightness.dark;
 
     final primaryTextColor = theme.textTheme.bodyLarge?.color ?? (isDarkMode ? Colors.white : Colors.black87);
-    final secondaryTextColor = theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ?? (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600);
-    final borderColor = theme.dividerColor;
+    final secondaryTextColor = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ?? (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600);
     final buttonBackgroundColor = isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300;
 
     return Padding(
@@ -547,7 +493,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
                   ),
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
 
@@ -568,7 +514,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
                   Color borderColor;
 
                   if (isCustomSelected) {
-                    backgroundColor = Theme.of(context).primaryColor.withOpacity(isDarkMode ? 0.15 : 0.1);
+                    backgroundColor = Theme.of(context).primaryColor.withValues(alpha: isDarkMode ? 0.15 : 0.1);
 
                     if (isDarkMode) {
                       final primaryHSL = HSLColor.fromColor(Theme.of(context).primaryColor);
@@ -642,7 +588,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
             // Chart aggregation dropdown
             Expanded(
               child: DropdownButtonFormField<ChartAggregation>(
-                value: _chartAggregation,
+                initialValue: _chartAggregation,
                 onChanged: (value) {
                   if (value != null) {
                     setState(() => _chartAggregation = value);
@@ -705,12 +651,12 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
 
     // CALCULATE PROPER COLORS FOR INFO BOX - FIXED FOR DARK PRIMARY
     final backgroundColor = isDarkMode
-        ? theme.primaryColor.withOpacity(0.08)  // Very light in dark mode
-        : theme.primaryColor.withOpacity(0.1);
+        ? theme.primaryColor.withValues(alpha: 0.08)  // Very light in dark mode
+        : theme.primaryColor.withValues(alpha: 0.1);
 
     final borderColor = isDarkMode
-        ? theme.primaryColor.withOpacity(0.25)  // Light border in dark mode
-        : theme.primaryColor.withOpacity(0.3);
+        ? theme.primaryColor.withValues(alpha: 0.25)  // Light border in dark mode
+        : theme.primaryColor.withValues(alpha: 0.3);
 
     // THE FIX: Use bright color for text in dark mode when primary is dark
     Color textColor;

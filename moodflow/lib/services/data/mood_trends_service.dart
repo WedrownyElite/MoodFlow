@@ -1,5 +1,4 @@
 // Updated mood_trends_service.dart - Fixed streak calculation
-import 'dart:math';
 import 'dart:convert';
 import '../data/mood_data_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';

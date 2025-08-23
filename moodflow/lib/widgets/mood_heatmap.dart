@@ -107,7 +107,7 @@ class MoodHeatmap extends StatelessWidget {
               }).toList(),
             ),
           );
-        }).toList(),
+        }),
         const SizedBox(height: 16),
         _buildLegend(),
       ],

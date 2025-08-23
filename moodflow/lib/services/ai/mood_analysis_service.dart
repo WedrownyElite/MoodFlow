@@ -1,9 +1,6 @@
 ﻿import 'dart:convert';
-import 'dart:math';
 import 'package:http/http.dart' as http;
-import 'package:crypto/crypto.dart';
 import '../data/mood_data_service.dart';
-import '../data/mood_trends_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MoodAnalysisService {

@@ -1,4 +1,4 @@
-﻿// debug_data_screen.dart - Add this to help debug data persistence issues
+// debug_data_screen.dart - Add this to help debug data persistence issues
 
 import 'package:flutter/material.dart';
 import '../services/data/mood_data_service.dart';
@@ -12,7 +12,7 @@ class DebugDataScreen extends StatefulWidget {
 }
 
 class _DebugDataScreenState extends State<DebugDataScreen> {
-  List<String> _debugLog = [];
+  final List<String> _debugLog = [];
   bool _isLoading = false;
 
   void _addLog(String message) {
