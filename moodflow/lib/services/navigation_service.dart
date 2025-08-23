@@ -65,8 +65,6 @@ class NavigationService {
   
   /// Handle end of day notifications
   static Future<void> _handleEndOfDayReminder(Map<String, dynamic> payload) async {
-    final loggedSegments = payload['loggedSegments'] as int? ?? 0;
-    
     // If user has logged some segments, take them to mood log to complete
     // If they haven't logged anything, also take them to mood log
     await navigateToMoodLog();

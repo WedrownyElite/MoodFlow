@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'cloud_backup_service.dart';
+import '../utils/logger.dart';
 
 class StartupRestoreService {
   static const String _lastRestoreCheckKey = 'last_startup_restore_check';
@@ -18,20 +19,20 @@ class StartupRestoreService {
 
       // Check if user has any existing data
       if (await _hasExistingMoodData()) {
-        print('User has existing data, skipping restore prompt');
+          Logger.backupService('User has existing data, skipping restore prompt');
         return;
       }
 
       // Check if we've already shown the restore prompt
       if (await _hasShownRestorePrompt()) {
-        print('Already shown restore prompt, skipping');
+        Logger.backupService('Already shown restore prompt, skipping');
         return;
       }
 
       // Check for available cloud backups
       final hasBackups = await _hasAvailableCloudBackups();
       if (!hasBackups) {
-        print('No cloud backups available');
+        Logger.backupService('No cloud backups available');
         return;
       }
 
@@ -39,7 +40,7 @@ class StartupRestoreService {
       await _showRestorePrompt(context);
 
     } catch (e) {
-      print('Error in startup restore check: $e');
+      Logger.backupService('Error in startup restore check: $e');
     }
   }
 
@@ -89,7 +90,7 @@ class StartupRestoreService {
       final backups = await RealCloudBackupService.listAvailableBackups();
       return backups.isNotEmpty;
     } catch (e) {
-      print('Error checking for available backups: $e');
+      Logger.backupService('Error checking for available backups: $e');
       return false;
     }
   }

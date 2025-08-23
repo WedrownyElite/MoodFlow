@@ -2,13 +2,14 @@
 import 'package:csv/csv.dart';
 import 'package:intl/intl.dart';
 import '../data/mood_data_service.dart';
+import '../utils/logger.dart';
 
 class CustomCSVImporter {
   /// Import your specific CSV format
   /// A: Date, B: Morning Notes, C: Day Mood, D: Mid-Day Notes, E: Night Mood, F: Night Notes
   static Future<CustomImportResult> importYourCSV(String filePath) async {
     try {
-      print('🔄 Starting custom CSV import for: $filePath');
+      Logger.dataService('🔄 Starting custom CSV import for: $filePath');
 
       // Read the file
       final file = File(filePath);
@@ -23,7 +24,7 @@ class CustomCSVImporter {
         shouldParseNumbers: false,
       ).convert(content);
 
-      print('📊 Parsed ${csvData.length} rows from CSV');
+      Logger.dataService('📊 Parsed ${csvData.length} rows from CSV');
 
       if (csvData.length < 2) {
         throw Exception('CSV file must have at least a header row and one data row');
@@ -53,11 +54,11 @@ class CustomCSVImporter {
           final nightMoodStr = _safeGet(row, 4).trim();
           final nightNotes = _safeGet(row, 5).trim();
 
-          print('📝 Row $rowNum: Date="$dateStr", DayMood="$dayMoodStr", NightMood="$nightMoodStr"');
+          Logger.dataService('📝 Row $rowNum: Date="$dateStr", DayMood="$dayMoodStr", NightMood="$nightMoodStr"');
 
           // Skip empty rows
           if (dateStr.isEmpty && dayMoodStr.isEmpty && nightMoodStr.isEmpty) {
-            print('⏭️ Skipping empty row $rowNum');
+            Logger.dataService('⏭️ Skipping empty row $rowNum');
             continue;
           }
 
@@ -81,30 +82,30 @@ class CustomCSVImporter {
           if (dayMood != null) {
             await MoodDataService.saveMood(date, 0, dayMood, morningNotes);
             imported++;
-            print('✅ Imported/Overwrote day mood: $dayMood for $date');
+            Logger.dataService('✅ Imported/Overwrote day mood: $dayMood for $date');
           }
 
           // Import midday notes only (no mood rating in your data) - OVERWRITE existing data
           if (middayNotes.isNotEmpty) {
             final existing = await MoodDataService.loadMood(date, 1);
             await MoodDataService.saveMood(date, 1, existing?['rating'] ?? 5.0, middayNotes);
-            print('📝 Added/Overwrote midday notes for $date');
+            Logger.dataService('📝 Added/Overwrote midday notes for $date');
           }
 
           // Import night mood (evening segment) - OVERWRITE existing data
           if (nightMood != null) {
             await MoodDataService.saveMood(date, 2, nightMood, nightNotes);
             imported++;
-            print('✅ Imported/Overwrote night mood: $nightMood for $date');
+            Logger.dataService('✅ Imported/Overwrote night mood: $nightMood for $date');
           }
 
         } catch (e) {
           errors.add('Row ${i + 1}: Import error - $e');
-          print('❌ Error on row ${i + 1}: $e');
+          Logger.dataService('❌ Error on row ${i + 1}: $e');
         }
       }
 
-      print('🎉 Import completed: $imported imported, $skipped skipped, ${errors.length} errors');
+      Logger.dataService('🎉 Import completed: $imported imported, $skipped skipped, ${errors.length} errors');
 
       return CustomImportResult(
         success: true,
@@ -114,7 +115,7 @@ class CustomCSVImporter {
       );
 
     } catch (e) {
-      print('💥 Import failed: $e');
+      Logger.dataService('💥 Import failed: $e');
       return CustomImportResult(
         success: false,
         error: e.toString(),
@@ -150,7 +151,7 @@ class CustomCSVImporter {
       }
     }
 
-    print('❌ Could not parse date: "$dateStr"');
+    Logger.dataService('❌ Could not parse date: "$dateStr"');
     return null;
   }
 

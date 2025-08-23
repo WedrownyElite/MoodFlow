@@ -50,33 +50,6 @@ class MoodTrendsService {
     return trends;
   }
 
-  /// Process a batch of days efficiently
-  static Future<List<DayMoodData>> _processDayBatch(DateTime startDate, DateTime endDate) async {
-    final batch = <DayMoodData>[];
-
-    DateTime currentDate = startDate;
-    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
-      final dayData = DayMoodData(date: currentDate);
-
-      // Check all segments for this day
-      for (int i = 0; i < 3; i++) {
-        final moodData = await MoodDataService.loadMoodCached(currentDate, i);
-        if (moodData != null && moodData['rating'] != null) {
-          dayData.moods[i] = (moodData['rating'] as num).toDouble();
-        }
-      }
-
-      batch.add(dayData);
-      currentDate = currentDate.add(const Duration(days: 1));
-    }
-
-    return batch;
-  }
-
-// Cache for expensive calculations
-  static final Map<String, int> _totalDaysCache = {};
-  static DateTime? _lastTotalDaysCacheTime;
-
   /// Get total days logged with caching
   static Future<int> getTotalDaysLogged() async {
     final prefs = await SharedPreferences.getInstance();

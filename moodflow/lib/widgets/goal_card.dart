@@ -42,7 +42,6 @@ class _GoalCardState extends State<GoalCard> {
 
     final now = DateTime.now();
     final startDate = widget.goal.createdDate;
-    final daysSinceCreated = now.difference(startDate).inDays + 1;
     
     switch (widget.goal.type) {
       case GoalType.averageMood:

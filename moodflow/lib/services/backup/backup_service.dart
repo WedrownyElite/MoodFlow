@@ -3,6 +3,7 @@ import '../data/backup_models.dart';
 import '../data/mood_data_service.dart';
 import '../data/mood_analytics_service.dart';
 import '../notifications/enhanced_notification_service.dart';
+import '../utils/logger.dart';
 
 class BackupService {
   static const String _lastBackupKey = 'last_backup_date';
@@ -149,7 +150,7 @@ class BackupService {
         );
         await EnhancedNotificationService.saveSettings(importedSettings);
       } catch (e) {
-        print('Failed to import notification settings: $e');
+        Logger.backupService('Failed to import notification settings: $e');
       }
 
       return ImportResult(

@@ -1,5 +1,6 @@
-// debug_data_screen.dart - Add this to help debug data persistence issues
+﻿// debug_data_screen.dart - Add this to help debug data persistence issues
 
+import 'package:MoodFlow/services/utils/logger.dart';
 import 'package:flutter/material.dart';
 import '../services/data/mood_data_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,7 +20,7 @@ class _DebugDataScreenState extends State<DebugDataScreen> {
     setState(() {
       _debugLog.add('${DateTime.now().toIso8601String().substring(11, 19)}: $message');
     });
-    print(message);
+    Logger.dataService(message);
   }
 
   Future<void> _testSaveAndLoad() async {

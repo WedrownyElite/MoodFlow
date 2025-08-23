@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../backup/google_drive_service.dart';
 import '../backup/icloud_service.dart';
 import '../data/backup_models.dart';
+import '../utils/logger.dart';
 
 /// REAL cloud backup service that actually saves to Google Drive/iCloud
 class RealCloudBackupService {
@@ -97,23 +98,23 @@ class RealCloudBackupService {
         }
       }
     } catch (e) {
-      print('Error cleaning up old backups: $e');
+      Logger.backupService('Error cleaning up old backups: $e');
     }
   }
   
   /// Perform automatic cloud backup
   static Future<bool> performAutomaticBackup() async {
     try {
-      print('🔄 Starting automatic cloud backup...');
+      Logger.backupService('🔄 Starting automatic cloud backup...');
 
       if (!await isCloudBackupAvailable()) {
-        print('❌ Cloud backup not available on this platform');
+        Logger.backupService('❌ Cloud backup not available on this platform');
         return false;
       }
 
       final cloudService = _getCloudService();
       if (cloudService == null) {
-        print('❌ No cloud service available');
+        Logger.backupService('❌ No cloud service available');
         return false;
       }
 
@@ -121,7 +122,7 @@ class RealCloudBackupService {
       if (Platform.isAndroid) {
         // For Android, check if signed in first
         if (!_googleDriveService.isSignedIn) {
-          print('❌ Not signed into Google Drive - skipping auto backup');
+          Logger.backupService('❌ Not signed into Google Drive - skipping auto backup');
           return false;
         }
         result = await _googleDriveService.uploadBackup();
@@ -131,15 +132,15 @@ class RealCloudBackupService {
 
       if (result.success) {
         await _setLastBackupTime(DateTime.now());
-        print('✅ Automatic cloud backup completed successfully');
+        Logger.backupService('✅ Automatic cloud backup completed successfully');
         await _cleanupOldBackups();
         return true;
       } else {
-        print('❌ Automatic cloud backup failed: ${result.error}');
+        Logger.backupService('❌ Automatic cloud backup failed: ${result.error}');
         return false;
       }
     } catch (e) {
-      print('❌ Automatic cloud backup error: $e');
+      Logger.backupService('❌ Automatic cloud backup error: $e');
       return false;
     }
   }
@@ -147,7 +148,7 @@ class RealCloudBackupService {
   /// Perform manual cloud backup
   static Future<BackupResult> performManualBackup() async {
     try {
-      print('🔄 Starting manual cloud backup...');
+      Logger.backupService('🔄 Starting manual cloud backup...');
 
       if (!await isCloudBackupAvailable()) {
         return BackupResult(false, error: 'Cloud backup not available on this platform');
@@ -201,10 +202,10 @@ class RealCloudBackupService {
 
       // If backups exist, you might want to notify the user or show a restore option
       if (hasBackups) {
-        print('✅ Cloud backups found - user can restore from Backup & Export screen');
+        Logger.backupService('✅ Cloud backups found - user can restore from Backup & Export screen');
       }
     } catch (e) {
-      print('Error checking for restore on startup: $e');
+      Logger.backupService('Error checking for restore on startup: $e');
     }
   }
 
@@ -263,7 +264,7 @@ class RealCloudBackupService {
 
       return [];
     } catch (e) {
-      print('Error listing backups: $e');
+      Logger.backupService('Error listing backups: $e');
       return [];
     }
   }
@@ -300,7 +301,7 @@ class RealCloudBackupService {
 
       return null;
     } catch (e) {
-      print('Error getting recent backup: $e');
+      Logger.backupService('Error getting recent backup: $e');
       return null;
     }
   }
@@ -379,48 +380,48 @@ class RealCloudBackupService {
       }
       return false;
     } catch (e) {
-      print('Error deleting backup: $e');
+      Logger.backupService('Error deleting backup: $e');
       return false;
     }
   }
 
   /// Manual test for debugging
   static Future<void> testCloudBackup() async {
-    print('🧪 Testing cloud backup system...');
+    Logger.backupService('🧪 Testing cloud backup system...');
 
     final isAvailable = await isCloudBackupAvailable();
-    print('📱 Cloud backup available: $isAvailable');
+    Logger.backupService('📱 Cloud backup available: $isAvailable');
 
     if (!isAvailable) {
-      print('❌ Cloud backup not available on this platform');
+      Logger.backupService('❌ Cloud backup not available on this platform');
       return;
     }
 
     final status = await getBackupStatus();
-    print('📊 Backup status: $status');
+    Logger.backupService('📊 Backup status: $status');
 
     if (Platform.isAndroid && !_googleDriveService.isSignedIn) {
-      print('🔑 Not signed into Google Drive - attempting sign in...');
+      Logger.backupService('🔑 Not signed into Google Drive - attempting sign in...');
       final signedIn = await signInToCloudService();
       if (!signedIn) {
-        print('❌ Failed to sign into Google Drive');
+        Logger.backupService('❌ Failed to sign into Google Drive');
         return;
       }
-      print('✅ Signed into Google Drive');
+      Logger.backupService('✅ Signed into Google Drive');
     }
 
-    print('🔄 Performing test backup...');
+    Logger.backupService('🔄 Performing test backup...');
     final backupResult = await performManualBackup();
 
     if (backupResult.success) {
-      print('✅ Test backup successful: ${backupResult.message}');
+      Logger.backupService('✅ Test backup successful: ${backupResult.message}');
 
-      print('📋 Listing available backups...');
+      Logger.backupService('📋 Listing available backups...');
       final backups = await listAvailableBackups();
-      print('📁 Found ${backups.length} backups');
+      Logger.backupService('📁 Found ${backups.length} backups');
 
     } else {
-      print('❌ Test backup failed: ${backupResult.error}');
+      Logger.backupService('❌ Test backup failed: ${backupResult.error}');
     }
   }
 }

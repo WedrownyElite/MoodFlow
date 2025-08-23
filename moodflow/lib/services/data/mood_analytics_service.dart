@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'mood_data_service.dart';
 
 class MoodAnalyticsService {
-  static const String _correlationsKey = 'mood_correlations';
   static const String _goalsKey = 'mood_goals';
 
   /// Save correlation data (weather, sleep, exercise, etc.)

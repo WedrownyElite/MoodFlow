@@ -87,17 +87,6 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
     final now = DateTime.now();
     final todayDate = DateTime(now.year, now.month, now.day);
 
-    // Calculate what time of day we consider "end of day" for streak purposes
-    final graceHour = 6; // 6 AM grace period
-    final currentHour = now.hour;
-
-    // Determine the "streak calculation date"
-    DateTime streakCalculationDate = todayDate;
-    if (currentHour < graceHour) {
-      // Before 6 AM - we're still in yesterday's grace period
-      streakCalculationDate = todayDate.subtract(const Duration(days: 1));
-    }
-
     // Check if user has logged any mood today
     bool hasLoggedToday = false;
     for (int segment = 0; segment < 3; segment++) {

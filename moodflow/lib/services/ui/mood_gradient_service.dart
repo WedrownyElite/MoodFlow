@@ -40,7 +40,7 @@ class MoodGradientService {
       }
     }
 
-    // Find the index of currentSegment with in accessible segments
+    // Find the index of currentSegment within accessible segments
     final accessibleIndices = <int>[];
     for (int i = 0; i < timeSegments.length; i++) {
       if (await canAccessSegment(i, now)) {
@@ -57,46 +57,69 @@ class MoodGradientService {
     return _gradientFromNormalizedT((avg - 1) / 9);
   }
 
-  /// Gradient helper
+  /// Improved gradient helper with smooth color transitions
   static LinearGradient _gradientFromNormalizedT(double t) {
-    Color lerpColor(Color a, Color b, double t) {
-      return Color.fromARGB(
-        (a.alpha + (b.alpha - a.alpha) * t).round(),
-        (a.red + (b.red - a.red) * t).round(),
-        (a.green + (b.green - a.green) * t).round(),
-        (a.blue + (b.blue - a.blue) * t).round(),
-      );
-    }
+    // Clamp t to ensure it's between 0 and 1
+    t = t.clamp(0.0, 1.0);
 
-    final black = const Color(0xFF000000);
-    final orange = Colors.orange.shade700;
-    final yellow = Colors.yellow.shade600;
-    final green = Colors.green.shade600;
+    // Define the color progression points (more muted colors)
+    final veryDark = const Color(0xFF2C1810);    // Very dark brown for lowest moods
+    final darkRed = const Color(0xFF8B4513);     // Dark reddish-brown
+    final orange = Colors.orange.shade700;       // Orange
+    final yellow = Colors.yellow.shade600;       // Yellow
+    final lightGreen = Colors.green.shade400;    // Light green
+    final green = Colors.green.shade600;         // Regular green
+    final darkGreen = Colors.green.shade800;     // Dark green
 
-    if (t <= 0.5) {
-      final localT = t / 0.5;
-      return LinearGradient(
-        colors: [lerpColor(black, orange, localT), orange],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
+    // Always create a gradient with two distinct colors
+    Color startColor;
+    Color endColor;
+
+    if (t <= 0.2) {
+      // Very low mood (0-2): dark to dark red
+      startColor = Color.lerp(veryDark, darkRed, t / 0.2)!;
+      endColor = darkRed;
+    } else if (t <= 0.4) {
+      // Low mood (2-4): dark red to orange
+      startColor = Color.lerp(darkRed, orange, (t - 0.2) / 0.2)!;
+      endColor = orange;
+    } else if (t <= 0.6) {
+      // Neutral mood (4-6): orange to yellow
+      startColor = Color.lerp(orange, yellow, (t - 0.4) / 0.2)!;
+      endColor = yellow;
+    } else if (t <= 0.8) {
+      // Good mood (6-8): yellow to light green
+      startColor = Color.lerp(yellow, lightGreen, (t - 0.6) / 0.2)!;
+      endColor = lightGreen;
     } else {
-      final localT = (t - 0.5) / 0.5;
-      final start = lerpColor(orange, yellow, localT);
-      final end = lerpColor(yellow, green, localT);
-      return LinearGradient(
-        colors: [start, end],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
+      // Great mood (8-10): light green to green, with dark green accent
+      final progress = (t - 0.8) / 0.2;
+      startColor = Color.lerp(lightGreen, green, progress)!;
+      // For the end color, blend green with a hint of dark green/yellow
+      final hintColor = Color.lerp(darkGreen, yellow, 0.3)!; // 30% yellow, 70% dark green
+      endColor = Color.lerp(green, hintColor, progress * 0.4)!; // Subtle hint
     }
+
+    return LinearGradient(
+      colors: [startColor, endColor],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
   }
 
   /// Fallback gradient for no moods available
   static LinearGradient fallbackGradient(bool isDarkMode) {
     return isDarkMode
-        ? const LinearGradient(colors: [Color(0xFF121212), Color(0xFF1E1E1E)])
-        : const LinearGradient(colors: [Color(0xFF2196F3), Color(0xFF90CAF9)]);
+        ? const LinearGradient(
+      colors: [Color(0xFF121212), Color(0xFF1E1E1E)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    )
+        : const LinearGradient(
+      colors: [Color(0xFF2196F3), Color(0xFF90CAF9)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
   }
 }
 
@@ -111,16 +134,26 @@ class LinearGradientTween extends Tween<LinearGradient> {
     List<Color> lerpColors() {
       final beginColors = begin.colors;
       final endColors = end.colors;
-      final length = beginColors.length;
+      final maxLength = beginColors.length > endColors.length ? beginColors.length : endColors.length;
 
-      // Assume both gradients have the same number of colors
-      return List.generate(length, (i) => Color.lerp(beginColors[i], endColors[i], t) ?? beginColors[i]);
+      return List.generate(maxLength, (i) {
+        final beginColor = i < beginColors.length ? beginColors[i] : beginColors.last;
+        final endColor = i < endColors.length ? endColors[i] : endColors.last;
+        return Color.lerp(beginColor, endColor, t) ?? beginColor;
+      });
     }
 
     List<double>? lerpStops() {
       if (begin.stops == null || end.stops == null) return null;
-      final length = begin.stops!.length;
-      return List.generate(length, (i) => lerpDouble(begin.stops![i], end.stops![i], t) ?? begin.stops![i]);
+      final beginStops = begin.stops!;
+      final endStops = end.stops!;
+      final maxLength = beginStops.length > endStops.length ? beginStops.length : endStops.length;
+
+      return List.generate(maxLength, (i) {
+        final beginStop = i < beginStops.length ? beginStops[i] : beginStops.last;
+        final endStop = i < endStops.length ? endStops[i] : endStops.last;
+        return lerpDouble(beginStop, endStop, t) ?? beginStop;
+      });
     }
 
     AlignmentGeometry lerpAlignment(AlignmentGeometry a, AlignmentGeometry b) {

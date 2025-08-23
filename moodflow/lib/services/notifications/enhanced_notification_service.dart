@@ -6,7 +6,6 @@ import 'real_notification_service.dart';
 class EnhancedNotificationService {
   static const String _settingsKey = 'notification_settings_v2';
   static const String _permissionAskedKey = 'notification_permission_asked';
-  static const String _lastNotificationKey = 'last_notification_date';
 
   /// Initialize the notification system
   static Future<void> initialize() async {

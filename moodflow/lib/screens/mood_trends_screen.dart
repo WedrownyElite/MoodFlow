@@ -5,6 +5,7 @@ import '../widgets/mood_line_chart.dart';
 import '../widgets/mood_heatmap.dart';
 import '../widgets/mood_statistics_cards.dart';
 import '../widgets/date_range_picker_dialog.dart';
+import '../services/utils/logger.dart';
 
 enum TimeRange { week, month, quarter, year, all, custom }
 
@@ -99,7 +100,7 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen> with WidgetsBinding
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading trend data: $e');
+      Logger.trendsService('Error loading trend data: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }

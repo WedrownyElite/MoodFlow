@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../backup/cloud_backup_service.dart';
+import '../utils/logger.dart';
 
 class MoodDataService {
   static const List<String> timeSegments = ['Morning', 'Midday', 'Evening'];
@@ -20,7 +21,7 @@ class MoodDataService {
     if (_isInitialized) return;
 
     try {
-      print('🔄 Initializing MoodDataService...');
+      Logger.dataService('🔄 Initializing MoodDataService...');
 
       // Ensure we have bindings before accessing SharedPreferences
       WidgetsFlutterBinding.ensureInitialized();
@@ -29,9 +30,9 @@ class MoodDataService {
       _cachedPrefs = await SharedPreferences.getInstance();
       _isInitialized = true;
 
-      print('✅ MoodDataService initialized successfully');
+      Logger.dataService('✅ MoodDataService initialized successfully');
     } catch (e) {
-      print('❌ MoodDataService initialization failed: $e');
+      Logger.dataService('❌ MoodDataService initialization failed: $e');
       rethrow;
     }
   }
@@ -127,11 +128,11 @@ class MoodDataService {
 
       final data = jsonDecode(jsonString) as Map<String, dynamic>;
       if (kDebugMode && DateTime.now().millisecond % 100 == 0) {
-        print('📖 Loaded fresh mood for $key: $data');
+        Logger.dataService('📖 Loaded fresh mood for $key: $data');
       }
       return data;
     } catch (e) {
-      print('❌ Error loading mood: $e');
+      Logger.dataService('❌ Error loading mood: $e');
       return null;
     }
   }
@@ -167,21 +168,21 @@ class MoodDataService {
         // Verify the data was actually saved
         final verification = prefs.getString(key);
         if (verification != null && verification == jsonData) {
-          print('✅ Mood saved and verified for $key: $moodData');
+          Logger.dataService('✅ Mood saved and verified for $key: $moodData');
 
           // Trigger cloud backup after successful save
           _scheduleThrottledBackup();
 
           return true;
         } else {
-          print('❌ Verification failed: Data was not persisted correctly');
+          Logger.dataService('❌ Verification failed: Data was not persisted correctly');
           return false;
         }
       }
 
       return false;
     } catch (e) {
-      print('❌ Error saving mood: $e');
+      Logger.dataService('❌ Error saving mood: $e');
       return false;
     }
   }
@@ -210,7 +211,7 @@ class MoodDataService {
           isEnabled = await RealCloudBackupService.isAutoBackupEnabled();
           isAvailable = await RealCloudBackupService.isCloudBackupAvailable();
         } catch (e) {
-          print('❌ Error checking cloud backup status: $e');
+          Logger.dataService('❌ Error checking cloud backup status: $e');
           return;
         }
 
@@ -218,7 +219,7 @@ class MoodDataService {
           await RealCloudBackupService.performAutomaticBackup();
         }
       } catch (e) {
-        print('❌ Throttled cloud backup failed: $e');
+        Logger.dataService('❌ Throttled cloud backup failed: $e');
       }
     });
   }
@@ -259,13 +260,13 @@ class MoodDataService {
       final allKeys = prefs.getKeys();
       final moodKeys = allKeys.where((key) => key.startsWith('mood_')).toList();
 
-      print('🔍 Found ${moodKeys.length} mood entries:');
+      Logger.dataService('🔍 Found ${moodKeys.length} mood entries:');
       for (final key in moodKeys) {
         final value = prefs.getString(key);
-        print('  $key: $value');
+        Logger.dataService('  $key: $value');
       }
     } catch (e) {
-      print('❌ Error debugging moods: $e');
+      Logger.dataService('❌ Error debugging moods: $e');
     }
   }
 
@@ -281,9 +282,9 @@ class MoodDataService {
       }
 
       await prefs.reload(); // Ensure changes are reflected
-      print('🗑️ Cleared ${moodKeys.length} mood entries');
+      Logger.dataService('🗑️ Cleared ${moodKeys.length} mood entries');
     } catch (e) {
-      print('❌ Error clearing moods: $e');
+      Logger.dataService('❌ Error clearing moods: $e');
     }
   }
 
@@ -292,14 +293,14 @@ class MoodDataService {
     try {
       final result = await RealCloudBackupService.performManualBackup();
       if (result.success) {
-        print('✅ Force cloud backup successful: ${result.message}');
+        Logger.dataService('✅ Force cloud backup successful: ${result.message}');
         return true;
       } else {
-        print('❌ Force cloud backup failed: ${result.error}');
+        Logger.dataService('❌ Force cloud backup failed: ${result.error}');
         return false;
       }
     } catch (e) {
-      print('❌ Force cloud backup error: $e');
+      Logger.dataService('❌ Force cloud backup error: $e');
       return false;
     }
   }

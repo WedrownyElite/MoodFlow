@@ -7,6 +7,7 @@ import '../services/animation/blur_transition_service.dart';
 import '../services/animation/slider_animation_service.dart';
 import '../widgets/animated_mood_slider.dart';
 import '../services/notifications/enhanced_notification_service.dart';
+import '../services/utils/logger.dart';
 
 class MoodLogScreen extends StatefulWidget {
   final bool useCustomGradient;
@@ -149,7 +150,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
 
   /// Load all data fresh from storage to ensure accuracy
   Future<void> _loadAllDataFresh() async {
-    print('🔄 Loading all mood data fresh from storage...');
+    Logger.moodService('🔄 Loading all mood data fresh from storage...');
 
     for (int i = 0; i < timeSegments.length; i++) {
       if (_accessibilityCache[i] == true) {
@@ -157,13 +158,13 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       }
     }
 
-    print('✅ Fresh data loading complete');
+    Logger.moodService('✅ Fresh data loading complete');
   }
 
   /// Always load fresh data from storage
   Future<void> _loadDataForSegmentFresh(int segment) async {
     try {
-      print('📖 Loading fresh data for segment $segment...');
+      Logger.moodService('📖 Loading fresh data for segment $segment...');
 
       // Always load fresh from storage, no cache
       final moodData = await MoodDataService.loadMood(DateTime.now(), segment);
@@ -175,9 +176,9 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       _sessionMoodValues[segment] = rating;
       _noteControllers[segment]?.text = note;
 
-      print('✅ Loaded segment $segment: rating=$rating, note="$note"');
+      Logger.moodService('✅ Loaded segment $segment: rating=$rating, note="$note"');
     } catch (e) {
-      print('❌ Error loading segment $segment: $e');
+      Logger.moodService('❌ Error loading segment $segment: $e');
       // Set defaults on error
       _sessionMoodValues[segment] = 5.0;
       _noteControllers[segment]?.text = '';
@@ -235,19 +236,19 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     final moodValue = _sessionMoodValues[segment] ?? 5.0;
     final noteText = _noteControllers[segment]?.text ?? '';
 
-    print('💾 Saving mood data for segment $segment: rating=$moodValue, note="$noteText"');
+    Logger.moodService('💾 Saving mood data for segment $segment: rating=$moodValue, note="$noteText"');
 
     try {
       final success = await MoodDataService.saveMood(DateTime.now(), segment, moodValue, noteText);
 
       if (success) {
-        print('✅ Mood saved successfully for segment $segment');
+        Logger.moodService('✅ Mood saved successfully for segment $segment');
 
         if (widget.useCustomGradient && segment == currentSegment) {
           _updateGradientForMood(moodValue);
         }
       } else {
-        print('❌ Failed to save mood for segment $segment');
+        Logger.moodService('❌ Failed to save mood for segment $segment');
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -259,7 +260,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
         }
       }
     } catch (e) {
-      print('❌ Error saving mood for segment $segment: $e');
+      Logger.moodService('❌ Error saving mood for segment $segment: $e');
     }
   }
 
@@ -303,7 +304,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     final canAccess = await _canAccessSegmentAsync(newIndex);
     if (!canAccess || _blurService.isTransitioning) return;
 
-    print('🔄 Navigating to segment $newIndex');
+    Logger.moodService('🔄 Navigating to segment $newIndex');
 
     await _blurService.executeTransition(() async {
       setState(() {
