@@ -212,10 +212,7 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
           const SizedBox(height: 24),
 
           // Streak options
-          RadioListTile<StreakCalculationMode>(
-            title: const Text('Strict Mode'),
-            subtitle: const Text('Must log moods on the actual day (within 6 hours)'),
-            value: StreakCalculationMode.strict,
+          RadioGroup<StreakCalculationMode>(
             groupValue: _streakMode,
             onChanged: (value) {
               if (value != null) {
@@ -223,32 +220,27 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
                 Navigator.of(context).pop();
               }
             },
-          ),
+            child: Column(
+              children: [
+                RadioListTile<StreakCalculationMode>(
+                  title: const Text('Strict Mode'),
+                  subtitle: const Text('Must log moods on the actual day (within 6 hours)'),
+                  value: StreakCalculationMode.strict,
+                ),
 
-          RadioListTile<StreakCalculationMode>(
-            title: const Text('Lenient Mode'),
-            subtitle: const Text('Allows backfilling missed days'),
-            value: StreakCalculationMode.lenient,
-            groupValue: _streakMode,
-            onChanged: (value) {
-              if (value != null) {
-                _saveStreakPreference(value);
-                Navigator.of(context).pop();
-              }
-            },
-          ),
+                RadioListTile<StreakCalculationMode>(
+                  title: const Text('Lenient Mode'),
+                  subtitle: const Text('Allows backfilling missed days'),
+                  value: StreakCalculationMode.lenient,
+                ),
 
-          RadioListTile<StreakCalculationMode>(
-            title: const Text('Show Both'),
-            subtitle: const Text('Display both strict and lenient streaks'),
-            value: StreakCalculationMode.both,
-            groupValue: _streakMode,
-            onChanged: (value) {
-              if (value != null) {
-                _saveStreakPreference(value);
-                Navigator.of(context).pop();
-              }
-            },
+                RadioListTile<StreakCalculationMode>(
+                  title: const Text('Show Both'),
+                  subtitle: const Text('Display both strict and lenient streaks'),
+                  value: StreakCalculationMode.both,
+                ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 16),

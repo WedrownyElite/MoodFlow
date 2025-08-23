@@ -37,7 +37,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('Enter OpenAI API Key'),
           content: Column(
@@ -93,18 +93,20 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
 
                 final isValid = await MoodAnalysisService.validateAndSaveApiKey(controller.text.trim());
 
+                // Check if the dialog is still mounted before using context
+                if (!context.mounted) return;
+
                 if (isValid) {
                   Navigator.of(context).pop(true);
                 } else {
                   setDialogState(() => isValidating = false);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Invalid API key. Please check and try again.'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
+                  // Show error in the same context (dialog context)
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Invalid API key. Please check and try again.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 }
               },
               child: const Text('Save'),
@@ -113,6 +115,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         ),
       ),
     );
+
+    // Check if the widget is still mounted before proceeding
+    if (!mounted) return;
 
     if (result == true) {
       _checkApiKey();

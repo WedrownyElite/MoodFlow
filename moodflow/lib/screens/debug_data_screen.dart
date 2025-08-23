@@ -1,6 +1,6 @@
 ﻿// debug_data_screen.dart - Add this to help debug data persistence issues
 
-import 'package:MoodFlow/services/utils/logger.dart';
+import 'package:mood_flow/services/utils/logger.dart';
 import 'package:flutter/material.dart';
 import '../services/data/mood_data_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';

@@ -65,9 +65,11 @@ class _BackupExportScreenState extends State<BackupExportScreen>
   Future<void> _checkICloudAvailability() async {
     if (Platform.isIOS) {
       final available = await _iCloudService.isAvailable();
-      setState(() {
-        _isICloudAvailable = available;
-      });
+      if (mounted) {
+        setState(() {
+          _isICloudAvailable = available;
+        });
+      }
     }
   }
 
@@ -329,6 +331,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
                   ElevatedButton(
                     onPressed: () async {
                       final success = await RealCloudBackupService.signInToCloudService();
+                      if (!mounted) return;
+
                       if (success) {
                         setState(() {});
                         _showSuccessMessage('Signed in successfully!');
@@ -425,6 +429,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
       final result = await RealCloudBackupService.restoreFromBackup(backupId);
 
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
 
       if (result.success) {
@@ -433,6 +438,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
         _showErrorMessage(result.error ?? 'Cloud restore failed');
       }
     } catch (e) {
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       _showErrorMessage('Cloud restore failed: $e');
     }
@@ -694,12 +700,14 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
       final filePath = await ExportService.exportToCSV();
 
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
 
       await ExportService.shareFile(filePath, subject: 'MoodFlow Data Export (CSV)');
 
       _showSuccessMessage('CSV export completed successfully!');
     } catch (e) {
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       _showErrorMessage('Failed to export CSV: $e');
     }
@@ -711,12 +719,14 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
       final filePath = await ExportService.exportToPDF();
 
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
 
       await ExportService.shareFile(filePath, subject: 'MoodFlow Report (PDF)');
 
       _showSuccessMessage('PDF export completed successfully!');
     } catch (e) {
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       _showErrorMessage('Failed to export PDF: $e');
     }
@@ -737,6 +747,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
       final result = await _googleDriveService.uploadBackup();
 
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
 
       if (result.success) {
@@ -746,6 +757,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
         _showErrorMessage(result.error ?? 'Backup failed');
       }
     } catch (e) {
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       _showErrorMessage('Backup failed: $e');
     }
@@ -753,24 +765,32 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
   Future<void> _signOutGoogleDrive() async {
     await _googleDriveService.signOut();
-    setState(() {
-      _driveBackups.clear();
-    });
-    _showSuccessMessage('Signed out of Google Drive');
+    if (mounted) {
+      setState(() {
+        _driveBackups.clear();
+      });
+      _showSuccessMessage('Signed out of Google Drive');
+    }
   }
 
   Future<void> _loadGoogleDriveBackups() async {
-    setState(() => _isDriveLoading = true);
+    if (mounted) {
+      setState(() => _isDriveLoading = true);
+    }
 
     try {
       final backups = await _googleDriveService.listBackups();
-      setState(() {
-        _driveBackups = backups;
-        _isDriveLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _driveBackups = backups;
+          _isDriveLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isDriveLoading = false);
-      _showErrorMessage('Failed to load Google Drive backups: $e');
+      if (mounted) {
+        setState(() => _isDriveLoading = false);
+        _showErrorMessage('Failed to load Google Drive backups: $e');
+      }
     }
   }
 
@@ -781,6 +801,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
       final result = await _iCloudService.uploadBackup();
 
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
 
       if (result.success) {
@@ -790,23 +811,30 @@ class _BackupExportScreenState extends State<BackupExportScreen>
         _showErrorMessage(result.error ?? 'iCloud backup failed');
       }
     } catch (e) {
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       _showErrorMessage('iCloud backup failed: $e');
     }
   }
 
   Future<void> _loadICloudBackups() async {
-    setState(() => _isICloudLoading = true);
+    if (mounted) {
+      setState(() => _isICloudLoading = true);
+    }
 
     try {
       final backups = await _iCloudService.listBackups();
-      setState(() {
-        _iCloudBackups = backups;
-        _isICloudLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _iCloudBackups = backups;
+          _isICloudLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isICloudLoading = false);
-      _showErrorMessage('Failed to load iCloud backups: $e');
+      if (mounted) {
+        setState(() => _isICloudLoading = false);
+        _showErrorMessage('Failed to load iCloud backups: $e');
+      }
     }
   }
 
@@ -832,6 +860,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
           // Import the data
           final importResult = await BackupService.importData(exportData);
 
+          if (!mounted) return;
           Navigator.of(context).pop(); // Close loading dialog
 
           if (importResult.success) {
@@ -844,11 +873,12 @@ class _BackupExportScreenState extends State<BackupExportScreen>
         }
       }
     } catch (e) {
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog if open
       _showErrorMessage('Import failed: $e');
     }
   }
-  
+
   // Helper Methods
   void _showLoadingDialog(String message) {
     showDialog(
@@ -889,23 +919,27 @@ class _BackupExportScreenState extends State<BackupExportScreen>
   }
 
   void _showSuccessMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   // REMOVE FOR PRODUCTION (CUSTOM CSV IMPORT)

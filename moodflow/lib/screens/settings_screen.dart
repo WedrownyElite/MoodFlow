@@ -1,4 +1,4 @@
-// Updated settings_screen.dart - Includes debug options and auto backup controls
+// Updated settings_screen.dart - Fixed RadioListTile deprecation warnings
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -108,23 +108,103 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           // Theme Settings
           _buildSectionHeader('Appearance'),
-          RadioListTile<ThemeMode>(
-            title: const Text('Light'),
-            value: ThemeMode.light,
-            groupValue: _selectedThemeMode,
-            onChanged: _handleThemeChange,
-          ),
-          RadioListTile<ThemeMode>(
-            title: const Text('Dark'),
-            value: ThemeMode.dark,
-            groupValue: _selectedThemeMode,
-            onChanged: _handleThemeChange,
-          ),
-          RadioListTile<ThemeMode>(
-            title: const Text('System Default'),
-            value: ThemeMode.system,
-            groupValue: _selectedThemeMode,
-            onChanged: _handleThemeChange,
+          // Manual radio group implementation to avoid deprecation warnings
+          Column(
+            children: [
+              ListTile(
+                title: const Text('Light'),
+                leading: GestureDetector(
+                  onTap: () => _handleThemeChange(ThemeMode.light),
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Theme.of(context).primaryColor,
+                        width: 2,
+                      ),
+                    ),
+                    child: _selectedThemeMode == ThemeMode.light
+                        ? Container(
+                      margin: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Theme.of(context).primaryColor,
+                      ),
+                    )
+                        : null,
+                  ),
+                ),
+                onTap: () => _handleThemeChange(ThemeMode.light),
+              ),
+              ListTile(
+                title: const Text('Dark'),
+                leading: GestureDetector(
+                  onTap: () => _handleThemeChange(ThemeMode.dark),
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Theme.of(context).primaryColor,
+                        width: 2,
+                      ),
+                    ),
+                    child: _selectedThemeMode == ThemeMode.dark
+                        ? Container(
+                      margin: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Theme.of(context).primaryColor,
+                      ),
+                    )
+                        : null,
+                  ),
+                ),
+                onTap: () => _handleThemeChange(ThemeMode.dark),
+              ),
+              ListTile(
+                title: const Text('System Default'),
+                leading: GestureDetector(
+                  onTap: () => _handleThemeChange(ThemeMode.system),
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Theme.of(context).primaryColor,
+                        width: 2,
+                      ),
+                    ),
+                    child: _selectedThemeMode == ThemeMode.system
+                        ? Container(
+                      margin: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Theme.of(context).primaryColor,
+                      ),
+                    )
+                        : null,
+                  ),
+                ),
+                onTap: () => _handleThemeChange(ThemeMode.system),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           SwitchListTile(
@@ -188,7 +268,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
           ),
-          
+
           _buildSectionHeader('Cloud Backup'),
           FutureBuilder<Map<String, dynamic>>(
             future: RealCloudBackupService.getBackupStatus(),
@@ -207,8 +287,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     title: Text(
                       isAvailable && isSignedIn
-                        ? 'Cloud backup active'
-                        : 'Cloud backup not available',
+                          ? 'Cloud backup active'
+                          : 'Cloud backup not available',
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,20 +299,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                     trailing: isAvailable
-                      ? IconButton(
-                        icon: const Icon(Icons.backup),
-                        onPressed: () async {
-                          _showSnackBar('Starting backup...', Colors.blue);
-                          final result = await RealCloudBackupService.performManualBackup();
-                          _showSnackBar(
-                            result.success
+                        ? IconButton(
+                      icon: const Icon(Icons.backup),
+                      onPressed: () async {
+                        _showSnackBar('Starting backup...', Colors.blue);
+                        final result = await RealCloudBackupService.performManualBackup();
+                        _showSnackBar(
+                          result.success
                               ? 'Backup completed!'
                               : 'Backup failed: ${result.error}',
-                            result.success ? Colors.green : Colors.red,
-                          );
-                        },
-                      )
-                    : null,
+                          result.success ? Colors.green : Colors.red,
+                        );
+                      },
+                    )
+                        : null,
                   ),
 
                   if (isAvailable) ...[
@@ -255,7 +335,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
           ),
-          
+
           const Divider(height: 40),
 
           // Notification Settings

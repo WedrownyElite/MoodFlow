@@ -37,7 +37,9 @@ class StartupRestoreService {
       }
 
       // Show restore prompt
-      await _showRestorePrompt(context);
+      if (context.mounted) {
+        await _showRestorePrompt(context);
+      }
 
     } catch (e) {
       Logger.backupService('Error in startup restore check: $e');
@@ -103,58 +105,65 @@ class StartupRestoreService {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.cloud_download, color: Theme.of(context).primaryColor),
-            const SizedBox(width: 12),
-            const Expanded(child: Text('Restore Your Data?')),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'We found mood tracking data backed up to your cloud account.',
-              style: TextStyle(fontSize: 16),
+      builder: (context) =>
+          AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.cloud_download, color: Theme
+                    .of(context)
+                    .primaryColor),
+                const SizedBox(width: 12),
+                const Expanded(child: Text('Restore Your Data?')),
+              ],
             ),
-            const SizedBox(height: 12),
-            const Text('Would you like to restore:'),
-            const SizedBox(height: 8),
-            const Text('• Your mood history'),
-            const Text('• Your goals and progress'),
-            const Text('• Your notification settings'),
-            const SizedBox(height: 12),
-            Text(
-              'This will not overwrite any existing data.',
-              style: TextStyle(
-                fontSize: 14,
-                fontStyle: FontStyle.italic,
-                color: Colors.grey.shade600,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'We found mood tracking data backed up to your cloud account.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                const Text('Would you like to restore:'),
+                const SizedBox(height: 8),
+                const Text('• Your mood history'),
+                const Text('• Your goals and progress'),
+                const Text('• Your notification settings'),
+                const SizedBox(height: 12),
+                Text(
+                  'This will not overwrite any existing data.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Not Now'),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Not Now'),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme
+                      .of(context)
+                      .primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Restore Data'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Restore Data'),
-          ),
-        ],
-      ),
     );
 
-    if (result == true && context.mounted) {
-      await _performAutomaticRestore(context);
+    if (result == true) {
+      if (context.mounted) {
+        await _performAutomaticRestore(context);
+      }
     }
   }
 
@@ -219,6 +228,8 @@ class StartupRestoreService {
     } catch (e) {
       // Close loading dialog
       if (context.mounted) Navigator.of(context).pop();
+
+      Logger.backupService('Error during automatic restore: $e');
 
       // Show error
       if (context.mounted) {

@@ -149,37 +149,107 @@ class _CreateGoalDialogState extends State<CreateGoalDialog> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 24),
-              
-              // Goal Type Selection
+
+              // Goal Type Selection with custom radio implementation
               const Text(
                 'Goal Type',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
-              ...GoalType.values.map((type) {
-                return RadioListTile<GoalType>(
-                  title: Text(_getGoalTypeTitle(type)),
-                  subtitle: Text(_getGoalTypeDescription(type)),
-                  value: type,
-                  groupValue: _selectedType,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedType = value!;
-                      _updateFieldsForGoalType();
-                    });
-                  },
-                );
-              }),
-              
+
+              // Custom radio selection without deprecated parameters
+              Column(
+                children: GoalType.values.map((type) {
+                  final isSelected = _selectedType == type;
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        _selectedType = type;
+                        _updateFieldsForGoalType();
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isSelected
+                              ? Theme.of(context).primaryColor
+                              : (Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade300),
+                          width: isSelected ? 2 : 1,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? Theme.of(context).primaryColor
+                                    : (Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade300
+                                    : Colors.grey),
+                                width: 2,
+                              ),
+                            ),
+                            child: isSelected
+                                ? Center(
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              ),
+                            )
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _getGoalTypeTitle(type),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                                  ),
+                                ),
+                                Text(
+                                  _getGoalTypeDescription(type),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+
               const SizedBox(height: 16),
-              
+
               // Target Value/Days Slider
               _buildValueSlider(),
-              
+
               const SizedBox(height: 24),
-              
+
               // Title Field
               const Text(
                 'Goal Title',
@@ -193,9 +263,9 @@ class _CreateGoalDialogState extends State<CreateGoalDialog> {
                   hintText: 'Enter goal title',
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Description Field
               const Text(
                 'Description',
@@ -210,9 +280,9 @@ class _CreateGoalDialogState extends State<CreateGoalDialog> {
                   hintText: 'Describe your goal',
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Action Buttons
               Row(
                 children: [
@@ -228,17 +298,17 @@ class _CreateGoalDialogState extends State<CreateGoalDialog> {
                       onPressed: _titleController.text.trim().isEmpty
                           ? null
                           : () {
-                              final goal = MoodGoal(
-                                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                                title: _titleController.text.trim(),
-                                description: _descriptionController.text.trim(),
-                                type: _selectedType,
-                                targetValue: _targetValue,
-                                targetDays: _targetDays,
-                                createdDate: DateTime.now(),
-                              );
-                              Navigator.of(context).pop(goal);
-                            },
+                        final goal = MoodGoal(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          title: _titleController.text.trim(),
+                          description: _descriptionController.text.trim(),
+                          type: _selectedType,
+                          targetValue: _targetValue,
+                          targetDays: _targetDays,
+                          createdDate: DateTime.now(),
+                        );
+                        Navigator.of(context).pop(goal);
+                      },
                       child: const Text('Create Goal'),
                     ),
                   ),
