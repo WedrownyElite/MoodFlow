@@ -2,7 +2,7 @@
 //  MoodFlow
 //  Copyright (c) 2025 OddologyInc. All rights reserved.
 //
-//  This software is licensed under the MoodFlow Custom License.
+//  This software is licensed under the MoodFlow License.
 //  
 //  - Free for personal, educational, and research use.
 //  - Modification and redistribution allowed with attribution 
