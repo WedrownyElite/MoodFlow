@@ -1,21 +1,52 @@
-MIT License
-
+MoodFlow License
 Copyright (c) 2025 OddologyInc
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+──────────────────────────────
+TL;DR
+──────────────────────────────
+✅ You may use MoodFlow for personal, educational, or research purposes.  
+✅ You may modify or build upon it.  
+✅ You may share or redistribute it (original or modified), but you MUST include this license and credit OddologyInc.  
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+❌ You may NOT sell MoodFlow or use it commercially.  
+❌ You may NOT publish or release it under a different name or brand.  
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+──────────────────────────────
+Full License Terms
+──────────────────────────────
+
+Permission is hereby granted to any individual or organization obtaining a copy 
+of this software (the "Software") to:
+
+- Use the Software for personal, educational, or research purposes.  
+- Modify, extend, or build upon the Software for personal, educational, or research purposes.  
+- Share or redistribute the Software (original or modified), provided that the 
+  license text and attribution to OddologyInc are included in all copies.  
+
+The following restrictions apply:
+
+1. No Commercial Use  
+   - The Software, in whole or in part, may not be sold, sublicensed, or otherwise used 
+     for any direct or indirect commercial purpose without prior written permission 
+     from OddologyInc.  
+
+2. No Independent Publication  
+   - The Software may not be published, released, or distributed as a standalone 
+     application under a different name or brand, even if modified.  
+   - Any shared or redistributed versions must clearly identify MoodFlow as the 
+     original project, credit OddologyInc, and include this license in full.  
+
+3. Attribution Requirement  
+   - Any use, modification, or redistribution of the Software must retain visible 
+     attribution to the original author ("OddologyInc") and must include this license.  
+
+4. Reservation of Rights  
+   - All rights not expressly granted under this license are reserved by OddologyInc.  
+
+Disclaimer:  
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
