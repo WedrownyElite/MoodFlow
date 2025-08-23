@@ -197,7 +197,15 @@ We welcome contributions! Please follow these steps:
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MoodFlow License**.
+
+**TL;DR:**
+- ✅ Free for personal, educational, and research use  
+- ✅ Modification and redistribution allowed with attribution and inclusion of this license  
+- ❌ Commercial use prohibited  
+- ❌ Rebranding or publishing as a different app prohibited  
+
+See the full [LICENSE](LICENSE) file for complete terms.
 
 ## 🐛 Bug Reports & Feature Requests
 
