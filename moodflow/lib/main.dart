@@ -31,6 +31,9 @@ import 'services/navigation_service.dart';
 import 'services/backup/cloud_backup_service.dart';
 import 'services/data/mood_data_service.dart';
 import 'services/utils/logger.dart';
+import 'screens/correlation_screen.dart';
+import 'screens/insights_screen.dart';
+import '/services/insights/smart_insights_service.dart';
 
 void main() async {
   // CRITICAL: Ensure Flutter bindings are initialized FIRST
@@ -53,6 +56,12 @@ Future<void> _initializeServices() async {
     // 2. Initialize notification manager
     NotificationManager.initialize();
     Logger.notificationService('✅ Notification manager initialized');
+
+    // 3. Initialize SmartInsightService
+    await SmartInsightsService.generateInsights();
+    Logger.smartInsightService('✅ Generated Insights');
+    await SmartInsightsService.scheduleAdaptiveReminders();
+    Logger.smartInsightService('✅ Scheduled Adaptive Reminders');
 
     // 3. Initialize MoodDataService
     await MoodDataService.initialize();
@@ -232,6 +241,8 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
           final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
           return GoalsScreen(highlightGoalId: args?['goalId']);
         },
+        '/correlation': (context) => const CorrelationScreen(),
+        '/insights': (context) => const InsightsScreen(),
         '/history': (context) => const MoodHistoryScreen(),
         '/trends': (context) => const MoodTrendsScreen(),
         '/ai-analysis': (context) => const AIAnalysisScreen(),

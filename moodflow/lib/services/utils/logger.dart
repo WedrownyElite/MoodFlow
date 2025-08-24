@@ -106,6 +106,8 @@ class Logger {
   static void trendsService(String message) => log(message, tag: 'TrendsService');
   static void analyticsService(String message) => log(message, tag: 'AnalyticsService');
   static void aiService(String message) => log(message, tag: 'AIService');
+  static void smartInsightService(String message) => log(message, tag: 'SmartInsightService');
+  static void correlationService(String message) => log(message, tag: 'CorrelationService');
 
   /// Format message with timestamp and tag
   static String _formatMessage(String message, String? tag, {String? level}) {

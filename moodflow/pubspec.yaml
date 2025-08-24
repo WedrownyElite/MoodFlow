@@ -28,6 +28,9 @@ dependencies:
   # Network and API dependencies
   http: ^1.1.0
   crypto: ^3.0.3
+  
+  # Correlation dependencies + http
+  geolocator: ^10.1.0
 
   # File handling and storage dependencies
   path_provider: ^2.1.3

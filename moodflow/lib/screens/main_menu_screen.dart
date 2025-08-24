@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mood_flow/screens/correlation_screen.dart';
+import 'package:mood_flow/screens/insights_screen.dart';
 import '../services/animation/blur_transition_service.dart';
 import '../services/animation/scale_transition_service.dart';
 import '../services/notifications/enhanced_notification_service.dart';
@@ -149,7 +151,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
 
                     const SizedBox(height: 24),
 
-                    // Quick access grid (2x2)
+                    // Quick access grid (2x3)
                     Row(
                       children: [
                         Expanded(child: _buildQuickButton('History', Icons.history, () => _navigateWithBlur(const MoodHistoryScreen()))),
@@ -165,6 +167,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
                         Expanded(child: _buildQuickButton('AI Analysis', Icons.psychology, () => _navigateWithBlur(const AIAnalysisScreen()))),
                       ],
                     ),
+                    Row(
+                      children: [
+                        Expanded(child: _buildQuickButton('Insights', Icons.psychology, () => _navigateWithBlur(const InsightsScreen()))),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildQuickButton('Factors', Icons.analytics, () => _navigateWithBlur(const CorrelationScreen())))
+                      ]
+                    )
 
                     const SizedBox(height: 24),
 
