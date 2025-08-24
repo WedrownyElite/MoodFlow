@@ -1,5 +1,5 @@
 ﻿import 'package:flutter/material.dart';
-import '../services/notifications/enhanced_notification_service.dart';
+import '../services/notifications/enhanced_notification_service.dart' as notifications;
 
 class NotificationSettingsWidget extends StatefulWidget {
   final bool isExpanded;
@@ -16,7 +16,7 @@ class NotificationSettingsWidget extends StatefulWidget {
 }
 
 class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget> {
-  NotificationSettings? _notificationSettings;
+  notifications.NotificationSettings? _notificationSettings;
   bool _isLoading = true;
 
   @override
@@ -26,21 +26,21 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
   }
 
   Future<void> _loadNotificationSettings() async {
-    final settings = await EnhancedNotificationService.loadSettings();
+    final settings = await notifications.EnhancedNotificationService.loadSettings();
     setState(() {
       _notificationSettings = settings;
       _isLoading = false;
     });
   }
 
-  Future<void> _updateNotificationSettings(NotificationSettings settings) async {
-    await EnhancedNotificationService.saveSettings(settings);
+  Future<void> _updateNotificationSettings(notifications.NotificationSettings settings) async {
+    await notifications.EnhancedNotificationService.saveSettings(settings);
     setState(() {
       _notificationSettings = settings;
     });
   }
 
-  Future<void> _selectEndOfDayTime(NotificationSettings settings) async {
+  Future<void> _selectEndOfDayTime(notifications.NotificationSettings settings) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: settings.endOfDayTime.hour, minute: settings.endOfDayTime.minute),
@@ -53,7 +53,7 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
     }
   }
 
-  Future<void> _selectMorningTime(NotificationSettings settings) async {
+  Future<void> _selectMorningTime(notifications.NotificationSettings settings) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: settings.morningTime.hour, minute: settings.morningTime.minute),
@@ -66,7 +66,7 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
     }
   }
 
-  Future<void> _selectMiddayTime(NotificationSettings settings) async {
+  Future<void> _selectMiddayTime(notifications.NotificationSettings settings) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: settings.middayTime.hour, minute: settings.middayTime.minute),
@@ -79,7 +79,7 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
     }
   }
 
-  Future<void> _selectEveningTime(NotificationSettings settings) async {
+  Future<void> _selectEveningTime(notifications.NotificationSettings settings) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: settings.eveningTime.hour, minute: settings.eveningTime.minute),
@@ -96,7 +96,7 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: EdgeInsets.zero,
         child: const Padding(
           padding: EdgeInsets.all(16),
           child: Center(child: CircularProgressIndicator()),
@@ -107,7 +107,7 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
     final settings = _notificationSettings!;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: EdgeInsets.zero,
       child: Column(
         children: [
           // Header with master toggle
@@ -120,7 +120,9 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
               ),
               child: Icon(
                 Icons.notifications_active,
-                color: Theme.of(context).primaryColor,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Theme.of(context).primaryColor,
                 size: 24,
               ),
             ),
@@ -373,7 +375,9 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: Theme.of(context).primaryColor,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Theme.of(context).primaryColor,
         ),
       ),
     );
