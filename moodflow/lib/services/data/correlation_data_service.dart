@@ -184,6 +184,7 @@ class CorrelationDataService {
   static const String _settingsKey = 'correlation_settings';
   static const String _weatherApiKeyKey = 'weather_api_key';
   static const String _locationPermissionKey = 'location_permission_granted';
+  static const String _temperatureUnitKey = 'temperature_unit';
 
   // OpenWeatherMap One Call 3.0 API
   static const String _weatherApiUrl = 'https://api.openweathermap.org/data/3.0/onecall';
@@ -205,6 +206,19 @@ class CorrelationDataService {
   static Future<bool> isWeatherApiConfigured() async {
     final apiKey = await getWeatherApiKey();
     return apiKey != null && apiKey.isNotEmpty && apiKey != 'YOUR_API_KEY';
+  }
+
+  /// Set temperature unit preference
+  static Future<void> setTemperatureUnit(String unit) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_temperatureUnitKey, unit);
+    Logger.correlationService('✅ Temperature unit set to $unit');
+  }
+
+  /// Get temperature unit preference
+  static Future<String> getTemperatureUnit() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_temperatureUnitKey) ?? 'celsius';
   }
 
   /// Request location permission and get current location
@@ -269,7 +283,7 @@ class CorrelationDataService {
         'lat': latitude.toString(),
         'lon': longitude.toString(),
         'appid': apiKey!,
-        'units': 'metric',
+        'units': await getTemperatureUnit() == 'celsius' ? 'metric' : 'imperial',
         'lang': 'en',
       };
 
@@ -326,8 +340,10 @@ class CorrelationDataService {
         }
 
         final weatherInfo = weatherArray.first as Map<String, dynamic>;
-        final temperature = (weatherData['temp'] as num?)?.toDouble() ??
+        final rawTemp = (weatherData['temp'] as num?)?.toDouble() ??
             (weatherData['temperature'] as num?)?.toDouble() ?? 15.0;
+        final unit = await getTemperatureUnit();
+        final temperature = rawTemp;
         final description = weatherInfo['description'] as String;
         final weatherMain = (weatherInfo['main'] as String).toLowerCase();
 

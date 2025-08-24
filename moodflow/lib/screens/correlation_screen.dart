@@ -25,6 +25,7 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
   bool _hasChanges = false;
   bool _isFetchingWeather = false;
   bool _autoWeatherEnabled = false;
+  String _temperatureUnit = 'celsius';
 
   @override
   void initState() {
@@ -51,11 +52,26 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
 
   Future<void> _checkAutoWeatherEnabled() async {
     final isConfigured = await CorrelationDataService.isWeatherApiConfigured();
+    final tempUnit = await CorrelationDataService.getTemperatureUnit();
     setState(() {
       _autoWeatherEnabled = isConfigured;
+      _temperatureUnit = tempUnit;
     });
   }
 
+  Future<String> _getTemperatureUnit() async {
+    return await CorrelationDataService.getTemperatureUnit();
+  }
+
+  String _formatTemperature(double temperature) {
+    return '${temperature.toStringAsFixed(1)}°${_temperatureUnit == 'celsius' ? 'C' : 'F'}';
+  }
+
+  Future<String> _getTemperatureUnitSymbol() async {
+    final unit = await CorrelationDataService.getTemperatureUnit();
+    return unit == 'celsius' ? 'C' : 'F';
+  }
+  
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
@@ -149,7 +165,7 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Weather updated: ${weather.description}, ${weather.temperature.toStringAsFixed(1)}°C'),
+              content: Text('Weather updated: ${weather.description}, ${_formatTemperature(weather.temperature)}'),
               backgroundColor: Colors.green,
             ),
           );
@@ -327,7 +343,7 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
     }
 
     if (_currentData?.temperature != null) {
-      parts.add('${_currentData!.temperature!.toStringAsFixed(1)}°C');
+      parts.add(_formatTemperature(_currentData!.temperature!));
     }
 
     if (_currentData?.weatherDescription != null) {
@@ -413,7 +429,7 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                           Icon(Icons.thermostat, color: Colors.blue.shade600, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            'Temperature: ${_currentData!.temperature!.toStringAsFixed(1)}°C',
+                            'Temperature: ${_formatTemperature(_currentData!.temperature!)}',
                             style: TextStyle(
                               color: Colors.blue.shade700,
                               fontWeight: FontWeight.w500,
@@ -423,6 +439,45 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                       ),
                     ),
                   ],
+                ],
+              ),
+            ),
+          ),
+
+          // Temperature unit selector
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Temperature Unit',
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Celsius (°C)'),
+                    value: 'celsius',
+                    groupValue: _temperatureUnit,
+                    onChanged: (value) async {
+                      if (value != null) {
+                        await CorrelationDataService.setTemperatureUnit(value);
+                        setState(() => _temperatureUnit = value);
+                      }
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Fahrenheit (°F)'),
+                    value: 'fahrenheit',
+                    groupValue: _temperatureUnit,
+                    onChanged: (value) async {
+                      if (value != null) {
+                        await CorrelationDataService.setTemperatureUnit(value);
+                        setState(() => _temperatureUnit = value);
+                      }
+                    },
+                  ),
                 ],
               ),
             ),

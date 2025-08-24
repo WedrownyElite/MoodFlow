@@ -14,6 +14,7 @@ class _WeatherSettingsWidgetState extends State<WeatherSettingsWidget> {
   bool _isConfigured = false;
   bool _isLoading = true;
   String? _apiKeyPreview;
+  String _temperatureUnit = 'celsius';
 
   @override
   void initState() {
@@ -26,17 +27,23 @@ class _WeatherSettingsWidgetState extends State<WeatherSettingsWidget> {
 
     final isConfigured = await CorrelationDataService.isWeatherApiConfigured();
     String? keyPreview;
+    String tempUnit = 'celsius';
 
     if (isConfigured) {
       final fullKey = await CorrelationDataService.getWeatherApiKey();
       if (fullKey != null && fullKey.length > 8) {
-        keyPreview = '${fullKey.substring(0, 4)}...${fullKey.substring(fullKey.length - 4)}';
+        keyPreview =
+        '${fullKey.substring(0, 4)}...${fullKey.substring(fullKey.length - 4)}';
       }
     }
+
+    // Fetch saved temperature unit
+    tempUnit = await CorrelationDataService.getTemperatureUnit();
 
     setState(() {
       _isConfigured = isConfigured;
       _apiKeyPreview = keyPreview;
+      _temperatureUnit = tempUnit;
       _isLoading = false;
     });
   }
@@ -423,6 +430,74 @@ class _WeatherSettingsWidgetState extends State<WeatherSettingsWidget> {
                         ),
                       ),
                     ],
+                  ),
+                  // Temperature unit selection
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Temperature Unit',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: const Text('Celsius (°C)'),
+                                value: 'celsius',
+                                groupValue: _temperatureUnit,
+                                onChanged: (value) async {
+                                  if (value != null) {
+                                    await CorrelationDataService.setTemperatureUnit(value);
+                                    setState(() => _temperatureUnit = value);
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Temperature unit changed to ${value == 'celsius' ? 'Celsius' : 'Fahrenheit'}'),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                contentPadding: EdgeInsets.zero,
+                                dense: true,
+                              ),
+                            ),
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: const Text('Fahrenheit (°F)'),
+                                value: 'fahrenheit',
+                                groupValue: _temperatureUnit,
+                                onChanged: (value) async {
+                                  if (value != null) {
+                                    await CorrelationDataService.setTemperatureUnit(value);
+                                    setState(() => _temperatureUnit = value);
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Temperature unit changed to ${value == 'celsius' ? 'Celsius' : 'Fahrenheit'}'),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                contentPadding: EdgeInsets.zero,
+                                dense: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
