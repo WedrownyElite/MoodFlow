@@ -7,6 +7,7 @@ import '../services/animation/blur_transition_service.dart';
 import '../services/animation/slider_animation_service.dart';
 import '../widgets/animated_mood_slider.dart';
 import '../services/notifications/enhanced_notification_service.dart';
+import 'correlation_screen.dart';
 import '../services/utils/logger.dart';
 
 class MoodLogScreen extends StatefulWidget {
@@ -399,6 +400,11 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
               } : null,
             ),
           ),
+
+          const SizedBox(height: 24),
+          if (index == currentSegment) _buildQuickFactorsSection(),
+          const SizedBox(height: 8),
+          
           const SizedBox(height: 32),
           const Text(
             'Notes',
@@ -441,6 +447,100 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     );
   }
 
+  Widget _buildQuickFactorsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(200),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Quick Factors',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildQuickFactorButton(
+                  icon: Icons.wb_sunny,
+                  label: 'Weather',
+                  onTap: () => _navigateToCorrelationTab(0), // Weather tab
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildQuickFactorButton(
+                  icon: Icons.bedtime,
+                  label: 'Sleep',
+                  onTap: () => _navigateToCorrelationTab(1), // Sleep tab
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildQuickFactorButton(
+                  icon: Icons.fitness_center,
+                  label: 'Exercise',
+                  onTap: () => _navigateToCorrelationTab(2), // Activity tab
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickFactorButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Column(
+          children: [
+            Icon(icon, size: 20, color: Colors.black87),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 10, color: Colors.black87),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+// Add this new method
+  Future<void> _navigateToCorrelationTab(int tabIndex) async {
+    if (_blurService.isTransitioning) return;
+
+    await _blurService.executeTransition(() async {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CorrelationScreen(
+            initialDate: DateTime(
+              DateTime.now().year,
+              DateTime.now().month,
+              DateTime.now().day,
+            ),
+            initialTabIndex: tabIndex,
+          ),
+        ),
+      );
+    });
+  }
+  
   @override
   Widget build(BuildContext context) {
     final gradient = _gradientAnimation?.value ??

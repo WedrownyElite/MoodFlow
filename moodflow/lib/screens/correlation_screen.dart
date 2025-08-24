@@ -6,8 +6,12 @@ import '../widgets/weather_api_setup_dialog.dart';
 
 class CorrelationScreen extends StatefulWidget {
   final DateTime? initialDate;
+  final int? initialTabIndex;
 
-  const CorrelationScreen({super.key, this.initialDate});
+  const CorrelationScreen({
+    super.key, this.initialDate,
+    this.initialTabIndex,
+  });
 
   @override
   State<CorrelationScreen> createState() => _CorrelationScreenState();
@@ -26,7 +30,15 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
   void initState() {
     super.initState();
     _selectedDate = widget.initialDate ?? DateTime.now();
-    _tabController = TabController(length: 4, vsync: this);
+
+    // Use the initial tab index if provided, otherwise default to 0
+    final initialTab = widget.initialTabIndex ?? 0;
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: initialTab.clamp(0, 3), // Ensure it's within valid range
+    );
+
     _loadData();
     _checkAutoWeatherEnabled();
   }
@@ -452,9 +464,15 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade600
+                      : Colors.grey.shade200,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,15 +481,22 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                     'Weather Details',
                     style: TextStyle(
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
+                      // Use theme-aware text color
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade300
+                          : Colors.grey.shade700,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _currentData!.weatherDescription!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      // Use theme-aware text color for better contrast
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black87,
                     ),
                   ),
                 ],
@@ -583,16 +608,27 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey.shade300),
+                                  border: Border.all(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey.shade600
+                                        : Colors.grey.shade300,
+                                  ),
                                   borderRadius: BorderRadius.circular(8),
+                                  // Add background color for dark mode
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey.shade800
+                                      : Colors.transparent,
                                 ),
                                 child: Text(
                                   _currentData?.bedtime != null
                                       ? DateFormat('h:mm a').format(_currentData!.bedtime!)
                                       : 'Select time',
                                   style: TextStyle(
+                                    // Use theme-aware text color
                                     color: _currentData?.bedtime != null
-                                        ? Colors.black87
+                                        ? (Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black87)
                                         : Colors.grey,
                                   ),
                                 ),
@@ -613,16 +649,27 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey.shade300),
+                                  border: Border.all(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey.shade600
+                                        : Colors.grey.shade300,
+                                  ),
                                   borderRadius: BorderRadius.circular(8),
+                                  // Add background color for dark mode
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey.shade800
+                                      : Colors.transparent,
                                 ),
                                 child: Text(
                                   _currentData?.wakeTime != null
                                       ? DateFormat('h:mm a').format(_currentData!.wakeTime!)
                                       : 'Select time',
                                   style: TextStyle(
+                                    // Use theme-aware text color
                                     color: _currentData?.wakeTime != null
-                                        ? Colors.black87
+                                        ? (Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black87)
                                         : Colors.grey,
                                   ),
                                 ),
@@ -991,9 +1038,14 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
 
     var duration = _currentData!.wakeTime!.difference(_currentData!.bedtime!);
 
-    // Handle overnight sleep (bedtime after midnight)
+    // If duration is negative or more than 24 hours, it's likely an error
     if (duration.isNegative) {
       duration = duration + const Duration(days: 1);
+    }
+
+    // Cap at 24 hours maximum to prevent unrealistic values
+    if (duration.inHours > 24) {
+      duration = const Duration(hours: 24);
     }
 
     return duration;
@@ -1006,32 +1058,68 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
   }
 
   Future<void> _selectBedtime() async {
+    // Show date picker first for bedtime date
+    final bedtimeDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: _selectedDate.subtract(const Duration(days: 1)),
+      lastDate: _selectedDate.add(const Duration(days: 1)),
+      helpText: 'Select bedtime date',
+    );
+
+    if (bedtimeDate == null) return;
+
+    // Then show time picker
     final time = await showTimePicker(
       context: context,
       initialTime: _currentData?.bedtime != null
           ? TimeOfDay.fromDateTime(_currentData!.bedtime!)
           : const TimeOfDay(hour: 22, minute: 0),
+      helpText: 'Select bedtime',
     );
 
     if (time != null) {
-      final bedtime = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day)
-          .add(Duration(hours: time.hour, minutes: time.minute));
+      final bedtime = DateTime(
+        bedtimeDate.year,
+        bedtimeDate.month,
+        bedtimeDate.day,
+        time.hour,
+        time.minute,
+      );
 
       _updateData(_currentData!.copyWith(bedtime: bedtime));
     }
   }
 
   Future<void> _selectWakeTime() async {
+    // Show date picker first for wake time date
+    final wakeDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: _selectedDate,
+      lastDate: _selectedDate.add(const Duration(days: 1)),
+      helpText: 'Select wake up date',
+    );
+
+    if (wakeDate == null) return;
+
+    // Then show time picker
     final time = await showTimePicker(
       context: context,
       initialTime: _currentData?.wakeTime != null
           ? TimeOfDay.fromDateTime(_currentData!.wakeTime!)
           : const TimeOfDay(hour: 7, minute: 0),
+      helpText: 'Select wake up time',
     );
 
     if (time != null) {
-      final wakeTime = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day + 1)
-          .add(Duration(hours: time.hour, minutes: time.minute));
+      final wakeTime = DateTime(
+        wakeDate.year,
+        wakeDate.month,
+        wakeDate.day,
+        time.hour,
+        time.minute,
+      );
 
       _updateData(_currentData!.copyWith(wakeTime: wakeTime));
     }

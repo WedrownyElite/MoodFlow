@@ -122,6 +122,8 @@ class NotificationSettings {
   final bool goalProgress;
   final bool goalEncouragement;
   final bool streakCelebrations;
+  final bool correlationNotifications;
+  final bool smartInsightNotifications;
 
   NotificationSettings({
     required this.enabled,
@@ -138,6 +140,8 @@ class NotificationSettings {
     required this.goalProgress,
     required this.goalEncouragement,
     required this.streakCelebrations,
+    required this.correlationNotifications,
+    required this.smartInsightNotifications,
   });
 
   static NotificationSettings defaultSettings() {
@@ -156,6 +160,8 @@ class NotificationSettings {
       goalProgress: true,
       goalEncouragement: true,
       streakCelebrations: true,
+      correlationNotifications: true,
+      smartInsightNotifications: true,
     );
   }
 
@@ -174,15 +180,15 @@ class NotificationSettings {
     bool? goalProgress,
     bool? goalEncouragement,
     bool? streakCelebrations,
+    bool? correlationNotifications,
+    bool? smartInsightNotifications,
   }) {
     return NotificationSettings(
       enabled: enabled ?? this.enabled,
       accessReminders: accessReminders ?? this.accessReminders,
-      morningAccessReminder: morningAccessReminder ??
-          this.morningAccessReminder,
+      morningAccessReminder: morningAccessReminder ?? this.morningAccessReminder,
       middayAccessReminder: middayAccessReminder ?? this.middayAccessReminder,
-      eveningAccessReminder: eveningAccessReminder ??
-          this.eveningAccessReminder,
+      eveningAccessReminder: eveningAccessReminder ?? this.eveningAccessReminder,
       endOfDayReminder: endOfDayReminder ?? this.endOfDayReminder,
       endOfDayTime: endOfDayTime ?? this.endOfDayTime,
       morningTime: morningTime ?? this.morningTime,
@@ -192,6 +198,8 @@ class NotificationSettings {
       goalProgress: goalProgress ?? this.goalProgress,
       goalEncouragement: goalEncouragement ?? this.goalEncouragement,
       streakCelebrations: streakCelebrations ?? this.streakCelebrations,
+      correlationNotifications: correlationNotifications ?? this.correlationNotifications,
+      smartInsightNotifications: smartInsightNotifications ?? this.smartInsightNotifications,
     );
   }
 
@@ -211,6 +219,8 @@ class NotificationSettings {
       'goalProgress': goalProgress,
       'goalEncouragement': goalEncouragement,
       'streakCelebrations': streakCelebrations,
+      'correlationNotifications': correlationNotifications,
+      'smartInsightNotifications': smartInsightNotifications,
     };
   }
 
@@ -235,6 +245,8 @@ class NotificationSettings {
       goalProgress: json['goalProgress'] ?? true,
       goalEncouragement: json['goalEncouragement'] ?? true,
       streakCelebrations: json['streakCelebrations'] ?? true,
+      correlationNotifications: json['correlationNotifications'] ?? true,
+      smartInsightNotifications: json['smartInsightNotifications'] ?? true,
     );
   }
 }

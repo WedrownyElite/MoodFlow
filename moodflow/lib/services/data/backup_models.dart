@@ -1,3 +1,4 @@
+import 'correlation_data_service.dart';
 
 // Data Models for Export/Import
 class MoodDataExport {
@@ -5,6 +6,7 @@ class MoodDataExport {
   final DateTime exportDate;
   final List<MoodEntryExport> moodEntries;
   final List<MoodGoalExport> goals;
+  final List<CorrelationEntryExport> correlationEntries; // Add this
   final NotificationSettingsExport notificationSettings;
   final Map<String, dynamic> userPreferences;
 
@@ -13,6 +15,7 @@ class MoodDataExport {
     required this.exportDate,
     required this.moodEntries,
     required this.goals,
+    required this.correlationEntries, // Add this
     required this.notificationSettings,
     required this.userPreferences,
   });
@@ -22,6 +25,7 @@ class MoodDataExport {
     'exportDate': exportDate.toIso8601String(),
     'moodEntries': moodEntries.map((e) => e.toJson()).toList(),
     'goals': goals.map((g) => g.toJson()).toList(),
+    'correlationEntries': correlationEntries.map((c) => c.toJson()).toList(), // Add this
     'notificationSettings': notificationSettings.toJson(),
     'userPreferences': userPreferences,
   };
@@ -34,6 +38,9 @@ class MoodDataExport {
         .toList(),
     goals: (json['goals'] as List)
         .map((g) => MoodGoalExport.fromJson(g))
+        .toList(),
+    correlationEntries: (json['correlationEntries'] as List? ?? []) // Add this with null safety
+        .map((c) => CorrelationEntryExport.fromJson(c))
         .toList(),
     notificationSettings: NotificationSettingsExport.fromJson(
         json['notificationSettings'] ?? {}),
@@ -165,4 +172,96 @@ class BackupResult {
   final String? error;
 
   BackupResult(this.success, {this.message, this.error});
+}
+
+class CorrelationEntryExport {
+  final DateTime date;
+  final String? weather;
+  final double? temperature;
+  final String? weatherDescription;
+  final double? sleepQuality;
+  final int? sleepDurationMinutes;
+  final DateTime? bedtime;
+  final DateTime? wakeTime;
+  final String? exerciseLevel;
+  final String? socialActivity;
+  final int? workStress;
+  final List<String> customTags;
+  final String? notes;
+  final bool autoWeather;
+  final Map<String, dynamic>? weatherData;
+
+  CorrelationEntryExport({
+    required this.date,
+    this.weather,
+    this.temperature,
+    this.weatherDescription,
+    this.sleepQuality,
+    this.sleepDurationMinutes,
+    this.bedtime,
+    this.wakeTime,
+    this.exerciseLevel,
+    this.socialActivity,
+    this.workStress,
+    this.customTags = const [],
+    this.notes,
+    this.autoWeather = false,
+    this.weatherData,
+  });
+
+  factory CorrelationEntryExport.fromCorrelationData(CorrelationData data) {
+    return CorrelationEntryExport(
+      date: data.date,
+      weather: data.weather?.name,
+      temperature: data.temperature,
+      weatherDescription: data.weatherDescription,
+      sleepQuality: data.sleepQuality,
+      sleepDurationMinutes: data.sleepDuration?.inMinutes,
+      bedtime: data.bedtime,
+      wakeTime: data.wakeTime,
+      exerciseLevel: data.exerciseLevel?.name,
+      socialActivity: data.socialActivity?.name,
+      workStress: data.workStress,
+      customTags: data.customTags,
+      notes: data.notes,
+      autoWeather: data.autoWeather,
+      weatherData: data.weatherData,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'date': date.toIso8601String(),
+    'weather': weather,
+    'temperature': temperature,
+    'weatherDescription': weatherDescription,
+    'sleepQuality': sleepQuality,
+    'sleepDurationMinutes': sleepDurationMinutes,
+    'bedtime': bedtime?.toIso8601String(),
+    'wakeTime': wakeTime?.toIso8601String(),
+    'exerciseLevel': exerciseLevel,
+    'socialActivity': socialActivity,
+    'workStress': workStress,
+    'customTags': customTags,
+    'notes': notes,
+    'autoWeather': autoWeather,
+    'weatherData': weatherData,
+  };
+
+  factory CorrelationEntryExport.fromJson(Map<String, dynamic> json) => CorrelationEntryExport(
+    date: DateTime.parse(json['date']),
+    weather: json['weather'],
+    temperature: json['temperature']?.toDouble(),
+    weatherDescription: json['weatherDescription'],
+    sleepQuality: json['sleepQuality']?.toDouble(),
+    sleepDurationMinutes: json['sleepDurationMinutes'],
+    bedtime: json['bedtime'] != null ? DateTime.parse(json['bedtime']) : null,
+    wakeTime: json['wakeTime'] != null ? DateTime.parse(json['wakeTime']) : null,
+    exerciseLevel: json['exerciseLevel'],
+    socialActivity: json['socialActivity'],
+    workStress: json['workStress'],
+    customTags: List<String>.from(json['customTags'] ?? []),
+    notes: json['notes'],
+    autoWeather: json['autoWeather'] ?? false,
+    weatherData: json['weatherData'],
+  );
 }

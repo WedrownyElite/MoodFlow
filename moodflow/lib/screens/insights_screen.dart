@@ -200,9 +200,34 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
   }
 
   Widget _buildInsightCard(SmartInsight insight) {
+    Color color;
+    IconData icon;
+
+    switch (insight.type) {
+      case InsightType.achievement:
+        color = Colors.green;
+        icon = Icons.emoji_events;
+        break;
+      case InsightType.celebration:
+        color = Colors.purple;
+        icon = Icons.celebration;
+        break;
+      case InsightType.concern:
+        color = Colors.red;
+        icon = Icons.warning;
+        break;
+      case InsightType.pattern:
+        color = Colors.blue;
+        icon = Icons.insights;
+        break;
+      case InsightType.suggestion:
+        color = Colors.orange;
+        icon = Icons.lightbulb;
+        break;
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
       child: InkWell(
         onTap: () => _handleInsightTap(insight),
         borderRadius: BorderRadius.circular(12),
@@ -267,13 +292,20 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         minimumSize: Size.zero,
+                        // More explicit color handling
+                        foregroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.lightBlue.shade300  // Light blue for dark mode
+                            : Theme.of(context).primaryColor,  // Primary color for light mode
                       ),
                       child: Text(
                         insight.actionText!,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Theme.of(context).primaryColor,
                           fontWeight: FontWeight.w600,
+                          // xplicit text color override
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.lightBlue.shade300  // Light blue for dark mode
+                              : Theme.of(context).primaryColor,  // Primary color for light mode
                         ),
                       ),
                     ),
@@ -331,6 +363,10 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
+                  // Add border for dark mode visibility
+                  side: Theme.of(context).brightness == Brightness.dark
+                      ? BorderSide(color: Colors.white.withValues(alpha: 0.3), width: 1)
+                      : null,
                 ),
               ),
             ],

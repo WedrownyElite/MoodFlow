@@ -3,6 +3,7 @@ import '../data/backup_models.dart';
 import '../data/mood_data_service.dart';
 import '../data/mood_analytics_service.dart';
 import '../notifications/enhanced_notification_service.dart';
+import '../data/correlation_data_service.dart';
 import '../utils/logger.dart';
 
 class BackupService {
@@ -13,6 +14,7 @@ class BackupService {
   static Future<MoodDataExport> exportAllData() async {
     final moodEntries = <MoodEntryExport>[];
     final goals = <MoodGoalExport>[];
+    final correlationEntries = <CorrelationEntryExport>[];
 
     // Collect all mood entries from the last 3 years
     final endDate = DateTime.now();
@@ -20,6 +22,7 @@ class BackupService {
 
     DateTime currentDate = startDate;
     while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+      // Existing mood collection code...
       for (int segment = 0; segment < 3; segment++) {
         final moodData = await MoodDataService.loadMood(currentDate, segment);
         if (moodData != null && moodData['rating'] != null) {
@@ -37,6 +40,13 @@ class BackupService {
           ));
         }
       }
+
+      // Collect correlation data
+      final correlationData = await CorrelationDataService.loadCorrelationData(currentDate);
+      if (correlationData != null) {
+        correlationEntries.add(CorrelationEntryExport.fromCorrelationData(correlationData));
+      }
+
       currentDate = currentDate.add(const Duration(days: 1));
     }
 
@@ -77,6 +87,7 @@ class BackupService {
       exportDate: DateTime.now(),
       moodEntries: moodEntries,
       goals: goals,
+      correlationEntries: correlationEntries,
       notificationSettings: notificationExport,
       userPreferences: userPreferences,
     );
@@ -141,6 +152,38 @@ class BackupService {
 
       if (importedGoals > 0) {
         await MoodAnalyticsService.saveGoals(existingGoals);
+      }
+
+      // Import correlation data
+      for (final correlationExport in exportData.correlationEntries) {
+        // Convert back to CorrelationData and save
+        final correlationData = CorrelationData(
+          date: correlationExport.date,
+          weather: correlationExport.weather != null
+              ? WeatherCondition.values.firstWhere((e) => e.name == correlationExport.weather!)
+              : null,
+          temperature: correlationExport.temperature,
+          weatherDescription: correlationExport.weatherDescription,
+          sleepQuality: correlationExport.sleepQuality,
+          sleepDuration: correlationExport.sleepDurationMinutes != null
+              ? Duration(minutes: correlationExport.sleepDurationMinutes!)
+              : null,
+          bedtime: correlationExport.bedtime,
+          wakeTime: correlationExport.wakeTime,
+          exerciseLevel: correlationExport.exerciseLevel != null
+              ? ActivityLevel.values.firstWhere((e) => e.name == correlationExport.exerciseLevel!)
+              : null,
+          socialActivity: correlationExport.socialActivity != null
+              ? SocialActivity.values.firstWhere((e) => e.name == correlationExport.socialActivity!)
+              : null,
+          workStress: correlationExport.workStress,
+          customTags: correlationExport.customTags,
+          notes: correlationExport.notes,
+          autoWeather: correlationExport.autoWeather,
+          weatherData: correlationExport.weatherData,
+        );
+
+        await CorrelationDataService.saveCorrelationData(correlationExport.date, correlationData);
       }
 
       // Import notification settings (optional)

@@ -269,24 +269,24 @@ class CorrelationDataService {
         'lat': latitude.toString(),
         'lon': longitude.toString(),
         'appid': apiKey!,
-        'units': 'metric', // Use metric units (Celsius)
-        'lang': 'en', // English descriptions
+        'units': 'metric',
+        'lang': 'en',
       };
 
-      if (daysDifference > 5) {
-        // For dates more than 5 days ago, we can't get historical data
-        // from the free tier, so return null
-        Logger.correlationService('⚠️ Historical weather data not available for dates > 5 days ago');
-        return null;
-      } else if (daysDifference > 0) {
-        // For recent historical data (last 5 days), use the current endpoint
-        // and try to get the data from daily history if available
-        params['exclude'] = 'minutely,alerts';
-        url = _weatherApiUrl;
+      if (daysDifference > 0 && daysDifference <= 5) {
+        // Use timemachine endpoint for historical data (last 5 days)
+        final timestamp = (targetDate.millisecondsSinceEpoch / 1000).round();
+        url = 'https://api.openweathermap.org/data/3.0/onecall/timemachine';
+        params['dt'] = timestamp.toString();
+      } else if (daysDifference > 5) {
+        // For dates older than 5 days, try the day_summary endpoint
+        final dateString = '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}';
+        url = 'https://api.openweathermap.org/data/3.0/onecall/day_summary';
+        params['date'] = dateString;
       } else {
-        // For current or future dates, use current weather
+        // For current/future dates, use current weather
         params['exclude'] = 'minutely,alerts';
-        url = _weatherApiUrl;
+        url = 'https://api.openweathermap.org/data/3.0/onecall';
       }
 
       final uri = Uri.parse(url).replace(queryParameters: params);
@@ -297,28 +297,43 @@ class CorrelationDataService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-        // Extract current weather data
-        final currentWeather = data['current'] as Map<String, dynamic>?;
-        if (currentWeather == null) {
-          Logger.correlationService('❌ No current weather data in response');
+        // Handle different API response formats
+        Map<String, dynamic>? weatherData;
+
+        if (url.contains('timemachine')) {
+          // Timemachine API response format
+          final hourlyData = data['data'] as List<dynamic>?;
+          if (hourlyData != null && hourlyData.isNotEmpty) {
+            weatherData = hourlyData.first as Map<String, dynamic>;
+          }
+        } else if (url.contains('day_summary')) {
+          // Day summary API response format
+          weatherData = data;
+        } else {
+          // Current weather API response format
+          weatherData = data['current'] as Map<String, dynamic>?;
+        }
+
+        if (weatherData == null) {
+          Logger.correlationService('❌ No weather data in response');
           return null;
         }
 
-        final weatherArray = currentWeather['weather'] as List<dynamic>?;
+        final weatherArray = weatherData['weather'] as List<dynamic>?;
         if (weatherArray == null || weatherArray.isEmpty) {
           Logger.correlationService('❌ No weather conditions in response');
           return null;
         }
 
         final weatherInfo = weatherArray.first as Map<String, dynamic>;
-        final temperature = (currentWeather['temp'] as num).toDouble();
+        final temperature = (weatherData['temp'] as num?)?.toDouble() ??
+            (weatherData['temperature'] as num?)?.toDouble() ?? 15.0;
         final description = weatherInfo['description'] as String;
         final weatherMain = (weatherInfo['main'] as String).toLowerCase();
 
-        // Map OpenWeather conditions to our enum
         final condition = _mapWeatherCondition(weatherMain, weatherInfo['id'] as int);
 
-        Logger.correlationService('✅ Weather fetched: $description, ${temperature.toStringAsFixed(1)}°C');
+        Logger.correlationService('✅ Weather fetched for ${forDate?.toString() ?? 'current'}: $description, ${temperature.toStringAsFixed(1)}°C');
 
         return WeatherResult(
           condition: condition,
@@ -329,9 +344,6 @@ class CorrelationDataService {
 
       } else if (response.statusCode == 401) {
         Logger.correlationService('❌ Weather API authentication failed (401) - check API key');
-        return null;
-      } else if (response.statusCode == 429) {
-        Logger.correlationService('❌ Weather API rate limit exceeded (429)');
         return null;
       } else {
         Logger.correlationService('❌ Weather API error (${response.statusCode}): ${response.body}');
