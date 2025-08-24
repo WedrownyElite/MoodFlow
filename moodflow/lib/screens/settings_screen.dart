@@ -7,6 +7,8 @@ import '../services/notifications/enhanced_notification_service.dart' as notific
 import '../services/notifications/real_notification_service.dart' as real_notifications;
 import '../services/backup/cloud_backup_service.dart';
 import '../screens/backup_export_screen.dart';
+import '../services/data/correlation_data_service.dart';
+import '../widgets/weather_api_setup_dialog.dart';
 import 'debug_data_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -329,6 +331,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         );
                       },
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+
+          _buildSectionHeader('Weather Integration'),
+          FutureBuilder<bool>(
+            future: CorrelationDataService.isWeatherApiConfigured(),
+            builder: (context, snapshot) {
+              final isConfigured = snapshot.data ?? false;
+
+              return Column(
+                children: [
+                  ListTile(
+                    leading: Icon(
+                      isConfigured ? Icons.wb_sunny : Icons.wb_sunny_outlined,
+                      color: isConfigured ? Colors.orange : Colors.grey,
+                    ),
+                    title: Text(
+                      isConfigured
+                          ? 'Weather API configured'
+                          : 'Weather API not configured',
+                    ),
+                    subtitle: Text(
+                      isConfigured
+                          ? 'Automatic weather tracking enabled'
+                          : 'Set up OpenWeatherMap API for mood correlations',
+                    ),
+                    trailing: isConfigured
+                        ? IconButton(
+                      icon: const Icon(Icons.science),
+                      onPressed: () => _testWeatherApi(),
+                    )
+                        : null,
+                    onTap: () => _configureWeatherApi(),
+                  ),
+
+                  if (isConfigured) ...[
+                    ListTile(
+                      title: const Text('View weather correlations'),
+                      subtitle: const Text('See how weather affects your mood'),
+                      leading: const Icon(Icons.analytics),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.pushNamed(context, '/correlation');
+                      },
+                    ),
+
+                    ListTile(
+                      title: const Text('Remove weather API'),
+                      subtitle: const Text('Disable automatic weather tracking'),
+                      leading: const Icon(Icons.delete, color: Colors.red),
+                      onTap: () => _removeWeatherApi(),
                     ),
                   ],
                 ],
@@ -731,6 +788,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (picked != null) {
       final newTime = notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
       _updateNotificationSettings(settings.copyWith(eveningTime: newTime));
+    }
+  }
+
+  Future<void> _configureWeatherApi() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => const WeatherApiSetupDialog(),
+    );
+
+    if (result == true) {
+      setState(() {}); // Refresh the UI
+      _showSnackBar('Weather API configured successfully!', Colors.green);
+    }
+  }
+
+  Future<void> _testWeatherApi() async {
+    _showSnackBar('Testing weather API...', Colors.blue);
+
+    try {
+      // Test with New York coordinates
+      final weather = await CorrelationDataService.fetchWeatherForLocation(
+        latitude: 40.7128,
+        longitude: -74.0060,
+      );
+
+      if (weather != null) {
+        _showSnackBar(
+          'API test successful! Weather: ${weather.description}, ${weather.temperature.toStringAsFixed(1)}°C',
+          Colors.green,
+        );
+      } else {
+        _showSnackBar('API test failed. Check your API key.', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('API test error: ${e.toString()}', Colors.red);
+    }
+  }
+
+  Future<void> _removeWeatherApi() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Weather API'),
+        content: const Text(
+          'Are you sure you want to remove your weather API configuration? '
+              'This will disable automatic weather fetching.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await CorrelationDataService.setWeatherApiKey('');
+      setState(() {}); // Refresh the UI
+      _showSnackBar('Weather API configuration removed', Colors.orange);
     }
   }
 

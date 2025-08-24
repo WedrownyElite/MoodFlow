@@ -151,7 +151,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
 
                     const SizedBox(height: 24),
 
-                    // Quick access grid (2x3)
+                    // Quick access grid (3x2)
                     Row(
                       children: [
                         Expanded(child: _buildQuickButton('History', Icons.history, () => _navigateWithBlur(const MoodHistoryScreen()))),
@@ -171,12 +171,12 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
                       children: [
                         Expanded(child: _buildQuickButton('Insights', Icons.psychology, () => _navigateWithBlur(const InsightsScreen()))),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildQuickButton('Factors', Icons.analytics, () => _navigateWithBlur(const CorrelationScreen())))
-                      ]
-                    )
+                        Expanded(child: _buildQuickButton('Factors', Icons.analytics, () => _navigateWithBlur(const CorrelationScreen()))),
+                      ],
+                    ),
 
                     const SizedBox(height: 24),
-
+                    
                     // Secondary actions row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,

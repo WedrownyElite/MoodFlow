@@ -54,5 +54,9 @@
 	<true/>
     <key>NSDocumentsFolderUsageDescription</key>
     <string>This app needs access to documents for backup functionality</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app needs location access to fetch weather data for mood correlations.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>This app needs location access to fetch weather data for mood correlations.</string>
 </dict>
 </plist>

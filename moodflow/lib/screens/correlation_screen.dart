@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/data/correlation_data_service.dart';
+import '../widgets/weather_api_setup_dialog.dart';
 
 class CorrelationScreen extends StatefulWidget {
   final DateTime? initialDate;
@@ -18,6 +19,8 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
   CorrelationData? _currentData;
   bool _isLoading = false;
   bool _hasChanges = false;
+  bool _isFetchingWeather = false;
+  bool _autoWeatherEnabled = false;
 
   @override
   void initState() {
@@ -25,12 +28,20 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
     _selectedDate = widget.initialDate ?? DateTime.now();
     _tabController = TabController(length: 4, vsync: this);
     _loadData();
+    _checkAutoWeatherEnabled();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkAutoWeatherEnabled() async {
+    final isConfigured = await CorrelationDataService.isWeatherApiConfigured();
+    setState(() {
+      _autoWeatherEnabled = isConfigured;
+    });
   }
 
   Future<void> _loadData() async {
@@ -87,6 +98,74 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
     }
   }
 
+  Future<void> _setupWeatherApi() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => const WeatherApiSetupDialog(),
+    );
+
+    if (result == true) {
+      await _checkAutoWeatherEnabled();
+      if (_autoWeatherEnabled && _currentData?.weather == null) {
+        _fetchWeatherAutomatically();
+      }
+    }
+  }
+
+  Future<void> _fetchWeatherAutomatically() async {
+    if (!_autoWeatherEnabled) {
+      await _setupWeatherApi();
+      return;
+    }
+
+    setState(() => _isFetchingWeather = true);
+
+    try {
+      final weather = await CorrelationDataService.autoFetchWeather(forDate: _selectedDate);
+
+      if (weather != null) {
+        final updatedData = _currentData!.copyWith(
+          weather: weather.condition,
+          temperature: weather.temperature,
+          weatherDescription: weather.description,
+          autoWeather: true,
+          weatherData: weather.rawData,
+        );
+
+        _updateData(updatedData);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Weather updated: ${weather.description}, ${weather.temperature.toStringAsFixed(1)}°C'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not fetch weather data. Check your location settings.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Weather fetch failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
+    setState(() => _isFetchingWeather = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,44 +199,82 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
       ),
       body: Column(
         children: [
-          // Date header
+          // Date header with weather info
           Container(
             padding: const EdgeInsets.all(16),
             color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: Text(
-                    DateFormat('EEEE, MMMM d, y').format(_selectedDate),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                if (_isLoading)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else if (_hasChanges)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.orange.shade300),
-                    ),
-                    child: Text(
-                      'Unsaved changes',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.orange.shade800,
-                        fontWeight: FontWeight.w500,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        DateFormat('EEEE, MMMM d, y').format(_selectedDate),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
+                    if (_isLoading)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else if (_hasChanges)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange.shade300),
+                        ),
+                        child: Text(
+                          'Unsaved changes',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange.shade800,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                // Quick weather display
+                if (_currentData?.weather != null || _currentData?.temperature != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.wb_sunny, size: 16, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        _buildWeatherSummary(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      if (_currentData?.autoWeather == true)
+                        Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Auto',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
+                ],
               ],
             ),
           ),
@@ -190,6 +307,24 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
     );
   }
 
+  String _buildWeatherSummary() {
+    final parts = <String>[];
+
+    if (_currentData?.weather != null) {
+      parts.add(_getWeatherLabel(_currentData!.weather!));
+    }
+
+    if (_currentData?.temperature != null) {
+      parts.add('${_currentData!.temperature!.toStringAsFixed(1)}°C');
+    }
+
+    if (_currentData?.weatherDescription != null) {
+      parts.add(_currentData!.weatherDescription!);
+    }
+
+    return parts.join(' • ');
+  }
+
   Widget _buildWeatherTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -207,7 +342,88 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
           ),
           const SizedBox(height: 16),
 
+          // Auto-fetch weather card
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.wb_sunny, size: 20, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Auto-fetch weather',
+                          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                        ),
+                      ),
+                      if (_isFetchingWeather)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        ElevatedButton.icon(
+                          onPressed: _autoWeatherEnabled ? _fetchWeatherAutomatically : _setupWeatherApi,
+                          icon: Icon(_autoWeatherEnabled ? Icons.refresh : Icons.settings),
+                          label: Text(_autoWeatherEnabled ? 'Fetch' : 'Setup'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).primaryColor,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _autoWeatherEnabled
+                        ? 'Automatically get weather data for this date using your location'
+                        : 'Set up OpenWeatherMap API to automatically fetch weather data',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  if (_currentData?.temperature != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.thermostat, color: Colors.blue.shade600, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Temperature: ${_currentData!.temperature!.toStringAsFixed(1)}°C',
+                            style: TextStyle(
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           // Weather condition selector
+          const Text(
+            'Weather Condition',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -230,42 +446,38 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
             }).toList(),
           ),
 
-          const SizedBox(height: 24),
-
-          // Auto-fetch weather option
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+          if (_currentData?.weatherDescription != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on, size: 20),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Auto-fetch weather',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      const Spacer(),
-                      Switch(
-                        value: false, // Would implement location services
-                        onChanged: null, // Disabled for now
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
                   Text(
-                    'Automatically detect weather conditions using your location (requires location permission)',
+                    'Weather Details',
                     style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _currentData!.weatherDescription!,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
