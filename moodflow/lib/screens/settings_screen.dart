@@ -9,6 +9,7 @@ import '../services/backup/cloud_backup_service.dart';
 import '../screens/backup_export_screen.dart';
 import '../services/data/correlation_data_service.dart';
 import '../widgets/weather_api_setup_dialog.dart';
+import '../services/onboarding/onboarding_service.dart';
 import 'debug_data_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -406,20 +407,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (kDebugMode) ...[
             const Divider(height: 40),
             _buildSectionHeader('Debug & Testing'),
+            
+            ListTile(
+              title: const Text('Reset Onboarding'),
+              subtitle: const Text('Reset onboarding flow for testing'),
+              leading: const Icon(Icons.restart_alt, color: Colors.purple),
+              onTap: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Reset Onboarding'),
+                    content: const Text(
+                      'This will reset the onboarding flow so it shows again on next app launch. '
+                          'This is for testing purposes only.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        child: const Text('Reset'),
+                      ),
+                    ],
+                  ),
+                );
 
-            if (kDebugMode)
-              ListTile(
-                title: const Text('Debug Data'),
-                subtitle: const Text('Test data persistence and troubleshoot issues'),
-                leading: const Icon(Icons.bug_report, color: Colors.purple),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const DebugDataScreen()),
-                  );
-                },
-              ),
+                if (confirmed == true) {
+                  await OnboardingService.resetOnboarding();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Onboarding reset! Restart the app to see it again.'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+
+            ListTile(
+              title: const Text('Show Onboarding Now'),
+              subtitle: const Text('Trigger onboarding flow immediately'),
+              leading: const Icon(Icons.play_arrow, color: Colors.blue),
+              onTap: () async {
+                await OnboardingService.showOnboardingFlow(context);
+              },
+            ),
+              
+            ListTile(
+              title: const Text('Debug Data'),
+              subtitle: const Text('Test data persistence and troubleshoot issues'),
+              leading: const Icon(Icons.bug_report, color: Colors.purple),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DebugDataScreen()),
+                );
+              },
+            ),
 
             // Keep existing debug notification tests...
             _buildSubsectionHeader('Notification Tests'),

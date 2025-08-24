@@ -12,7 +12,6 @@
 //  See the LICENSE file in the root of this repository for full terms.
 // ─────────────────────────────────────────────────────────────
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,6 +33,8 @@ import 'services/utils/logger.dart';
 import 'screens/correlation_screen.dart';
 import 'screens/insights_screen.dart';
 import '/services/insights/smart_insights_service.dart';
+import 'services/onboarding/onboarding_service.dart';
+import 'services/backup/startup_restore_service.dart';
 
 void main() async {
   // CRITICAL: Ensure Flutter bindings are initialized FIRST
@@ -116,6 +117,7 @@ class MoodTrackerApp extends StatefulWidget {
 class _MoodTrackerAppState extends State<MoodTrackerApp> {
   ThemeMode _themeMode = ThemeMode.light;
   bool _useCustomGradient = true;
+  bool _showOnboarding = false;
 
   static const _prefThemeModeKey = 'theme_mode';
   static const _prefCustomGradientKey = 'use_custom_gradient';
@@ -124,11 +126,57 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
   void initState() {
     super.initState();
 
-    // Load preferences after a short delay to ensure everything is ready
+    // Load preferences and check for onboarding after a short delay
     Future.delayed(const Duration(milliseconds: 100), () {
       _loadPreferences();
+      _checkOnboarding();
       _scheduleInitialBackupCheck();
     });
+  }
+
+  /// Check if onboarding should be shown
+  Future<void> _checkOnboarding() async {
+    final shouldShow = await OnboardingService.shouldShowOnboarding();
+    if (mounted) {
+      setState(() {
+        _showOnboarding = shouldShow;
+      });
+
+      if (shouldShow) {
+        // Show onboarding after a short delay to let UI settle
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            _showOnboardingFlow();
+          }
+        });
+      } else {
+        // Existing user - check for restore and other existing flows
+        _checkForCloudRestore();
+      }
+    }
+  }
+
+  /// Show the onboarding flow
+  Future<void> _showOnboardingFlow() async {
+    if (!mounted) return;
+
+    await OnboardingService.showOnboardingFlow(context);
+
+    if (mounted) {
+      setState(() {
+        _showOnboarding = false;
+      });
+    }
+  }
+
+  Future<void> _checkForCloudRestore() async {
+    // Wait a bit for the UI to settle
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    // Check if we should prompt for restore (for existing users)
+    await StartupRestoreService.checkAndPromptRestore(context);
   }
 
   /// Schedule an initial backup check after app startup

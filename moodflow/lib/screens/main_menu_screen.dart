@@ -167,6 +167,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
                         Expanded(child: _buildQuickButton('AI Analysis', Icons.psychology, () => _navigateWithBlur(const AIAnalysisScreen()))),
                       ],
                     ),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(child: _buildQuickButton('Insights', Icons.psychology, () => _navigateWithBlur(const InsightsScreen()))),

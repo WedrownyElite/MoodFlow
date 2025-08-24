@@ -578,21 +578,97 @@ class CorrelationDataService {
     return insights;
   }
 
-  // [Include the other analysis methods from your original code]
+  // Analyze Sleep Correlation
   static Future<List<CorrelationInsight>> _analyzeSleepCorrelations(
       List<CorrelationData> correlationData,
       Map<DateTime, double> moodData,
       ) async {
-    // Implementation from your original code
-    return [];
+    final insights = <CorrelationInsight>[];
+    final sleepMoods = <double>[];
+    final moodValues = <double>[];
+
+    // Collect sleep quality and corresponding mood data
+    for (final correlation in correlationData) {
+      if (correlation.sleepQuality != null && moodData.containsKey(correlation.date)) {
+        sleepMoods.add(correlation.sleepQuality!);
+        moodValues.add(moodData[correlation.date]!);
+      }
+    }
+
+    if (sleepMoods.length >= 10) {
+      final correlation = _calculateCorrelation(sleepMoods, moodValues);
+      if (correlation.abs() >= 0.4) {
+        insights.add(CorrelationInsight(
+          title: correlation > 0 ? 'Better sleep improves your mood' : 'Poor sleep affects your mood',
+          description: 'Sleep quality ${correlation > 0 ? 'positively' : 'negatively'} correlates with your mood (${(correlation * 100).round()}% correlation)',
+          strength: correlation.abs(),
+          category: 'sleep',
+          data: {'sleepCorrelation': correlation},
+        ));
+      }
+    }
+
+    return insights;
   }
 
+  // Analyze Exercise Correlations
   static Future<List<CorrelationInsight>> _analyzeExerciseCorrelations(
       List<CorrelationData> correlationData,
       Map<DateTime, double> moodData,
       ) async {
-    // Implementation from your original code
-    return [];
+    final insights = <CorrelationInsight>[];
+    final exerciseMoods = <ActivityLevel, List<double>>{};
+
+    // Group moods by exercise level
+    for (final correlation in correlationData) {
+      if (correlation.exerciseLevel != null && moodData.containsKey(correlation.date)) {
+        final mood = moodData[correlation.date]!;
+        exerciseMoods.putIfAbsent(correlation.exerciseLevel!, () => []).add(mood);
+      }
+    }
+
+    if (exerciseMoods.length >= 2) {
+      final averages = <ActivityLevel, double>{};
+      for (final entry in exerciseMoods.entries) {
+        if (entry.value.length >= 3) {
+          averages[entry.key] = entry.value.reduce((a, b) => a + b) / entry.value.length;
+        }
+      }
+
+      if (averages.length >= 2) {
+        final sortedLevels = averages.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+
+        final best = sortedLevels.first;
+        final worst = sortedLevels.last;
+        final difference = best.value - worst.value;
+
+        if (difference >= 1.0) {
+          insights.add(CorrelationInsight(
+            title: 'Exercise level affects your mood',
+            description: 'You feel ${difference.toStringAsFixed(1)} points better on ${_getActivityName(best.key)} days vs ${_getActivityName(worst.key)} days',
+            strength: (difference / 9.0).clamp(0.0, 1.0),
+            category: 'exercise',
+            data: {
+              'bestLevel': best.key.name,
+              'worstLevel': worst.key.name,
+              'difference': difference,
+            },
+          ));
+        }
+      }
+    }
+
+    return insights;
+  }
+
+  static String _getActivityName(ActivityLevel level) {
+    switch (level) {
+      case ActivityLevel.none: return 'no exercise';
+      case ActivityLevel.light: return 'light activity';
+      case ActivityLevel.moderate: return 'moderate exercise';
+      case ActivityLevel.intense: return 'intense workout';
+    }
   }
 
   /// Simple correlation coefficient calculation

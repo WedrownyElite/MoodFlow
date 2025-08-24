@@ -1,11 +1,11 @@
-﻿// lib/services/insights/smart_insights_service.dart
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/mood_data_service.dart';
 import '../data/correlation_data_service.dart';
 import '../notifications/real_notification_service.dart';
 import '../utils/logger.dart';
+import '../data/mood_data_service.dart';
 
 enum InsightType {
   pattern,
@@ -920,9 +920,33 @@ class SmartInsightsService {
   }
 
   static Future<int> _getCurrentStreak() async {
-    // This would use the same logic as in your existing streak calculation
-    // For now, returning 0 as a placeholder
-    return 0;
+    int streak = 0;
+    final now = DateTime.now();
+    DateTime currentDate = DateTime(now.year, now.month, now.day);
+
+    // Check up to 365 days back maximum
+    for (int i = 0; i < 365; i++) {
+      bool hasAnyMood = false;
+
+      // Check if any segment has data for this day
+      for (int segment = 0; segment < 3; segment++) {
+        final mood = await MoodDataService.loadMood(currentDate, segment);
+        if (mood != null && mood['rating'] != null) {
+          hasAnyMood = true;
+          break;
+        }
+      }
+
+      if (hasAnyMood) {
+        streak++;
+      } else {
+        break; // Streak broken
+      }
+
+      currentDate = currentDate.subtract(const Duration(days: 1));
+    }
+
+    return streak;
   }
 
   static Future<bool> _hasLoggedToday() async {
