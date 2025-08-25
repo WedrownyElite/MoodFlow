@@ -233,6 +233,107 @@ class BackupService {
     }
   }
 
+  /// Export selected data types only
+  static Future<MoodDataExport> exportSelectedData({
+    bool includeMoods = true,
+    bool includeWeather = true,
+    bool includeSleep = true,
+    bool includeActivity = true,
+    bool includeCorrelations = true,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final moodEntries = <MoodEntryExport>[];
+    final goals = <MoodGoalExport>[];
+    final correlationEntries = <CorrelationEntryExport>[];
+
+    // Set date range defaults
+    endDate ??= DateTime.now();
+    startDate ??= endDate.subtract(const Duration(days: 1095)); // 3 years default
+
+    DateTime currentDate = startDate;
+    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+      // Collect mood entries if requested
+      if (includeMoods) {
+        for (int segment = 0; segment < 3; segment++) {
+          final moodData = await MoodDataService.loadMood(currentDate, segment);
+          if (moodData != null && moodData['rating'] != null) {
+            moodEntries.add(MoodEntryExport(
+              date: currentDate,
+              segment: segment,
+              rating: (moodData['rating'] as num).toDouble(),
+              note: moodData['note'] as String? ?? '',
+              loggedAt: moodData['timestamp'] != null
+                  ? DateTime.parse(moodData['timestamp'])
+                  : currentDate,
+              lastModified: moodData['lastModified'] != null
+                  ? DateTime.parse(moodData['lastModified'])
+                  : null,
+            ));
+          }
+        }
+      }
+
+      // Collect correlation data if any correlation data is requested
+      if (includeWeather || includeSleep || includeActivity || includeCorrelations) {
+        final correlationData = await CorrelationDataService.loadCorrelationData(currentDate);
+        if (correlationData != null) {
+          // Create filtered correlation entry
+          correlationEntries.add(CorrelationEntryExport(
+            date: correlationData.date,
+            weather: includeWeather ? correlationData.weather?.name : null,
+            temperature: includeWeather ? correlationData.temperature : null,
+            weatherDescription: includeWeather ? correlationData.weatherDescription : null,
+            sleepQuality: includeSleep ? correlationData.sleepQuality : null,
+            sleepDurationMinutes: includeSleep ? correlationData.sleepDuration?.inMinutes : null,
+            bedtime: includeSleep ? correlationData.bedtime : null,
+            wakeTime: includeSleep ? correlationData.wakeTime : null,
+            exerciseLevel: includeActivity ? correlationData.exerciseLevel?.name : null,
+            socialActivity: includeActivity ? correlationData.socialActivity?.name : null,
+            workStress: includeCorrelations ? correlationData.workStress : null,
+            customTags: includeCorrelations ? correlationData.customTags : [],
+            notes: includeCorrelations ? correlationData.notes : null,
+            autoWeather: includeWeather ? correlationData.autoWeather : false,
+            weatherData: includeWeather ? correlationData.weatherData : null,
+          ));
+        }
+      }
+
+      currentDate = currentDate.add(const Duration(days: 1));
+    }
+
+    // Always include goals in export (they're small)
+    final goalsList = await MoodAnalyticsService.loadGoals();
+    for (final goal in goalsList) {
+      goals.add(MoodGoalExport(
+        id: goal.id,
+        title: goal.title,
+        description: goal.description,
+        type: goal.type.toString(),
+        targetValue: goal.targetValue,
+        targetDays: goal.targetDays,
+        createdDate: goal.createdDate,
+        completedDate: goal.completedDate,
+        isCompleted: goal.isCompleted,
+      ));
+    }
+
+    // Get minimal settings for export
+    final notificationSettings = NotificationSettingsExport(settings: {});
+    final userPreferences = <String, dynamic>{};
+
+    return MoodDataExport(
+      appVersion: '1.0.0',
+      exportDate: DateTime.now(),
+      moodEntries: moodEntries,
+      goals: goals,
+      correlationEntries: correlationEntries,
+      notificationSettings: notificationSettings,
+      userPreferences: userPreferences,
+      savedAnalyses: [], // Not included in selective exports
+    );
+  }
+
   /// Get last backup date
   static Future<DateTime?> getLastBackupDate() async {
     final prefs = await SharedPreferences.getInstance();

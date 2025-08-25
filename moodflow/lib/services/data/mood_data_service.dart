@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/ai/mood_analysis_service.dart';
 import '../backup/cloud_backup_service.dart';
 import '../utils/logger.dart';
 
@@ -216,7 +217,12 @@ class MoodDataService {
         }
 
         if (isEnabled && isAvailable) {
-          await RealCloudBackupService.performAutomaticBackup();
+          final success = await RealCloudBackupService.performAutomaticBackup();
+          if (success) {
+            Logger.dataService('✅ Automatic cloud backup completed after mood save');
+          } else {
+            Logger.dataService('⚠️ Automatic cloud backup failed after mood save');
+          }
         }
       } catch (e) {
         Logger.dataService('❌ Throttled cloud backup failed: $e');

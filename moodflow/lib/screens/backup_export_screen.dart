@@ -1,6 +1,11 @@
 ﻿import 'dart:convert';
 import 'dart:io';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:csv/csv.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import '../services/backup/backup_service.dart';
 import '../services/backup/export_service.dart';
 import '../services/backup/google_drive_service.dart';
@@ -8,11 +13,15 @@ import '../services/backup/icloud_service.dart';
 import '../services/data/backup_models.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/backup/cloud_backup_service.dart';
+import '../services/ai/mood_analysis_service.dart';
+import '../services/data/mood_data_service.dart';
 
 // REMOVE FOR PRODUCTION (CUSTOM CSV IMPORT)
 // Also delete the imports directory, and widgets/custom_csv_import_dialog.dart
 import '../services/import/custom_csv_importer.dart';
 import '../widgets/custom_csv_import_dialog.dart';
+
+enum ExportType { csv, pdf }
 
 class BackupExportScreen extends StatefulWidget {
   final int? initialTabIndex;
@@ -121,23 +130,33 @@ class _BackupExportScreenState extends State<BackupExportScreen>
           const SizedBox(height: 24),
 
           // CSV Export
-          _buildExportCard(
+          _buildAdvancedExportCard(
             title: 'CSV Export',
-            description: 'Export your mood data as a spreadsheet file',
+            description: 'Export selected data as a spreadsheet file',
             icon: Icons.table_chart,
             color: Colors.green,
-            onTap: _exportToCsv,
+            onTap: () => _showExportOptionsDialog(ExportType.csv),
           ),
 
           const SizedBox(height: 16),
 
           // PDF Export
-          _buildExportCard(
+          _buildAdvancedExportCard(
             title: 'PDF Report',
-            description: 'Generate a comprehensive PDF report with statistics',
+            description: 'Generate a comprehensive PDF report with selected data',
             icon: Icons.picture_as_pdf,
             color: Colors.red,
-            onTap: _exportToPdf,
+            onTap: () => _showExportOptionsDialog(ExportType.pdf),
+          ),
+
+          const SizedBox(height: 16),
+
+          _buildExportCard(
+            title: 'AI Analysis Export',
+            description: 'Export saved AI analyses as JSON file',
+            icon: Icons.psychology,
+            color: Colors.purple,
+            onTap: _exportAIAnalyses,
           ),
 
           const SizedBox(height: 24),
@@ -154,6 +173,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       ),
     );
   }
+  
+  
 
   Widget _buildBackupTab() {
     return SingleChildScrollView(
@@ -692,46 +713,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       ),
     );
   }
-
-  // Export Methods
-  Future<void> _exportToCsv() async {
-    try {
-      _showLoadingDialog('Exporting CSV...');
-
-      final filePath = await ExportService.exportToCSV();
-
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading dialog
-
-      await ExportService.shareFile(filePath, subject: 'MoodFlow Data Export (CSV)');
-
-      _showSuccessMessage('CSV export completed successfully!');
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading dialog
-      _showErrorMessage('Failed to export CSV: $e');
-    }
-  }
-
-  Future<void> _exportToPdf() async {
-    try {
-      _showLoadingDialog('Generating PDF...');
-
-      final filePath = await ExportService.exportToPDF();
-
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading dialog
-
-      await ExportService.shareFile(filePath, subject: 'MoodFlow Report (PDF)');
-
-      _showSuccessMessage('PDF export completed successfully!');
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading dialog
-      _showErrorMessage('Failed to export PDF: $e');
-    }
-  }
-
+  
   // Google Drive Methods
   Future<void> _backupToGoogleDrive() async {
     if (!_googleDriveService.isSignedIn) {
@@ -1012,5 +994,236 @@ class _BackupExportScreenState extends State<BackupExportScreen>
         ],
       ),
     );
+  }
+
+  Future<void> _showExportOptionsDialog(ExportType type) async {
+    bool includeMoods = true;
+    bool includeCorrelations = true;
+    bool includeWeather = true;
+    bool includeSleep = true;
+    bool includeActivity = true;
+    DateTime? startDate;
+    DateTime? endDate;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('${type == ExportType.csv ? 'CSV' : 'PDF'} Export Options'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CheckboxListTile(
+                  title: const Text('Mood Logs'),
+                  subtitle: const Text('Daily mood ratings and notes'),
+                  value: includeMoods,
+                  onChanged: (value) => setState(() => includeMoods = value ?? true),
+                ),
+                CheckboxListTile(
+                  title: const Text('Weather Data'),
+                  subtitle: const Text('Saved weather conditions'),
+                  value: includeWeather,
+                  onChanged: (value) => setState(() => includeWeather = value ?? true),
+                ),
+                CheckboxListTile(
+                  title: const Text('Sleep Data'),
+                  subtitle: const Text('Sleep quality and duration'),
+                  value: includeSleep,
+                  onChanged: (value) => setState(() => includeSleep = value ?? true),
+                ),
+                CheckboxListTile(
+                  title: const Text('Activity & Social Data'),
+                  subtitle: const Text('Exercise and social activities'),
+                  value: includeActivity,
+                  onChanged: (value) => setState(() => includeActivity = value ?? true),
+                ),
+                CheckboxListTile(
+                  title: const Text('All Correlation Data'),
+                  subtitle: const Text('Include all correlation factors'),
+                  value: includeCorrelations,
+                  onChanged: (value) => setState(() => includeCorrelations = value ?? true),
+                ),
+                const Divider(),
+                ListTile(
+                  title: const Text('Date Range'),
+                  subtitle: Text(
+                    startDate != null && endDate != null
+                        ? '${DateFormat('MMM d, yyyy').format(startDate!)} - ${DateFormat('MMM d, yyyy').format(endDate!)}'
+                        : 'All available data',
+                  ),
+                  trailing: const Icon(Icons.date_range),
+                  onTap: () async {
+                    final picked = await showDateRangePicker(
+                      context: context,
+                      firstDate: DateTime.now().subtract(const Duration(days: 365 * 3)),
+                      lastDate: DateTime.now(),
+                      initialDateRange: startDate != null && endDate != null
+                          ? DateTimeRange(start: startDate!, end: endDate!)
+                          : null,
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        startDate = picked.start;
+                        endDate = picked.end;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop({
+                'includeMoods': includeMoods,
+                'includeWeather': includeWeather,
+                'includeSleep': includeSleep,
+                'includeActivity': includeActivity,
+                'includeCorrelations': includeCorrelations,
+                'startDate': startDate,
+                'endDate': endDate,
+              }),
+              child: const Text('Export'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null) {
+      if (type == ExportType.csv) {
+        await _exportToCsvWithOptions(result);
+      } else {
+        await _exportToPdfWithOptions(result);
+      }
+    }
+  }
+
+  Widget _buildAdvancedExportCard({
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportToCsvWithOptions(Map<String, dynamic> options) async {
+    try {
+      _showLoadingDialog('Exporting CSV with selected data...');
+
+      final filePath = await ExportService.exportToCSVWithOptions(
+        includeMoods: options['includeMoods'],
+        includeWeather: options['includeWeather'],
+        includeSleep: options['includeSleep'],
+        includeActivity: options['includeActivity'],
+        includeCorrelations: options['includeCorrelations'],
+        startDate: options['startDate'],
+        endDate: options['endDate'],
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+
+      await ExportService.shareFile(filePath, subject: 'MoodFlow Data Export (CSV)');
+      _showSuccessMessage('CSV export completed successfully!');
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      _showErrorMessage('Failed to export CSV: $e');
+    }
+  }
+
+  Future<void> _exportToPdfWithOptions(Map<String, dynamic> options) async {
+    try {
+      _showLoadingDialog('Generating PDF with selected data...');
+
+      final filePath = await ExportService.exportToPDFWithOptions(
+        includeMoods: options['includeMoods'],
+        includeWeather: options['includeWeather'],
+        includeSleep: options['includeSleep'],
+        includeActivity: options['includeActivity'],
+        includeCorrelations: options['includeCorrelations'],
+        startDate: options['startDate'],
+        endDate: options['endDate'],
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+
+      await ExportService.shareFile(filePath, subject: 'MoodFlow Report (PDF)');
+      _showSuccessMessage('PDF export completed successfully!');
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      _showErrorMessage('Failed to export PDF: $e');
+    }
+  }
+
+  Future<void> _exportAIAnalyses() async {
+    try {
+      _showLoadingDialog('Exporting AI analyses...');
+
+      final filePath = await ExportService.exportAIAnalyses();
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+
+      await ExportService.shareFile(filePath, subject: 'MoodFlow AI Analyses Export');
+      _showSuccessMessage('AI analyses exported successfully!');
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      _showErrorMessage('Failed to export AI analyses: $e');
+    }
   }
 }
