@@ -10,17 +10,21 @@ class AIAnalysisScreen extends StatefulWidget {
   State<AIAnalysisScreen> createState() => _AIAnalysisScreenState();
 }
 
-class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
+class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProviderStateMixin {
   MoodAnalysisResult? _analysisResult;
   bool _isAnalyzing = false;
   bool _hasValidKey = false;
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _endDate = DateTime.now();
+  late TabController _tabController;
+  List<SavedAnalysis> _savedAnalyses = [];
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _checkApiKey();
+    _loadSavedAnalyses();
   }
 
   Future<void> _checkApiKey() async {
@@ -162,6 +166,19 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
       _analysisResult = result;
       _isAnalyzing = false;
     });
+
+    // Save successful analysis
+    if (result.success) {
+      await MoodAnalysisService.saveAnalysisResult(result, _startDate, _endDate);
+      await _loadSavedAnalyses(); // Refresh the history
+    }
+  }
+
+  Future<void> _loadSavedAnalyses() async {
+    final analyses = await MoodAnalysisService.getSavedAnalyses();
+    setState(() {
+      _savedAnalyses = analyses;
+    });
   }
 
   void _showDisclaimer() {
@@ -234,102 +251,204 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
               onPressed: _showApiKeyDialog,
             ),
         ],
-      ),
-      body: Column(
-        children: [
-          // Disclaimer banner
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            color: Colors.orange.shade100,
-            child: Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'AI analysis for informational purposes only. Not professional health advice.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.orange.shade800,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: _showDisclaimer,
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    minimumSize: Size.zero,
-                  ),
-                  child: Text(
-                    'Details',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.orange.shade700,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Date range selector
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Date Range: ${DateFormat('MMM d').format(_startDate)} - ${DateFormat('MMM d, y').format(_endDate)}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.date_range, size: 18),
-                  label: const Text('Change'),
-                  onPressed: _selectDateRange,
-                ),
-              ],
-            ),
-          ),
-
-          // Analysis button
-          if (_hasValidKey) ...[
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: _isAnalyzing
-                      ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                      : const Icon(Icons.psychology),
-                  label: Text(_isAnalyzing ? 'Analyzing...' : 'Analyze My Moods'),
-                  onPressed: _isAnalyzing ? null : _performAnalysis,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ),
-            ),
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          tabs: const [
+            Tab(text: 'Current Analysis'),
+            Tab(text: 'Analysis History'),
           ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildCurrentAnalysisTab(),
+          _buildAnalysisHistoryTab(),
+        ],
+      ),
+    );
+  }
 
-          Expanded(
-            child: _buildContent(),
+  Widget _buildAnalysisHistoryTab() {
+    if (_savedAnalyses.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('No previous analyses', style: TextStyle(fontSize: 18, color: Colors.grey)),
+            SizedBox(height: 8),
+            Text('Run an analysis to see your history here', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _savedAnalyses.length,
+      itemBuilder: (context, index) {
+        final analysis = _savedAnalyses[index];
+        return _buildSavedAnalysisCard(analysis);
+      },
+    );
+  }
+
+  Widget _buildSavedAnalysisCard(SavedAnalysis analysis) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ExpansionTile(
+        title: Text(
+          'Analysis from ${DateFormat('MMM d, y').format(analysis.createdAt)}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          '${DateFormat('MMM d').format(analysis.startDate)} - ${DateFormat('MMM d, y').format(analysis.endDate)} • ${DateFormat('h:mm a').format(analysis.createdAt)}',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Insights section
+                if (analysis.result.insights.isNotEmpty) ...[
+                  const Text('Key Insights', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  ...analysis.result.insights.map((insight) => _buildInsightCard(insight)),
+                  const SizedBox(height: 16),
+                ],
+
+                // Recommendations section
+                if (analysis.result.recommendations.isNotEmpty) ...[
+                  const Text('Recommendations', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  ...analysis.result.recommendations.map((rec) => _buildRecommendationCard(rec)),
+                ],
+
+                // Delete button
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () async {
+                        await MoodAnalysisService.deleteSavedAnalysis(analysis.id);
+                        await _loadSavedAnalyses();
+                      },
+                      icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                      label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+  
+  Widget _buildCurrentAnalysisTab() {
+    return Column(
+      children: [
+        // Disclaimer banner
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          color: Colors.orange.shade100,
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'AI analysis for informational purposes only. Not professional health advice.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.orange.shade800,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: _showDisclaimer,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                ),
+                child: Text(
+                  'Details',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.orange.shade700,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Date range selector
+        Container(
+          padding: const EdgeInsets.all(16),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Date Range: ${DateFormat('MMM d').format(_startDate)} - ${DateFormat('MMM d, y').format(_endDate)}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.date_range, size: 18),
+                label: const Text('Change'),
+                onPressed: _selectDateRange,
+              ),
+            ],
+          ),
+        ),
+
+        // Analysis button
+        if (_hasValidKey) ...[
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: _isAnalyzing
+                    ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+                    : const Icon(Icons.psychology),
+                label: Text(_isAnalyzing ? 'Analyzing...' : 'Analyze My Moods'),
+                onPressed: _isAnalyzing ? null : _performAnalysis,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ),
+          ),
+        ],
+
+        Expanded(
+          child: _buildContent(),
+        ),
+      ],
     );
   }
 

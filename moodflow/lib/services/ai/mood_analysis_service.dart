@@ -9,6 +9,8 @@ class MoodAnalysisService {
   
   static const String _baseUrl = 'https://api.openai.com/v1/chat/completions';
 
+  static const String _savedAnalysesKey = 'saved_ai_analyses';
+
   /// Analyze moods for a date range and get AI insights
   static Future<MoodAnalysisResult> analyzeMoodTrends({
     required DateTime startDate,
@@ -279,12 +281,63 @@ class MoodAnalysisService {
     }
   }
 
+  /// Save analysis result with timestamp
+  static Future<void> saveAnalysisResult(MoodAnalysisResult result, DateTime startDate, DateTime endDate) async {
+    if (!result.success) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final existingAnalyses = await getSavedAnalyses();
+
+    final savedAnalysis = SavedAnalysis(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      createdAt: DateTime.now(),
+      startDate: startDate,
+      endDate: endDate,
+      result: result,
+    );
+
+    existingAnalyses.insert(0, savedAnalysis); // Add to beginning
+
+    // Keep only last 20 analyses
+    final limitedAnalyses = existingAnalyses.take(20).toList();
+
+    final jsonData = limitedAnalyses.map((analysis) => analysis.toJson()).toList();
+    await prefs.setString(_savedAnalysesKey, jsonEncode(jsonData));
+  }
+
+  /// Get all saved analyses
+  static Future<List<SavedAnalysis>> getSavedAnalyses() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_savedAnalysesKey);
+
+      if (jsonString == null) return [];
+
+      final jsonList = jsonDecode(jsonString) as List<dynamic>;
+      return jsonList.map((json) => SavedAnalysis.fromJson(json)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Delete a saved analysis
+  static Future<void> deleteSavedAnalysis(String analysisId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final analyses = await getSavedAnalyses();
+
+    analyses.removeWhere((analysis) => analysis.id == analysisId);
+
+    final jsonData = analyses.map((analysis) => analysis.toJson()).toList();
+    await prefs.setString(_savedAnalysesKey, jsonEncode(jsonData));
+  }
+
   /// Get stored API key
   static Future<String> _getStoredApiKey() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('openai_api_key') ?? '';
   }
 }
+
 
 // Data classes
 class DayMoodAnalysis {
@@ -344,6 +397,62 @@ class MoodRecommendation {
     required this.description,
     required this.priority,
   });
+}
+
+class SavedAnalysis {
+  final String id;
+  final DateTime createdAt;
+  final DateTime startDate;
+  final DateTime endDate;
+  final MoodAnalysisResult result;
+
+  SavedAnalysis({
+    required this.id,
+    required this.createdAt,
+    required this.startDate,
+    required this.endDate,
+    required this.result,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'createdAt': createdAt.toIso8601String(),
+    'startDate': startDate.toIso8601String(),
+    'endDate': endDate.toIso8601String(),
+    'result': {
+      'success': result.success,
+      'insights': result.insights.map((i) => {
+        'title': i.title,
+        'description': i.description,
+        'type': i.type.name,
+      }).toList(),
+      'recommendations': result.recommendations.map((r) => {
+        'title': r.title,
+        'description': r.description,
+        'priority': r.priority.name,
+      }).toList(),
+    },
+  };
+
+  factory SavedAnalysis.fromJson(Map<String, dynamic> json) => SavedAnalysis(
+    id: json['id'],
+    createdAt: DateTime.parse(json['createdAt']),
+    startDate: DateTime.parse(json['startDate']),
+    endDate: DateTime.parse(json['endDate']),
+    result: MoodAnalysisResult(
+      success: json['result']['success'],
+      insights: (json['result']['insights'] as List).map((i) => MoodInsight(
+        title: i['title'],
+        description: i['description'],
+        type: InsightType.values.firstWhere((t) => t.name == i['type']),
+      )).toList(),
+      recommendations: (json['result']['recommendations'] as List).map((r) => MoodRecommendation(
+        title: r['title'],
+        description: r['description'],
+        priority: RecommendationPriority.values.firstWhere((p) => p.name == r['priority']),
+      )).toList(),
+    ),
+  );
 }
 
 enum InsightType { positive, negative, neutral }

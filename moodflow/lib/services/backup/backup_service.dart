@@ -1,10 +1,12 @@
-﻿import 'package:shared_preferences/shared_preferences.dart';
+﻿import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/backup_models.dart';
 import '../data/mood_data_service.dart';
 import '../data/mood_analytics_service.dart';
 import '../notifications/enhanced_notification_service.dart';
 import '../data/correlation_data_service.dart';
 import '../utils/logger.dart';
+import '../ai/mood_analysis_service.dart';
 
 class BackupService {
   static const String _lastBackupKey = 'last_backup_date';
@@ -82,14 +84,24 @@ class BackupService {
       }
     }
 
+    // Get saved AI analyses
+    List<Map<String, dynamic>> savedAnalyses = [];
+    try {
+      final analyses = await MoodAnalysisService.getSavedAnalyses();
+      savedAnalyses = analyses.map((analysis) => analysis.toJson()).toList();
+    } catch (e) {
+      Logger.backupService('Error loading saved analyses: $e');
+    }
+
     return MoodDataExport(
-      appVersion: '1.0.0', // Replace with actual app version
+      appVersion: '1.0.0',
       exportDate: DateTime.now(),
       moodEntries: moodEntries,
       goals: goals,
       correlationEntries: correlationEntries,
       notificationSettings: notificationExport,
       userPreferences: userPreferences,
+      savedAnalyses: savedAnalyses,
     );
   }
 
@@ -152,6 +164,16 @@ class BackupService {
 
       if (importedGoals > 0) {
         await MoodAnalyticsService.saveGoals(existingGoals);
+      }
+
+      // Import saved analyses
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (exportData.savedAnalyses.isNotEmpty) {
+          await prefs.setString('saved_ai_analyses', jsonEncode(exportData.savedAnalyses));
+        }
+      } catch (e) {
+        Logger.backupService('Failed to import saved analyses: $e');
       }
 
       // Import correlation data

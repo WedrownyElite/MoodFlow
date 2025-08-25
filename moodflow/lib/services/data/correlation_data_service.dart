@@ -46,11 +46,13 @@ class CorrelationData {
   final String? notes;
   final bool autoWeather; // Whether weather was fetched automatically
   final Map<String, dynamic>? weatherData; // Store raw weather data
+  final String? temperatureUnit;
 
   CorrelationData({
     required this.date,
     this.weather,
     this.temperature,
+    this.temperatureUnit,
     this.weatherDescription,
     this.sleepQuality,
     this.sleepDuration,
@@ -69,6 +71,7 @@ class CorrelationData {
     'date': date.toIso8601String(),
     'weather': weather?.name,
     'temperature': temperature,
+    'temperatureUnit': temperatureUnit,
     'weatherDescription': weatherDescription,
     'sleepQuality': sleepQuality,
     'sleepDuration': sleepDuration?.inMinutes,
@@ -90,6 +93,7 @@ class CorrelationData {
         ? WeatherCondition.values.firstWhere((e) => e.name == json['weather'])
         : null,
     temperature: json['temperature']?.toDouble(),
+    temperatureUnit: json['temperatureUnit'],
     weatherDescription: json['weatherDescription'],
     sleepQuality: json['sleepQuality']?.toDouble(),
     sleepDuration: json['sleepDuration'] != null
@@ -118,6 +122,7 @@ class CorrelationData {
     DateTime? date,
     WeatherCondition? weather,
     double? temperature,
+    String? temperatureUnit,
     String? weatherDescription,
     double? sleepQuality,
     Duration? sleepDuration,
@@ -134,6 +139,7 @@ class CorrelationData {
     date: date ?? this.date,
     weather: weather ?? this.weather,
     temperature: temperature ?? this.temperature,
+    temperatureUnit: temperatureUnit ?? this.temperatureUnit,
     weatherDescription: weatherDescription ?? this.weatherDescription,
     sleepQuality: sleepQuality ?? this.sleepQuality,
     sleepDuration: sleepDuration ?? this.sleepDuration,
@@ -370,6 +376,18 @@ class CorrelationDataService {
       Logger.correlationService('❌ Error fetching weather: $e');
       return null;
     }
+  }
+
+  static double convertTemperature(double temp, String fromUnit, String toUnit) {
+    if (fromUnit == toUnit) return temp;
+
+    if (fromUnit == 'celsius' && toUnit == 'fahrenheit') {
+      return (temp * 9/5) + 32;
+    } else if (fromUnit == 'fahrenheit' && toUnit == 'celsius') {
+      return (temp - 32) * 5/9;
+    }
+
+    return temp;
   }
 
   /// Auto-fetch weather for current location and date

@@ -64,6 +64,13 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
   }
 
   String _formatTemperature(double temperature) {
+    // If we have stored temperature data, convert from stored unit to display unit
+    if (_currentData?.temperature != null && _currentData?.temperatureUnit != null) {
+      final displayTemp = _getTemperatureInUnit(_temperatureUnit);
+      return '${displayTemp.toStringAsFixed(1)}°${_temperatureUnit == 'celsius' ? 'C' : 'F'}';
+    }
+
+    // Fallback for temperatures passed directly
     return '${temperature.toStringAsFixed(1)}°${_temperatureUnit == 'celsius' ? 'C' : 'F'}';
   }
 
@@ -155,6 +162,7 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
         final updatedData = _currentData!.copyWith(
           weather: weather.condition,
           temperature: weather.temperature,
+          temperatureUnit: _temperatureUnit,
           weatherDescription: weather.description,
           autoWeather: true,
           weatherData: weather.rawData,
@@ -1007,6 +1015,19 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
         ],
       ),
     );
+  }
+
+  double _getTemperatureInUnit(String targetUnit) {
+    if (_currentData?.temperature == null) return 0.0;
+
+    final currentTemp = _currentData!.temperature!;
+    final storedUnit = _currentData!.temperatureUnit ?? 'celsius';
+
+    if (storedUnit == targetUnit) {
+      return currentTemp;
+    }
+
+    return CorrelationDataService.convertTemperature(currentTemp, storedUnit, targetUnit);
   }
 
   // Helper methods

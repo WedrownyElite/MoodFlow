@@ -6,18 +6,20 @@ class MoodDataExport {
   final DateTime exportDate;
   final List<MoodEntryExport> moodEntries;
   final List<MoodGoalExport> goals;
-  final List<CorrelationEntryExport> correlationEntries; // Add this
+  final List<CorrelationEntryExport> correlationEntries;
   final NotificationSettingsExport notificationSettings;
   final Map<String, dynamic> userPreferences;
+  final List<Map<String, dynamic>> savedAnalyses;
 
   MoodDataExport({
     required this.appVersion,
     required this.exportDate,
     required this.moodEntries,
     required this.goals,
-    required this.correlationEntries, // Add this
+    required this.correlationEntries,
     required this.notificationSettings,
     required this.userPreferences,
+    required this.savedAnalyses,
   });
 
   Map<String, dynamic> toJson() => {
@@ -25,9 +27,10 @@ class MoodDataExport {
     'exportDate': exportDate.toIso8601String(),
     'moodEntries': moodEntries.map((e) => e.toJson()).toList(),
     'goals': goals.map((g) => g.toJson()).toList(),
-    'correlationEntries': correlationEntries.map((c) => c.toJson()).toList(), // Add this
+    'correlationEntries': correlationEntries.map((c) => c.toJson()).toList(),
     'notificationSettings': notificationSettings.toJson(),
     'userPreferences': userPreferences,
+    'savedAnalyses': savedAnalyses,
   };
 
   factory MoodDataExport.fromJson(Map<String, dynamic> json) => MoodDataExport(
@@ -39,12 +42,13 @@ class MoodDataExport {
     goals: (json['goals'] as List)
         .map((g) => MoodGoalExport.fromJson(g))
         .toList(),
-    correlationEntries: (json['correlationEntries'] as List? ?? []) // Add this with null safety
+    correlationEntries: (json['correlationEntries'] as List? ?? [])
         .map((c) => CorrelationEntryExport.fromJson(c))
         .toList(),
     notificationSettings: NotificationSettingsExport.fromJson(
         json['notificationSettings'] ?? {}),
     userPreferences: json['userPreferences'] ?? {},
+    savedAnalyses: List<Map<String, dynamic>>.from(json['savedAnalyses'] ?? []),
   );
 }
 
