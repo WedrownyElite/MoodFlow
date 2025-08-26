@@ -41,9 +41,7 @@ class BlurTransitionService {
     try {
       await _controller.forward();
       await onContentChange();
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      if (!_disposed) { // CHECK BEFORE REVERSE
+      if (!_disposed) {
         await _controller.reverse();
       }
     } finally {

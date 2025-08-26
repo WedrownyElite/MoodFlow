@@ -32,10 +32,10 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   final List<String> timeSegments = MoodDataService.timeSegments;
   int currentSegment = 0;
 
-  late PageController _pageController;
-  late AnimationController _gradientAnimationController;
-  late BlurTransitionService _blurService;
-  late SliderAnimationService _sliderService;
+  PageController? _pageController;
+  AnimationController? _gradientAnimationController;
+  BlurTransitionService? _blurService;
+  SliderAnimationService? _sliderService;
 
   // Store values in memory only during the session
   final Map<int, double> _sessionMoodValues = {};
@@ -90,10 +90,10 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   void _initializeServicesSync() {
     _pageController = PageController(initialPage: currentSegment);
 
-    _pageController.addListener(() {
-      final page = _pageController.page?.round() ?? currentSegment;
+    _pageController?.addListener(() {
+      final page = _pageController?.page?.round() ?? currentSegment;
       if (!_canAccessSegment(page)) {
-        _pageController.jumpToPage(currentSegment);
+        _pageController?.jumpToPage(currentSegment);
       }
     });
 
@@ -108,7 +108,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
         vsync: this,
         duration: const Duration(milliseconds: 500)
     );
-    _gradientAnimationController.addListener(() {
+    _gradientAnimationController?.addListener(() {
       if (mounted) setState(() {});
     });
 
@@ -129,7 +129,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     if (highestAccessible > currentSegment && (_accessibilityCache[highestAccessible] ?? false)) {
       currentSegment = highestAccessible;
       if (mounted) {
-        _pageController.jumpToPage(currentSegment);
+        _pageController?.jumpToPage(currentSegment);
       }
     }
 
@@ -146,7 +146,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       }
 
       final savedMoodValue = _sessionMoodValues[currentSegment] ?? 5.0;
-      _sliderService.setValueImmediate(savedMoodValue);
+      _sliderService?.setValueImmediate(savedMoodValue);
     }
   }
 
@@ -198,15 +198,15 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   void dispose() {
     _debounceTimer?.cancel();
     _saveDebounceTimer?.cancel();
-    _pageController.dispose();
+    _pageController?.dispose();
 
     for (final controller in _noteControllers.values) {
       controller.dispose();
     }
 
-    _gradientAnimationController.dispose();
-    _blurService.dispose();
-    _sliderService.dispose();
+    _gradientAnimationController?.dispose();
+    _blurService?.dispose();
+    _sliderService?.dispose();
     super.dispose();
   }
 
@@ -269,7 +269,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   void _initGradientSync() {
     final gradient = MoodGradientService.fallbackGradient(widget.isDarkMode);
     _currentGradient = gradient;
-    _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient).animate(_gradientAnimationController);
+    _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient).animate(_gradientAnimationController ?? AnimationController(vsync: this, duration: Duration.zero));
 
     if (widget.useCustomGradient) {
       _initGradient();
@@ -283,7 +283,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       if (mounted) {
         setState(() {
           _currentGradient = gradient;
-          _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient).animate(_gradientAnimationController);
+          _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient).animate(_gradientAnimationController ?? AnimationController(vsync: this, duration: Duration.zero));
         });
       }
     }
@@ -295,32 +295,32 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     _gradientAnimation = LinearGradientTween(
       begin: _currentGradient ?? newGradient,
       end: newGradient,
-    ).animate(_gradientAnimationController);
-    _gradientAnimationController.reset();
-    _gradientAnimationController.forward();
+    ).animate(_gradientAnimationController ?? AnimationController(vsync: this, duration: Duration.zero));
+    _gradientAnimationController?.reset();
+    _gradientAnimationController?.forward();
     _currentGradient = newGradient;
   }
 
   /// FIXED: Improved navigation with fresh data loading
   Future<void> _navigateToSegment(int newIndex) async {
     final canAccess = await _canAccessSegmentAsync(newIndex);
-    if (!canAccess || _blurService.isTransitioning) return;
+    if (!canAccess || (_blurService?.isTransitioning ?? false)) return;
 
     Logger.moodService('🔄 Navigating to segment $newIndex');
 
-    await _blurService.executeTransition(() async {
+    // Preload data before transition to avoid black flash
+    await _loadDataForSegmentFresh(newIndex);
+    final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
+
+    await _blurService?.executeTransition(() async {
       setState(() {
         currentSegment = newIndex;
       });
-      _pageController.jumpToPage(newIndex);
-      await Future.delayed(const Duration(milliseconds: 50));
+      _pageController?.jumpToPage(newIndex);
     });
 
-    // Always load fresh data when navigating
-    await _loadDataForSegmentFresh(newIndex);
-
-    final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
-    await _sliderService.animateToValue(newMoodValue);
+    // Apply the preloaded data immediately after transition
+    await _sliderService?.animateToValue(newMoodValue);
 
     if (widget.useCustomGradient) {
       _updateGradientForMood(newMoodValue);
@@ -329,24 +329,6 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     if (mounted) {
       setState(() {});
     }
-  }
-
-  int _getFirstAccessibleSegment() {
-    for (int i = 0; i < timeSegments.length; i++) {
-      if (_accessibilityCache[i] == true) {
-        return i;
-      }
-    }
-    return 0;
-  }
-
-  int _getLastAccessibleSegment() {
-    for (int i = timeSegments.length - 1; i >= 0; i--) {
-      if (_accessibilityCache[i] == true) {
-        return i;
-      }
-    }
-    return 0;
   }
 
   bool _hasPreviousAccessibleSegment() {
@@ -369,7 +351,6 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
 
   Widget _buildMoodPage(int index) {
     final canEdit = index == currentSegment && (_accessibilityCache[index] ?? false);
-
     final noteController = _noteControllers[index]!;
 
     return SingleChildScrollView(
@@ -397,33 +378,36 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
               Text('😊', style: TextStyle(fontSize: 22)),
             ],
           ),
-          IgnorePointer(
-            ignoring: _blurService.isTransitioning,
-            child: AnimatedMoodSlider(
-              sliderService: _sliderService,
-              enabled: canEdit,
-              onChanged: (value) {
-                // FIXED: Update session value immediately
-                _sessionMoodValues[index] = value;
+          if (_sliderService != null)
+            IgnorePointer(
+              ignoring: _blurService?.isTransitioning ?? false,
+              child: AnimatedMoodSlider(
+                sliderService: _sliderService!,
+                enabled: canEdit,
+                onChanged: (value) {
+                  // FIXED: Update session value immediately
+                  _sessionMoodValues[index] = value;
 
-                if (widget.useCustomGradient && index == currentSegment) {
-                  _updateGradientForMood(value);
-                }
-              },
-              onChangeEnd: canEdit ? (value) {
-                // FIXED: Save with debouncing to avoid excessive saves
-                _saveDebounceTimer?.cancel();
-                _saveDebounceTimer = Timer(const Duration(milliseconds: 500), () {
-                  _saveMoodData(index);
-                });
-              } : null,
-            ),
-          ),
+                  if (widget.useCustomGradient && index == currentSegment) {
+                    _updateGradientForMood(value);
+                  }
+                },
+                onChangeEnd: canEdit ? (value) {
+                  // FIXED: Save with debouncing to avoid excessive saves
+                  _saveDebounceTimer?.cancel();
+                  _saveDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+                    _saveMoodData(index);
+                  });
+                } : null,
+              ),
+            )
+          else
+            const SizedBox(height: 60), // Placeholder while slider loads
 
           const SizedBox(height: 24),
           if (index == currentSegment) _buildQuickFactorsSection(),
           const SizedBox(height: 8),
-          
+
           const SizedBox(height: 32),
           const Text(
             'Notes',
@@ -436,7 +420,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: canEdit
                 ? IgnorePointer(
-              ignoring: _blurService.isTransitioning,
+              ignoring: _blurService?.isTransitioning ?? false,
               child: TextField(
                 controller: noteController,
                 maxLines: null,
@@ -539,11 +523,10 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     );
   }
 
-// Add this new method
   Future<void> _navigateToCorrelationTab(int tabIndex) async {
-    if (_blurService.isTransitioning) return;
+    if (_blurService?.isTransitioning ?? false) return;
 
-    await _blurService.executeTransition(() async {
+    await _blurService?.executeTransition(() async {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -559,7 +542,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       );
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final gradient = _gradientAnimation?.value ??
@@ -584,15 +567,15 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
               child: Column(
                 children: [
                   Expanded(
-                    child: BlurTransitionWidget(
-                      blurService: _blurService,
+                    child: _blurService != null ? BlurTransitionWidget(
+                      blurService: _blurService!,
                       child: PageView.builder(
-                        controller: _pageController,
+                        controller: _pageController ?? PageController(),
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: timeSegments.length,
                         onPageChanged: (newIndex) async {
                           if (!_canAccessSegment(newIndex)) {
-                            _pageController.jumpToPage(currentSegment);
+                            _pageController?.jumpToPage(currentSegment);
                             return;
                           }
 
@@ -607,7 +590,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                           });
 
                           final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
-                          await _sliderService.animateToValue(newMoodValue);
+                          await _sliderService?.animateToValue(newMoodValue);
 
                           if (widget.useCustomGradient) {
                             _updateGradientForMood(newMoodValue);
@@ -617,10 +600,39 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                           return _buildMoodPage(index);
                         },
                       ),
+                    ) : PageView.builder(
+                      controller: _pageController ?? PageController(),
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: timeSegments.length,
+                      onPageChanged: (newIndex) async {
+                        if (!_canAccessSegment(newIndex)) {
+                          _pageController?.jumpToPage(currentSegment);
+                          return;
+                        }
+
+                        setState(() => _isInitialLoading = true);
+
+                        await _loadDataForSegmentFresh(newIndex);
+
+                        setState(() {
+                          currentSegment = newIndex;
+                          _isInitialLoading = false;
+                        });
+
+                        final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
+                        await _sliderService?.animateToValue(newMoodValue);
+
+                        if (widget.useCustomGradient) {
+                          _updateGradientForMood(newMoodValue);
+                        }
+                      },
+                      itemBuilder: (context, index) {
+                        return _buildMoodPage(index);
+                      },
                     ),
                   ),
-                  BlurTransitionWidget(
-                    blurService: _blurService,
+                  _blurService != null ? BlurTransitionWidget(
+                    blurService: _blurService!,
                     child: Container(
                       color: Colors.black.withAlpha(50),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -630,7 +642,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                           if (_hasPreviousAccessibleSegment())
                             IconButton(
                               icon: const Icon(Icons.arrow_left, color: Colors.white, size: 32),
-                              onPressed: _blurService.isTransitioning ? null : () {
+                              onPressed: (_blurService?.isTransitioning ?? false) ? null : () {
                                 for (int i = currentSegment - 1; i >= 0; i--) {
                                   if (_accessibilityCache[i] == true) {
                                     _navigateToSegment(i);
@@ -648,7 +660,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                           if (_hasNextAccessibleSegment())
                             IconButton(
                               icon: const Icon(Icons.arrow_right, color: Colors.white, size: 32),
-                              onPressed: _blurService.isTransitioning ? null : () {
+                              onPressed: (_blurService?.isTransitioning ?? false) ? null : () {
                                 for (int i = currentSegment + 1; i < timeSegments.length; i++) {
                                   if (_accessibilityCache[i] == true) {
                                     _navigateToSegment(i);
@@ -661,6 +673,46 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                             const SizedBox(width: 48),
                         ],
                       ),
+                    ),
+                  ) : Container(
+                    color: Colors.black.withAlpha(50),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (_hasPreviousAccessibleSegment())
+                          IconButton(
+                            icon: const Icon(Icons.arrow_left, color: Colors.white, size: 32),
+                            onPressed: () {
+                              for (int i = currentSegment - 1; i >= 0; i--) {
+                                if (_accessibilityCache[i] == true) {
+                                  _navigateToSegment(i);
+                                  break;
+                                }
+                              }
+                            },
+                          )
+                        else
+                          const SizedBox(width: 48),
+                        Text(
+                          timeSegments[currentSegment],
+                          style: const TextStyle(fontSize: 20, color: Colors.white),
+                        ),
+                        if (_hasNextAccessibleSegment())
+                          IconButton(
+                            icon: const Icon(Icons.arrow_right, color: Colors.white, size: 32),
+                            onPressed: () {
+                              for (int i = currentSegment + 1; i < timeSegments.length; i++) {
+                                if (_accessibilityCache[i] == true) {
+                                  _navigateToSegment(i);
+                                  break;
+                                }
+                              }
+                            },
+                          )
+                        else
+                          const SizedBox(width: 48),
+                      ],
                     ),
                   ),
                 ],
