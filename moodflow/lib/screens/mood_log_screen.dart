@@ -313,21 +313,28 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
 
     await _blurService?.executeTransition(() async {
-      setState(() {
-        currentSegment = newIndex;
-      });
+      // 1. Update state but don't rebuild UI yet
+      currentSegment = newIndex;
+
+      // 2. Jump to new page (this happens under blur)
       _pageController?.jumpToPage(newIndex);
+
+      // 3. Ensure the new content is ready
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // 4. Update UI state (this will trigger rebuild with new content)
+      if (mounted) {
+        setState(() {
+          // State already updated above, this just triggers rebuild
+        });
+      }
     });
 
-    // Apply the preloaded data immediately after transition
-    await _sliderService?.animateToValue(newMoodValue);
+    // Apply the preloaded data after transition completes
+    await _sliderService?.animateToValue(newMoodValue, immediate: true);
 
     if (widget.useCustomGradient) {
       _updateGradientForMood(newMoodValue);
-    }
-
-    if (mounted) {
-      setState(() {});
     }
   }
 
