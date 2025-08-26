@@ -45,6 +45,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   LinearGradient? _currentGradient;
   Animation<LinearGradient>? _gradientAnimation;
 
+  bool _isNavigatingManually = false;
   bool _isInitialLoading = true;
   Timer? _debounceTimer;
   Timer? _saveDebounceTimer;
@@ -91,6 +92,11 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     _pageController = PageController(initialPage: currentSegment);
 
     _pageController?.addListener(() {
+      if (_isNavigatingManually) {
+        Logger.moodService('⏭️ Ignoring PageView listener during manual navigation');
+        return;
+      }
+
       final page = _pageController?.page?.round() ?? currentSegment;
       if (!_canAccessSegment(page)) {
         _pageController?.jumpToPage(currentSegment);
@@ -308,26 +314,61 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
 
     Logger.moodService('🔄 === STARTING NAVIGATION TO SEGMENT $newIndex ===');
 
-    // Preload data
-    await _loadDataForSegmentFresh(newIndex);
-    final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
+    // STEP 1: Set navigation flag to prevent PageView callbacks
+    _isNavigatingManually = true;
 
-    Logger.moodService('🌀 Starting blur transition...');
+    try {
+      // STEP 2: Pre-load all data BEFORE starting any transitions
+      await _loadDataForSegmentFresh(newIndex);
+      final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
 
-    // Update state BEFORE starting blur transition
-    currentSegment = newIndex;
-    _sliderService?.setValueImmediate(newMoodValue);
+      // STEP 3: Pre-update all state BEFORE blur transition
+      final oldSegment = currentSegment;
+      currentSegment = newIndex;
 
-    await _blurService?.executeTransition(() async {
-      Logger.moodService('🌀 Inside blur transition - jumping to page');
-      _pageController?.jumpToPage(newIndex);
-      await Future.delayed(const Duration(milliseconds: 50));
-    });
+      // Pre-update slider immediately
+      _sliderService?.setValueImmediate(newMoodValue);
 
-    Logger.moodService('🌀 Blur transition completed');
+      // STEP 4: Pre-compute gradient if needed
+      LinearGradient? newGradient;
+      if (widget.useCustomGradient) {
+        newGradient = await MoodGradientService.computeGradientForMood(newMoodValue, newIndex);
+      }
 
-    if (widget.useCustomGradient) {
-      _updateGradientForMood(newMoodValue);
+      Logger.moodService('🌀 Starting blur transition with all content pre-loaded...');
+
+      await _blurService?.executeTransition(() async {
+        Logger.moodService('🌀 Inside blur transition - performing page jump');
+
+        // Just jump to the page - all state is already updated
+        _pageController?.jumpToPage(newIndex);
+
+        // Apply gradient update during blur if needed
+        if (newGradient != null && mounted) {
+          setState(() {
+            _currentGradient = newGradient;
+            _gradientAnimation = Tween<LinearGradient>(
+              begin: newGradient,
+              end: newGradient,
+            ).animate(_gradientAnimationController ?? AnimationController(vsync: this, duration: Duration.zero));
+          });
+        }
+
+        // Minimal delay for page jump to complete
+        await Future.delayed(const Duration(milliseconds: 16));
+      });
+
+      Logger.moodService('🌀 Blur transition completed');
+
+      // STEP 5: Apply final gradient update if needed (outside blur)
+      if (widget.useCustomGradient && newGradient != null) {
+        _updateGradientForMood(newMoodValue);
+      }
+
+    } finally {
+      // STEP 6: Always clear the navigation flag
+      await Future.delayed(const Duration(milliseconds: 100)); // Small safety delay
+      _isNavigatingManually = false;
     }
 
     Logger.moodService('🎉 === NAVIGATION TO SEGMENT $newIndex COMPLETE ===');
@@ -576,16 +617,29 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: timeSegments.length,
                         onPageChanged: (newIndex) async {
+                          // CRITICAL: Check if this is a manual navigation
+                          if (_isNavigatingManually) {
+                            Logger.moodService('⏭️ Ignoring PageView onPageChanged during manual navigation');
+                            return;
+                          }
+
+                          // Don't handle page changes during blur transitions
+                          if (_blurService?.isTransitioning ?? false) {
+                            Logger.moodService('⏭️ Ignoring page change during blur transition');
+                            return;
+                          }
+
+                          Logger.moodService('📄 PageView naturally changed to $newIndex (this should not happen during manual nav)');
+
+                          // Only handle natural page changes if they somehow occur
                           if (!_canAccessSegment(newIndex)) {
                             _pageController?.jumpToPage(currentSegment);
                             return;
                           }
 
+                          // Handle natural page change (shouldn't happen with NeverScrollableScrollPhysics)
                           setState(() => _isInitialLoading = true);
-
-                          // FIXED: Load fresh data when page changes
                           await _loadDataForSegmentFresh(newIndex);
-
                           setState(() {
                             currentSegment = newIndex;
                             _isInitialLoading = false;
@@ -599,25 +653,23 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                           }
                         },
                         itemBuilder: (context, index) {
-                          return _buildMoodPage(index);
+                          return Container(
+                            key: ValueKey('mood_page_$index'),
+                            child: _buildMoodPage(index),
+                          );
                         },
                       ),
-                    ) : PageView.builder(
+                    ) :
+                    // Fallback without blur service
+                    PageView.builder(
                       controller: _pageController ?? PageController(),
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: timeSegments.length,
-                      onPageChanged: (newIndex) async {
-                        // Don't handle page changes during blur transitions
-                        if (_blurService?.isTransitioning ?? false) {
-                          Logger.moodService('⏭️ Ignoring page change during blur transition');
-                          return;
-                        }
-
-                        Logger.moodService('📄 PageView naturally changed to $newIndex');
-                        // Handle natural page changes here if needed
+                      onPageChanged: (newIndex) {
+                        if (_isNavigatingManually) return;
+                        Logger.moodService('📄 Fallback PageView changed to $newIndex');
                       },
                       itemBuilder: (context, index) {
-                        // Create a stable key for each page to prevent unnecessary rebuilds
                         return Container(
                           key: ValueKey('mood_page_$index'),
                           child: _buildMoodPage(index),
