@@ -276,7 +276,7 @@ class ExportService {
               pw.Header(
                 level: 0,
                 child: pw.Text(
-                  'MoodFlow Professional Report',
+                  'MoodFlow Report',
                   style: pw.TextStyle(
                     fontSize: 24,
                     fontWeight: pw.FontWeight.bold,

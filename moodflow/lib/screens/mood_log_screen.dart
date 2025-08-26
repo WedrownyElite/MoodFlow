@@ -301,41 +301,36 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     _currentGradient = newGradient;
   }
 
-  /// FIXED: Improved navigation with fresh data loading
+  /// Improved navigation with fresh data loading
   Future<void> _navigateToSegment(int newIndex) async {
     final canAccess = await _canAccessSegmentAsync(newIndex);
     if (!canAccess || (_blurService?.isTransitioning ?? false)) return;
 
-    Logger.moodService('🔄 Navigating to segment $newIndex');
+    Logger.moodService('🔄 === STARTING NAVIGATION TO SEGMENT $newIndex ===');
 
-    // Preload data before transition to avoid black flash
+    // Preload data
     await _loadDataForSegmentFresh(newIndex);
     final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
 
+    Logger.moodService('🌀 Starting blur transition...');
+
+    // Update state BEFORE starting blur transition
+    currentSegment = newIndex;
+    _sliderService?.setValueImmediate(newMoodValue);
+
     await _blurService?.executeTransition(() async {
-      // 1. Update state but don't rebuild UI yet
-      currentSegment = newIndex;
-
-      // 2. Jump to new page (this happens under blur)
+      Logger.moodService('🌀 Inside blur transition - jumping to page');
       _pageController?.jumpToPage(newIndex);
-
-      // 3. Ensure the new content is ready
-      await Future.delayed(const Duration(milliseconds: 10));
-
-      // 4. Update UI state (this will trigger rebuild with new content)
-      if (mounted) {
-        setState(() {
-          // State already updated above, this just triggers rebuild
-        });
-      }
+      await Future.delayed(const Duration(milliseconds: 50));
     });
 
-    // Apply the preloaded data after transition completes
-    await _sliderService?.animateToValue(newMoodValue, immediate: true);
+    Logger.moodService('🌀 Blur transition completed');
 
     if (widget.useCustomGradient) {
       _updateGradientForMood(newMoodValue);
     }
+
+    Logger.moodService('🎉 === NAVIGATION TO SEGMENT $newIndex COMPLETE ===');
   }
 
   bool _hasPreviousAccessibleSegment() {
@@ -612,29 +607,21 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: timeSegments.length,
                       onPageChanged: (newIndex) async {
-                        if (!_canAccessSegment(newIndex)) {
-                          _pageController?.jumpToPage(currentSegment);
+                        // Don't handle page changes during blur transitions
+                        if (_blurService?.isTransitioning ?? false) {
+                          Logger.moodService('⏭️ Ignoring page change during blur transition');
                           return;
                         }
 
-                        setState(() => _isInitialLoading = true);
-
-                        await _loadDataForSegmentFresh(newIndex);
-
-                        setState(() {
-                          currentSegment = newIndex;
-                          _isInitialLoading = false;
-                        });
-
-                        final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
-                        await _sliderService?.animateToValue(newMoodValue);
-
-                        if (widget.useCustomGradient) {
-                          _updateGradientForMood(newMoodValue);
-                        }
+                        Logger.moodService('📄 PageView naturally changed to $newIndex');
+                        // Handle natural page changes here if needed
                       },
                       itemBuilder: (context, index) {
-                        return _buildMoodPage(index);
+                        // Create a stable key for each page to prevent unnecessary rebuilds
+                        return Container(
+                          key: ValueKey('mood_page_$index'),
+                          child: _buildMoodPage(index),
+                        );
                       },
                     ),
                   ),

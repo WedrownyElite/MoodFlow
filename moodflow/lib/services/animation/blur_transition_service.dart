@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../utils/logger.dart';
 
 class BlurTransitionService {
   late AnimationController _controller;
@@ -33,28 +34,40 @@ class BlurTransitionService {
   Animation<double> get animation => _blurAnimation;
 
   /// Execute a blur transition with a callback for the content change
-  /// FIXED: Maintains content visibility during transition
   Future<void> executeTransition(Future<void> Function() onContentChange) async {
-    if (_isTransitioning || _disposed) return;
+    if (_isTransitioning || _disposed) {
+      Logger.moodService('⚠️ Blur transition blocked - already transitioning: $_isTransitioning, disposed: $_disposed');
+      return;
+    }
 
+    Logger.moodService('🌀 Starting blur transition');
     _isTransitioning = true;
 
     try {
       // 1. Blur in (0 -> maxBlur)
+      Logger.moodService('🌀 Phase 1: Blurring IN (0 -> max blur)');
       await _controller.forward();
+      Logger.moodService('🌀 Blur IN complete - content is now hidden');
 
       // 2. Execute content change at peak blur (content is hidden by blur)
+      Logger.moodService('🔄 Phase 2: Executing content change while blurred');
       await onContentChange();
+      Logger.moodService('✅ Content change complete');
 
-      // 3. Add a tiny delay to ensure new content is rendered
-      await Future.delayed(const Duration(milliseconds: 16)); // One frame at 60fps
+      // 3. Add a small delay to ensure new content is rendered
+      Logger.moodService('⏱️ Phase 3: Waiting for content to be ready');
+      await Future.delayed(const Duration(milliseconds: 50));
+      Logger.moodService('✅ Content should be ready');
 
       // 4. Blur out (maxBlur -> 0)
       if (!_disposed) {
+        Logger.moodService('🌀 Phase 4: Blurring OUT ($blurValue -> 0)');
         await _controller.reverse();
+        Logger.moodService('🌀 Blur OUT complete - content is now visible');
       }
     } finally {
       _isTransitioning = false;
+      Logger.moodService('🎯 Blur transition fully complete');
     }
   }
 
@@ -89,35 +102,6 @@ class BlurTransitionWidget extends StatefulWidget {
 }
 
 class _BlurTransitionWidgetState extends State<BlurTransitionWidget> {
-  Widget? _previousChild;
-  Widget? _currentChild;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentChild = widget.child;
-    _previousChild = widget.child;
-  }
-
-  @override
-  void didUpdateWidget(BlurTransitionWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    // If the child changed during a transition, keep the previous child
-    // visible until the transition completes
-    if (widget.child != oldWidget.child) {
-      if (widget.blurService.isTransitioning) {
-        // During transition, keep previous child visible
-        _previousChild = _currentChild;
-        _currentChild = widget.child;
-      } else {
-        // Not transitioning, update normally
-        _previousChild = _currentChild;
-        _currentChild = widget.child;
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -125,24 +109,12 @@ class _BlurTransitionWidgetState extends State<BlurTransitionWidget> {
       builder: (context, _) {
         final blurValue = widget.blurService.blurValue;
 
-        // Choose which child to show based on transition state
-        Widget childToShow;
-
-        if (widget.blurService.isTransitioning) {
-          // During the first half of transition (blur increasing), show previous child
-          // During the second half (blur decreasing), show current child
-          final progress = widget.blurService._controller.value;
-          childToShow = progress < 0.5 ? (_previousChild ?? _currentChild!) : _currentChild!;
-        } else {
-          childToShow = _currentChild!;
-        }
-
         return ImageFiltered(
           imageFilter: ImageFilter.blur(
             sigmaX: blurValue,
             sigmaY: blurValue,
           ),
-          child: childToShow,
+          child: widget.child,
         );
       },
     );
