@@ -1,12 +1,14 @@
 ﻿import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import '../data/mood_data_service.dart';
+import '../data/correlation_data_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MoodAnalysisService {
   // Store API key securely
   static String _openaiApiKey = '';
-  
+
   static const String _baseUrl = 'https://api.openai.com/v1/chat/completions';
 
   static const String _savedAnalysesKey = 'saved_ai_analyses';
@@ -31,6 +33,65 @@ class MoodAnalysisService {
 
       // 2. Prepare data for AI analysis
       final analysisPrompt = _buildAnalysisPrompt(moodData, startDate, endDate);
+
+      // 3. Send to OpenAI API
+      final aiResponse = await _sendToOpenAI(analysisPrompt);
+
+      // 4. Parse AI response
+      return _parseAIResponse(aiResponse);
+
+    } catch (e) {
+      return MoodAnalysisResult(
+        success: false,
+        error: 'Analysis failed: ${e.toString()}',
+        insights: [],
+        recommendations: [],
+      );
+    }
+  }
+
+  /// Analyze moods with specific data type options
+  static Future<MoodAnalysisResult> analyzeMoodTrendsWithOptions({
+    required DateTime startDate,
+    required DateTime endDate,
+    bool includeMoodData = true,
+    bool includeWeatherData = false,
+    bool includeSleepData = false,
+    bool includeActivityData = false,
+    bool includeWorkStressData = false,
+  }) async {
+    try {
+      // 1. Gather selected data types
+      final analysisData = await _gatherSelectedData(
+        startDate,
+        endDate,
+        includeMoodData: includeMoodData,
+        includeWeatherData: includeWeatherData,
+        includeSleepData: includeSleepData,
+        includeActivityData: includeActivityData,
+        includeWorkStressData: includeWorkStressData,
+      );
+
+      if (analysisData.isEmpty) {
+        return MoodAnalysisResult(
+          success: false,
+          error: 'No data found for the selected types and date range.',
+          insights: [],
+          recommendations: [],
+        );
+      }
+
+      // 2. Prepare data for AI analysis
+      final analysisPrompt = _buildEnhancedAnalysisPrompt(
+        analysisData,
+        startDate,
+        endDate,
+        includeMoodData: includeMoodData,
+        includeWeatherData: includeWeatherData,
+        includeSleepData: includeSleepData,
+        includeActivityData: includeActivityData,
+        includeWorkStressData: includeWorkStressData,
+      );
 
       // 3. Send to OpenAI API
       final aiResponse = await _sendToOpenAI(analysisPrompt);
@@ -81,6 +142,58 @@ class MoodAnalysisService {
     return moodData;
   }
 
+  /// Gather selected data types for analysis
+  static Future<List<EnhancedDayAnalysis>> _gatherSelectedData(
+      DateTime startDate,
+      DateTime endDate, {
+        bool includeMoodData = true,
+        bool includeWeatherData = false,
+        bool includeSleepData = false,
+        bool includeActivityData = false,
+        bool includeWorkStressData = false,
+      }) async {
+    final analysisData = <EnhancedDayAnalysis>[];
+
+    DateTime currentDate = startDate;
+    while (currentDate.isBefore(endDate.add(const Duration(days: 1)))) {
+      final dayAnalysis = EnhancedDayAnalysis(date: currentDate);
+      bool hasData = false;
+
+      // Gather mood data if selected
+      if (includeMoodData) {
+        for (int segment = 0; segment < 3; segment++) {
+          final mood = await MoodDataService.loadMood(currentDate, segment);
+          if (mood != null && mood['rating'] != null) {
+            dayAnalysis.segments[segment] = SegmentMoodAnalysis(
+              segment: segment,
+              rating: (mood['rating'] as num).toDouble(),
+              note: mood['note'] as String? ?? '',
+              timestamp: mood['timestamp'] as String?,
+            );
+            hasData = true;
+          }
+        }
+      }
+
+      // Gather correlation data if any correlation types selected
+      if (includeWeatherData || includeSleepData || includeActivityData || includeWorkStressData) {
+        final correlationData = await CorrelationDataService.loadCorrelationData(currentDate);
+        if (correlationData != null) {
+          dayAnalysis.correlationData = correlationData;
+          hasData = true;
+        }
+      }
+
+      if (hasData) {
+        analysisData.add(dayAnalysis);
+      }
+
+      currentDate = currentDate.add(const Duration(days: 1));
+    }
+
+    return analysisData;
+  }
+
   /// Build prompt for AI analysis
   static String _buildAnalysisPrompt(List<DayMoodAnalysis> moodData, DateTime startDate, DateTime endDate) {
     final buffer = StringBuffer();
@@ -112,6 +225,114 @@ class MoodAnalysisService {
     buffer.writeln('Please provide:');
     buffer.writeln('1. KEY INSIGHTS: 3-5 specific patterns or trends you notice');
     buffer.writeln('2. RECOMMENDATIONS: 3-5 actionable suggestions for improving mood or maintaining good patterns');
+    buffer.writeln('');
+    buffer.writeln('Format your response as JSON with this structure:');
+    buffer.writeln('{');
+    buffer.writeln('  "insights": [');
+    buffer.writeln('    {"title": "Insight Title", "description": "Detailed explanation", "type": "positive|negative|neutral"}');
+    buffer.writeln('  ],');
+    buffer.writeln('  "recommendations": [');
+    buffer.writeln('    {"title": "Recommendation Title", "description": "Actionable advice", "priority": "high|medium|low"}');
+    buffer.writeln('  ]');
+    buffer.writeln('}');
+
+    return buffer.toString();
+  }
+
+  /// Build enhanced analysis prompt with correlation data
+  static String _buildEnhancedAnalysisPrompt(
+      List<EnhancedDayAnalysis> analysisData,
+      DateTime startDate,
+      DateTime endDate, {
+        bool includeMoodData = true,
+        bool includeWeatherData = false,
+        bool includeSleepData = false,
+        bool includeActivityData = false,
+        bool includeWorkStressData = false,
+      }) {
+    final buffer = StringBuffer();
+
+    buffer.writeln('Please analyze the following mood and lifestyle data and provide insights and recommendations.');
+    buffer.writeln('');
+    buffer.writeln('DATE RANGE: ${_formatDate(startDate)} to ${_formatDate(endDate)}');
+    buffer.writeln('');
+    buffer.writeln('DATA TYPES INCLUDED:');
+    if (includeMoodData) buffer.writeln('- Mood ratings (1-10 scale) and notes');
+    if (includeWeatherData) buffer.writeln('- Weather conditions and temperature');
+    if (includeSleepData) buffer.writeln('- Sleep quality (1-10 scale), duration, and schedule');
+    if (includeActivityData) buffer.writeln('- Exercise levels and social activities');
+    if (includeWorkStressData) buffer.writeln('- Work stress levels (1-10 scale)');
+    buffer.writeln('');
+
+    if (includeMoodData) {
+      buffer.writeln('MOOD SCALE: 1 (very poor) to 10 (excellent)');
+      buffer.writeln('TIME SEGMENTS: Morning (0), Midday (1), Evening (2)');
+      buffer.writeln('');
+    }
+
+    buffer.writeln('DAILY DATA:');
+
+    for (final day in analysisData) {
+      buffer.writeln('${_formatDate(day.date)}:');
+
+      // Include mood data if selected
+      if (includeMoodData) {
+        for (int segment = 0; segment < 3; segment++) {
+          final segmentData = day.segments[segment];
+          if (segmentData != null) {
+            final segmentName = ['Morning', 'Midday', 'Evening'][segment];
+            buffer.writeln('  $segmentName: ${segmentData.rating}/10');
+            if (segmentData.note.isNotEmpty) {
+              buffer.writeln('    Note: "${segmentData.note}"');
+            }
+          }
+        }
+      }
+
+      // Include correlation data if selected
+      if (day.correlationData != null) {
+        final corr = day.correlationData!;
+
+        if (includeWeatherData && (corr.weather != null || corr.temperature != null)) {
+          buffer.write('  Weather: ');
+          if (corr.weather != null) buffer.write(corr.weather!.name);
+          if (corr.temperature != null) {
+            buffer.write(', ${corr.temperature!.toStringAsFixed(1)}°${corr.temperatureUnit == 'fahrenheit' ? 'F' : 'C'}');
+          }
+          buffer.writeln();
+        }
+
+        if (includeSleepData) {
+          if (corr.sleepQuality != null) {
+            buffer.writeln('  Sleep Quality: ${corr.sleepQuality}/10');
+          }
+          if (corr.bedtime != null && corr.wakeTime != null) {
+            buffer.writeln('  Sleep: ${DateFormat('HH:mm').format(corr.bedtime!)} - ${DateFormat('HH:mm').format(corr.wakeTime!)}');
+          }
+        }
+
+        if (includeActivityData) {
+          if (corr.exerciseLevel != null) {
+            buffer.writeln('  Exercise: ${corr.exerciseLevel!.name}');
+          }
+          if (corr.socialActivity != null) {
+            buffer.writeln('  Social: ${corr.socialActivity!.name}');
+          }
+        }
+
+        if (includeWorkStressData && corr.workStress != null) {
+          buffer.writeln('  Work Stress: ${corr.workStress}/10');
+        }
+      }
+
+      buffer.writeln('');
+    }
+
+    buffer.writeln('Please provide:');
+    buffer.writeln('1. KEY INSIGHTS: 3-5 specific patterns or trends you notice in the selected data types');
+    buffer.writeln('2. RECOMMENDATIONS: 3-5 actionable suggestions based on the correlations and patterns found');
+    buffer.writeln('');
+    buffer.writeln('Focus your analysis on the relationships between the selected data types.');
     buffer.writeln('');
     buffer.writeln('Format your response as JSON with this structure:');
     buffer.writeln('{');
@@ -345,6 +566,14 @@ class DayMoodAnalysis {
   final Map<int, SegmentMoodAnalysis> segments = {};
 
   DayMoodAnalysis({required this.date});
+}
+
+class EnhancedDayAnalysis {
+  final DateTime date;
+  final Map<int, SegmentMoodAnalysis> segments = {};
+  CorrelationData? correlationData;
+
+  EnhancedDayAnalysis({required this.date});
 }
 
 class SegmentMoodAnalysis {

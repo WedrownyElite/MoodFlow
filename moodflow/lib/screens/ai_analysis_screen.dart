@@ -19,6 +19,13 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
   late TabController _tabController;
   List<SavedAnalysis> _savedAnalyses = [];
 
+  // Data selection options
+  bool _includeMoodData = true;
+  bool _includeWeatherData = false;
+  bool _includeSleepData = false;
+  bool _includeActivityData = false;
+  bool _includeWorkStressData = false;
+
   @override
   void initState() {
     super.initState();
@@ -152,14 +159,30 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
       return;
     }
 
+    // Check if at least mood data is selected
+    if (!_includeMoodData) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least mood data for analysis'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isAnalyzing = true;
       _analysisResult = null;
     });
 
-    final result = await MoodAnalysisService.analyzeMoodTrends(
+    final result = await MoodAnalysisService.analyzeMoodTrendsWithOptions(
       startDate: _startDate,
       endDate: _endDate,
+      includeMoodData: _includeMoodData,
+      includeWeatherData: _includeWeatherData,
+      includeSleepData: _includeSleepData,
+      includeActivityData: _includeActivityData,
+      includeWorkStressData: _includeWorkStressData,
     );
 
     setState(() {
@@ -229,6 +252,112 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
             child: const Text('I Understand'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDataSelectionCard() {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Data to Include in Analysis',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Select which types of data to include:',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+
+            // Make checkboxes more compact
+            _buildCompactCheckbox(
+              'Mood Data',
+              'Daily mood ratings and notes',
+              Icons.sentiment_satisfied,
+              _includeMoodData,
+                  (value) => setState(() => _includeMoodData = value ?? true),
+            ),
+
+            _buildCompactCheckbox(
+              'Weather Data',
+              'Weather conditions and temperature',
+              Icons.wb_sunny,
+              _includeWeatherData,
+                  (value) => setState(() => _includeWeatherData = value ?? false),
+            ),
+
+            _buildCompactCheckbox(
+              'Sleep Data',
+              'Sleep quality, duration, and schedule',
+              Icons.bedtime,
+              _includeSleepData,
+                  (value) => setState(() => _includeSleepData = value ?? false),
+            ),
+
+            _buildCompactCheckbox(
+              'Activity Data',
+              'Exercise levels and social activities',
+              Icons.fitness_center,
+              _includeActivityData,
+                  (value) => setState(() => _includeActivityData = value ?? false),
+            ),
+
+            _buildCompactCheckbox(
+              'Work Stress Data',
+              'Work stress levels and patterns',
+              Icons.work,
+              _includeWorkStressData,
+                  (value) => setState(() => _includeWorkStressData = value ?? false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactCheckbox(
+      String title,
+      String subtitle,
+      IconData icon,
+      bool value,
+      ValueChanged<bool?> onChanged,
+      ) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: Colors.grey.shade600),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            Checkbox(
+              value: value,
+              onChanged: onChanged,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -353,172 +482,173 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildCurrentAnalysisTab() {
-    return Column(
-      children: [
-        // Disclaimer banner
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          color: Colors.orange.shade100,
-          child: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'AI analysis for informational purposes only. Not professional health advice.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.orange.shade800,
-                    fontWeight: FontWeight.w500,
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Disclaimer banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            color: Colors.orange.shade100,
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'AI analysis for informational purposes only. Not professional health advice.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange.shade800,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-              TextButton(
-                onPressed: _showDisclaimer,
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  minimumSize: Size.zero,
-                ),
-                child: Text(
-                  'Details',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.orange.shade700,
-                    fontWeight: FontWeight.bold,
+                TextButton(
+                  onPressed: _showDisclaimer,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                  ),
+                  child: Text(
+                    'Details',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
 
-        // Date range selector
-        Container(
-          padding: const EdgeInsets.all(16),
-          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Date Range: ${DateFormat('MMM d').format(_startDate)} - ${DateFormat('MMM d, y').format(_endDate)}',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-              ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.date_range, size: 18),
-                label: const Text('Change'),
-                onPressed: _selectDateRange,
-              ),
-            ],
-          ),
-        ),
-
-        // Analysis button
-        if (_hasValidKey) ...[
-          Padding(
+          // Date range selector
+          Container(
             padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: _isAnalyzing
-                    ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Date Range: ${DateFormat('MMM d').format(_startDate)} - ${DateFormat('MMM d, y').format(_endDate)}',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
-                )
-                    : const Icon(Icons.psychology),
-                label: Text(_isAnalyzing ? 'Analyzing...' : 'Analyze My Moods'),
-                onPressed: _isAnalyzing ? null : _performAnalysis,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.date_range, size: 18),
+                  label: const Text('Change'),
+                  onPressed: _selectDateRange,
+                ),
+              ],
+            ),
+          ),
+
+          // Data selection card
+          _buildDataSelectionCard(),
+
+          // Analysis button
+          if (_hasValidKey) ...[
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: _isAnalyzing
+                      ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                      : const Icon(Icons.psychology),
+                  label: Text(_isAnalyzing ? 'Analyzing...' : 'Analyze My Moods'),
+                  onPressed: _isAnalyzing ? null : _performAnalysis,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
 
-        Expanded(
-          child: _buildContent(),
-        ),
-      ],
+          // Content area
+          _buildContent(),
+        ],
+      ),
     );
   }
 
   Widget _buildContent() {
     if (!_hasValidKey) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.key,
-                size: 64,
-                color: Colors.grey.shade400,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'API Key Required',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'To use AI analysis, you need to provide your own OpenAI API key.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('Add API Key'),
-                onPressed: _showApiKeyDialog,
-              ),
-            ],
-          ),
+      return Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.key,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'API Key Required',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'To use AI analysis, you need to provide your own OpenAI API key.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('Add API Key'),
+              onPressed: _showApiKeyDialog,
+            ),
+          ],
         ),
       );
     }
 
     if (_analysisResult == null && !_isAnalyzing) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.psychology,
-                size: 64,
-                color: Colors.grey.shade400,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Ready to Analyze',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Select your date range and click "Analyze My Moods" to get AI insights about your mood patterns.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-            ],
-          ),
+      return Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.psychology,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Ready to Analyze',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Select your date range and data types, then click "Analyze My Moods" to get AI insights.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ],
         ),
       );
     }
 
     if (_isAnalyzing) {
-      return const Center(
+      return const Padding(
+        padding: EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -536,36 +666,34 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
     }
 
     if (!_analysisResult!.success) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              const Text(
-                'Analysis Failed',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _analysisResult!.error ?? 'Unknown error occurred',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _performAnalysis,
-                child: const Text('Try Again'),
-              ),
-            ],
-          ),
+      return Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text(
+              'Analysis Failed',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _analysisResult!.error ?? 'Unknown error occurred',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _performAnalysis,
+              child: const Text('Try Again'),
+            ),
+          ],
         ),
       );
     }
 
-    return SingleChildScrollView(
+    return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,6 +718,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
             const SizedBox(height: 12),
             ..._analysisResult!.recommendations.map((rec) => _buildRecommendationCard(rec)),
           ],
+
+          // Add bottom padding to prevent cutoff
+          const SizedBox(height: 32),
         ],
       ),
     );
