@@ -34,9 +34,11 @@ class BlurTransitionService {
   Animation<double> get animation => _blurAnimation;
 
   /// Execute a blur transition with a callback for the content change
-  Future<void> executeTransition(Future<void> Function() onContentChange) async {
+  Future<void> executeTransition(
+      Future<void> Function() onContentChange) async {
     if (_isTransitioning || _disposed) {
-      Logger.moodService('⚠️ Blur transition blocked - already transitioning: $_isTransitioning, disposed: $_disposed');
+      Logger.moodService(
+          '⚠️ Blur transition blocked - already transitioning: $_isTransitioning, disposed: $_disposed');
       return;
     }
 
@@ -80,9 +82,9 @@ class BlurTransitionService {
 
   /// Create an ImageFilter with the current blur value
   ImageFilter get imageFilter => ImageFilter.blur(
-    sigmaX: blurValue,
-    sigmaY: blurValue,
-  );
+        sigmaX: blurValue,
+        sigmaY: blurValue,
+      );
 }
 
 /// Widget wrapper that applies blur transition to its child

@@ -1,4 +1,4 @@
-﻿// Fixed version of date_range_picker_dialog.dart with proper dark mode support
+// Fixed version of date_range_picker_dialog.dart with proper dark mode support
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -13,10 +13,12 @@ class CustomDateRangePickerDialog extends StatefulWidget {
   });
 
   @override
-  State<CustomDateRangePickerDialog> createState() => _CustomDateRangePickerDialogState();
+  State<CustomDateRangePickerDialog> createState() =>
+      _CustomDateRangePickerDialogState();
 }
 
-class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialog> {
+class _CustomDateRangePickerDialogState
+    extends State<CustomDateRangePickerDialog> {
   DateTime? _startDate;
   DateTime? _endDate;
 
@@ -50,7 +52,8 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
       case 'lastMonth':
         final lastMonth = DateTime(now.year, now.month - 1, 1);
         _startDate = lastMonth;
-        _endDate = DateTime(now.year, now.month, 0); // Last day of previous month
+        _endDate =
+            DateTime(now.year, now.month, 0); // Last day of previous month
         break;
       case 'thisYear':
         _startDate = DateTime(now.year, 1, 1);
@@ -69,7 +72,8 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
   Future<void> _selectStartDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _startDate ?? DateTime.now().subtract(const Duration(days: 30)),
+      initialDate:
+          _startDate ?? DateTime.now().subtract(const Duration(days: 30)),
       firstDate: DateTime(2020),
       lastDate: _endDate ?? DateTime.now(),
       helpText: 'Select start date',
@@ -121,9 +125,12 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
     final isDarkMode = theme.brightness == Brightness.dark;
 
     // Define theme-aware colors
-    final textColor = theme.textTheme.bodyLarge?.color ?? (isDarkMode ? Colors.white : Colors.black);
-    final subtitleColor = theme.textTheme.bodyMedium?.color ?? (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600);
-    final borderColor = isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400;
+    final textColor = theme.textTheme.bodyLarge?.color ??
+        (isDarkMode ? Colors.white : Colors.black);
+    final subtitleColor = theme.textTheme.bodyMedium?.color ??
+        (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600);
+    final borderColor =
+        isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400;
 
     return Dialog(
       child: Container(
@@ -181,7 +188,8 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                   return OutlinedButton(
                     onPressed: () => _setQuickRange(range),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 8),
                       foregroundColor: textColor,
                       side: BorderSide(color: borderColor),
                     ),
@@ -221,7 +229,9 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                       decoration: BoxDecoration(
                         border: Border.all(color: borderColor),
                         borderRadius: BorderRadius.circular(8),
-                        color: isDarkMode ? Colors.grey.shade800.withValues(alpha: 0.3) : Colors.transparent,
+                        color: isDarkMode
+                            ? Colors.grey.shade800.withValues(alpha: 0.3)
+                            : Colors.transparent,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,7 +251,9 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: _startDate != null ? textColor : subtitleColor,
+                              color: _startDate != null
+                                  ? textColor
+                                  : subtitleColor,
                             ),
                           ),
                         ],
@@ -249,9 +261,7 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
                   child: InkWell(
                     onTap: _selectEndDate,
@@ -260,7 +270,9 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                       decoration: BoxDecoration(
                         border: Border.all(color: borderColor),
                         borderRadius: BorderRadius.circular(8),
-                        color: isDarkMode ? Colors.grey.shade800.withValues(alpha: 0.3) : Colors.transparent,
+                        color: isDarkMode
+                            ? Colors.grey.shade800.withValues(alpha: 0.3)
+                            : Colors.transparent,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,7 +292,8 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: _endDate != null ? textColor : subtitleColor,
+                              color:
+                                  _endDate != null ? textColor : subtitleColor,
                             ),
                           ),
                         ],
@@ -298,7 +311,9 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withValues(alpha: isDarkMode ? 0.08 : 0.1),
+                  color: Theme.of(context)
+                      .primaryColor
+                      .withValues(alpha: isDarkMode ? 0.08 : 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isDarkMode
@@ -314,9 +329,13 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                       // FIXED: Use bright color for icon in dark mode
                       color: isDarkMode
                           ? () {
-                        final primaryHSL = HSLColor.fromColor(Theme.of(context).primaryColor);
-                        return primaryHSL.withLightness(0.7).withSaturation(0.8).toColor();
-                      }()
+                              final primaryHSL = HSLColor.fromColor(
+                                  Theme.of(context).primaryColor);
+                              return primaryHSL
+                                  .withLightness(0.7)
+                                  .withSaturation(0.8)
+                                  .toColor();
+                            }()
                           : Theme.of(context).primaryColor,
                     ),
                     const SizedBox(width: 8),
@@ -327,9 +346,13 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                         // FIXED: Use bright color for text in dark mode
                         color: isDarkMode
                             ? () {
-                          final primaryHSL = HSLColor.fromColor(Theme.of(context).primaryColor);
-                          return primaryHSL.withLightness(0.7).withSaturation(0.8).toColor();
-                        }()
+                                final primaryHSL = HSLColor.fromColor(
+                                    Theme.of(context).primaryColor);
+                                return primaryHSL
+                                    .withLightness(0.7)
+                                    .withSaturation(0.8)
+                                    .toColor();
+                              }()
                             : Theme.of(context).primaryColor,
                         fontWeight: FontWeight.w500,
                       ),
@@ -357,11 +380,11 @@ class _CustomDateRangePickerDialogState extends State<CustomDateRangePickerDialo
                   child: ElevatedButton(
                     onPressed: _isValidRange()
                         ? () {
-                      Navigator.of(context).pop(<String, DateTime>{
-                        'startDate': _startDate!,
-                        'endDate': _endDate!,
-                      });
-                    }
+                            Navigator.of(context).pop(<String, DateTime>{
+                              'startDate': _startDate!,
+                              'endDate': _endDate!,
+                            });
+                          }
                         : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,

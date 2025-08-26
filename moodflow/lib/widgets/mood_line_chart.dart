@@ -103,7 +103,8 @@ class _MoodLineChartState extends State<MoodLineChart> {
       for (int segment = 0; segment < 3; segment++) {
         final segmentData = weekData[segment]!;
         if (segmentData.isNotEmpty) {
-          averages[segment] = segmentData.reduce((a, b) => a + b) / segmentData.length;
+          averages[segment] =
+              segmentData.reduce((a, b) => a + b) / segmentData.length;
         }
       }
 
@@ -147,7 +148,8 @@ class _MoodLineChartState extends State<MoodLineChart> {
       for (int segment = 0; segment < 3; segment++) {
         final segmentData = monthData[segment]!;
         if (segmentData.isNotEmpty) {
-          averages[segment] = segmentData.reduce((a, b) => a + b) / segmentData.length;
+          averages[segment] =
+              segmentData.reduce((a, b) => a + b) / segmentData.length;
         }
       }
 
@@ -201,7 +203,8 @@ class _MoodLineChartState extends State<MoodLineChart> {
                   children: [
                     // Ultra compact header
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
                         color: Theme.of(context).primaryColor,
                       ),
@@ -217,7 +220,8 @@ class _MoodLineChartState extends State<MoodLineChart> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                            icon: const Icon(Icons.close,
+                                color: Colors.white, size: 18),
                             onPressed: () {
                               SystemChrome.setPreferredOrientations([
                                 DeviceOrientation.portraitUp,
@@ -228,7 +232,8 @@ class _MoodLineChartState extends State<MoodLineChart> {
                               Navigator.of(context).pop();
                             },
                             padding: const EdgeInsets.all(2),
-                            constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                            constraints: const BoxConstraints(
+                                minWidth: 24, minHeight: 24),
                           ),
                         ],
                       ),
@@ -245,7 +250,8 @@ class _MoodLineChartState extends State<MoodLineChart> {
                             aggregation: widget.aggregation,
                             onLegendTap: (lineName) {
                               setDialogState(() {
-                                _lineVisibility[lineName] = !_lineVisibility[lineName]!;
+                                _lineVisibility[lineName] =
+                                    !_lineVisibility[lineName]!;
                               });
                             },
                           ),
@@ -301,7 +307,8 @@ class _MoodLineChartState extends State<MoodLineChart> {
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(12),
@@ -383,8 +390,8 @@ class _MoodLineChartState extends State<MoodLineChart> {
                     color: isVisible
                         ? Theme.of(context).textTheme.bodyLarge?.color
                         : (Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey.shade500
-                        : Colors.grey.shade600),
+                            ? Colors.grey.shade500
+                            : Colors.grey.shade600),
                   ),
                 ),
               ],
@@ -404,16 +411,15 @@ class MoodLineChartPainter extends CustomPainter {
   final Function(String)? onLegendTap;
 
   MoodLineChartPainter(
-      this.trendData, {
-        this.isMaximized = false,
-        required this.lineVisibility,
-        this.showLegend = true,
-        this.onLegendTap,
-      });
+    this.trendData, {
+    this.isMaximized = false,
+    required this.lineVisibility,
+    this.showLegend = true,
+    this.onLegendTap,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    
     if (trendData.isEmpty) return;
 
     // Asymmetric padding - more left, less right
@@ -422,22 +428,28 @@ class MoodLineChartPainter extends CustomPainter {
     final topBottomPadding = isMaximized ? 30.0 : 30.0;
 
     final chartWidth = size.width - leftPadding - rightPadding;
-    final chartHeight = size.height - topBottomPadding * 2 - (isMaximized && showLegend ? 45 : 0);
+    final chartHeight = size.height -
+        topBottomPadding * 2 -
+        (isMaximized && showLegend ? 45 : 0);
 
     // Draw background
     final backgroundPaint = Paint()
       ..color = Colors.grey.shade50
       ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);
 
     // Draw grid lines
-    _drawGrid(canvas, size, leftPadding, topBottomPadding, chartWidth, chartHeight);
+    _drawGrid(
+        canvas, size, leftPadding, topBottomPadding, chartWidth, chartHeight);
 
     // Draw axes
-    _drawAxes(canvas, size, leftPadding, rightPadding, topBottomPadding, chartWidth, chartHeight);
+    _drawAxes(canvas, size, leftPadding, rightPadding, topBottomPadding,
+        chartWidth, chartHeight);
 
     // Draw mood lines
-    _drawMoodLines(canvas, size, leftPadding, topBottomPadding, chartWidth, chartHeight);
+    _drawMoodLines(
+        canvas, size, leftPadding, topBottomPadding, chartWidth, chartHeight);
 
     // Draw legend only for maximized view
     if (isMaximized && showLegend) {
@@ -454,7 +466,8 @@ class MoodLineChartPainter extends CustomPainter {
         showLegend != oldDelegate.showLegend;
   }
 
-  void _drawGrid(Canvas canvas, Size size, double leftPadding, double topPadding, double chartWidth, double chartHeight) {
+  void _drawGrid(Canvas canvas, Size size, double leftPadding,
+      double topPadding, double chartWidth, double chartHeight) {
     final gridPaint = Paint()
       ..color = Colors.grey.shade300
       ..strokeWidth = 0.5;
@@ -472,7 +485,8 @@ class MoodLineChartPainter extends CustomPainter {
     // Vertical grid lines
     if (trendData.length > 1) {
       final maxGridLines = isMaximized ? 8 : 5;
-      final dataPointInterval = (trendData.length / maxGridLines).ceil().clamp(1, trendData.length);
+      final dataPointInterval =
+          (trendData.length / maxGridLines).ceil().clamp(1, trendData.length);
 
       for (int i = 0; i < trendData.length; i += dataPointInterval) {
         final x = leftPadding + (chartWidth * (i / (trendData.length - 1)));
@@ -494,7 +508,14 @@ class MoodLineChartPainter extends CustomPainter {
     }
   }
 
-  void _drawAxes(Canvas canvas, Size size, double leftPadding, double rightPadding, double topPadding, double chartWidth, double chartHeight) {
+  void _drawAxes(
+      Canvas canvas,
+      Size size,
+      double leftPadding,
+      double rightPadding,
+      double topPadding,
+      double chartWidth,
+      double chartHeight) {
     final axisPaint = Paint()
       ..color = Colors.black87
       ..strokeWidth = 2;
@@ -527,21 +548,25 @@ class MoodLineChartPainter extends CustomPainter {
       textPainter.textDirection = ui.TextDirection.ltr;
       textPainter.layout();
 
-      textPainter.paint(canvas, Offset(leftPadding - textPainter.width - 8, y - textPainter.height / 2));
+      textPainter.paint(
+          canvas,
+          Offset(
+              leftPadding - textPainter.width - 8, y - textPainter.height / 2));
     }
 
     // X-axis labels (dates)
     if (trendData.length > 1) {
       final maxLabels = isMaximized ? 8 : 4;
-      final labelInterval = (trendData.length / maxLabels).ceil().clamp(1, trendData.length);
+      final labelInterval =
+          (trendData.length / maxLabels).ceil().clamp(1, trendData.length);
 
       for (int i = 0; i < trendData.length; i += labelInterval) {
         final x = leftPadding + (chartWidth * (i / (trendData.length - 1)));
         final date = trendData[i].date;
 
-        final dateText = isMaximized ?
-        DateFormat('MMM d').format(date) :
-        DateFormat('M/d').format(date);
+        final dateText = isMaximized
+            ? DateFormat('MMM d').format(date)
+            : DateFormat('M/d').format(date);
 
         final textStyle = TextStyle(
           color: Colors.black54,
@@ -553,15 +578,16 @@ class MoodLineChartPainter extends CustomPainter {
         textPainter.textDirection = ui.TextDirection.ltr;
         textPainter.layout();
 
-        textPainter.paint(canvas, Offset(x - textPainter.width / 2, topPadding + chartHeight + 8));
+        textPainter.paint(canvas,
+            Offset(x - textPainter.width / 2, topPadding + chartHeight + 8));
       }
 
       if ((trendData.length - 1) % labelInterval != 0) {
         final x = leftPadding + chartWidth;
         final date = trendData.last.date;
-        final dateText = isMaximized ?
-        DateFormat('MMM d').format(date) :
-        DateFormat('M/d').format(date);
+        final dateText = isMaximized
+            ? DateFormat('MMM d').format(date)
+            : DateFormat('M/d').format(date);
 
         final textStyle = TextStyle(
           color: Colors.black54,
@@ -573,7 +599,8 @@ class MoodLineChartPainter extends CustomPainter {
         textPainter.textDirection = ui.TextDirection.ltr;
         textPainter.layout();
 
-        textPainter.paint(canvas, Offset(x - textPainter.width / 2, topPadding + chartHeight + 8));
+        textPainter.paint(canvas,
+            Offset(x - textPainter.width / 2, topPadding + chartHeight + 8));
       }
     }
 
@@ -584,7 +611,8 @@ class MoodLineChartPainter extends CustomPainter {
         fontSize: 16,
         fontWeight: FontWeight.bold,
       );
-      final yAxisTextSpan = TextSpan(text: 'Mood Rating', style: yAxisLabelStyle);
+      final yAxisTextSpan =
+          TextSpan(text: 'Mood Rating', style: yAxisLabelStyle);
       final yAxisTextPainter = TextPainter(text: yAxisTextSpan);
       yAxisTextPainter.textDirection = ui.TextDirection.ltr;
       yAxisTextPainter.layout();
@@ -608,17 +636,18 @@ class MoodLineChartPainter extends CustomPainter {
       xAxisTextPainter.textDirection = ui.TextDirection.ltr;
       xAxisTextPainter.layout();
 
-      xAxisTextPainter.paint(canvas, Offset(
-          leftPadding + chartWidth / 2 - xAxisTextPainter.width / 2,
-          topPadding + chartHeight + 35
-      ));
+      xAxisTextPainter.paint(
+          canvas,
+          Offset(leftPadding + chartWidth / 2 - xAxisTextPainter.width / 2,
+              topPadding + chartHeight + 35));
     }
   }
 
-  void _drawMoodLines(Canvas canvas, Size size, double leftPadding, double topPadding, double chartWidth, double chartHeight) {
+  void _drawMoodLines(Canvas canvas, Size size, double leftPadding,
+      double topPadding, double chartWidth, double chartHeight) {
     final colors = [
       Colors.orange, // Morning
-      Colors.blue,   // Midday
+      Colors.blue, // Midday
       Colors.purple, // Evening
     ];
 
@@ -645,8 +674,10 @@ class MoodLineChartPainter extends CustomPainter {
       bool isFirstPoint = true;
 
       for (final point in points) {
-        final x = leftPadding + (chartWidth * (point.x / (trendData.length - 1)));
-        final y = topPadding + chartHeight - (chartHeight * ((point.y - 1) / 9));
+        final x =
+            leftPadding + (chartWidth * (point.x / (trendData.length - 1)));
+        final y =
+            topPadding + chartHeight - (chartHeight * ((point.y - 1) / 9));
 
         if (isFirstPoint) {
           path.moveTo(x, y);
@@ -675,8 +706,10 @@ class MoodLineChartPainter extends CustomPainter {
         bool isFirstPoint = true;
 
         for (final point in averagePoints) {
-          final x = leftPadding + (chartWidth * (point.x / (trendData.length - 1)));
-          final y = topPadding + chartHeight - (chartHeight * ((point.y - 1) / 9));
+          final x =
+              leftPadding + (chartWidth * (point.x / (trendData.length - 1)));
+          final y =
+              topPadding + chartHeight - (chartHeight * ((point.y - 1) / 9));
 
           if (isFirstPoint) {
             path.moveTo(x, y);
@@ -715,12 +748,7 @@ class MoodLineChartPainter extends CustomPainter {
       ..strokeWidth = 1.0;
 
     final legendRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(
-          10,
-          legendY - 5,
-          size.width - 20,
-          legendHeight - 5
-      ),
+      Rect.fromLTWH(10, legendY - 5, size.width - 20, legendHeight - 5),
       const Radius.circular(6),
     );
 
@@ -786,7 +814,8 @@ class AggregatedDataPoint {
 
   double? get average {
     if (moods.isEmpty) return null;
-    final validMoods = moods.values.where((mood) => mood.isFinite && !mood.isNaN).toList();
+    final validMoods =
+        moods.values.where((mood) => mood.isFinite && !mood.isNaN).toList();
     if (validMoods.isEmpty) return null;
 
     final total = validMoods.fold(0.0, (sum, mood) => sum + mood);
@@ -806,13 +835,13 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
   final Function(String)? onLegendTap;
 
   AggregatedMoodLineChartPainter(
-      this.aggregatedData, {
-        this.isMaximized = false,
-        required this.lineVisibility,
-        required this.aggregation,
-        this.showLegend = true,
-        this.onLegendTap,
-      });
+    this.aggregatedData, {
+    this.isMaximized = false,
+    required this.lineVisibility,
+    required this.aggregation,
+    this.showLegend = true,
+    this.onLegendTap,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -824,18 +853,24 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
     final topBottomPadding = isMaximized ? 30.0 : 30.0;
 
     final chartWidth = size.width - leftPadding - rightPadding;
-    final chartHeight = size.height - topBottomPadding * 2 - (isMaximized && showLegend ? 45 : 0);
+    final chartHeight = size.height -
+        topBottomPadding * 2 -
+        (isMaximized && showLegend ? 45 : 0);
 
     // Draw background
     final backgroundPaint = Paint()
       ..color = Colors.grey.shade50
       ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);
 
     // Draw grid, axes, and mood lines using aggregated data
-    _drawGrid(canvas, size, leftPadding, topBottomPadding, chartWidth, chartHeight);
-    _drawAxes(canvas, size, leftPadding, rightPadding, topBottomPadding, chartWidth, chartHeight);
-    _drawMoodLines(canvas, size, leftPadding, topBottomPadding, chartWidth, chartHeight);
+    _drawGrid(
+        canvas, size, leftPadding, topBottomPadding, chartWidth, chartHeight);
+    _drawAxes(canvas, size, leftPadding, rightPadding, topBottomPadding,
+        chartWidth, chartHeight);
+    _drawMoodLines(
+        canvas, size, leftPadding, topBottomPadding, chartWidth, chartHeight);
 
     // Draw legend only for maximized view
     if (isMaximized && showLegend) {
@@ -843,7 +878,8 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
     }
   }
 
-  void _drawGrid(Canvas canvas, Size size, double leftPadding, double topPadding, double chartWidth, double chartHeight) {
+  void _drawGrid(Canvas canvas, Size size, double leftPadding,
+      double topPadding, double chartWidth, double chartHeight) {
     final gridPaint = Paint()
       ..color = Colors.grey.shade300
       ..strokeWidth = 0.5;
@@ -861,10 +897,13 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
     // Vertical grid lines
     if (aggregatedData.length > 1) {
       final maxGridLines = isMaximized ? 8 : 5;
-      final dataPointInterval = (aggregatedData.length / maxGridLines).ceil().clamp(1, aggregatedData.length);
+      final dataPointInterval = (aggregatedData.length / maxGridLines)
+          .ceil()
+          .clamp(1, aggregatedData.length);
 
       for (int i = 0; i < aggregatedData.length; i += dataPointInterval) {
-        final x = leftPadding + (chartWidth * (i / (aggregatedData.length - 1)));
+        final x =
+            leftPadding + (chartWidth * (i / (aggregatedData.length - 1)));
         canvas.drawLine(
           Offset(x, topPadding),
           Offset(x, topPadding + chartHeight),
@@ -874,7 +913,14 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
     }
   }
 
-  void _drawAxes(Canvas canvas, Size size, double leftPadding, double rightPadding, double topPadding, double chartWidth, double chartHeight) {
+  void _drawAxes(
+      Canvas canvas,
+      Size size,
+      double leftPadding,
+      double rightPadding,
+      double topPadding,
+      double chartWidth,
+      double chartHeight) {
     final axisPaint = Paint()
       ..color = Colors.black87
       ..strokeWidth = 2;
@@ -907,25 +953,35 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
       textPainter.textDirection = ui.TextDirection.ltr;
       textPainter.layout();
 
-      textPainter.paint(canvas, Offset(leftPadding - textPainter.width - 8, y - textPainter.height / 2));
+      textPainter.paint(
+          canvas,
+          Offset(
+              leftPadding - textPainter.width - 8, y - textPainter.height / 2));
     }
 
     // X-axis labels using aggregated data labels
     if (aggregatedData.length > 1) {
       final maxLabels = isMaximized ? 8 : 4;
-      final labelInterval = (aggregatedData.length / maxLabels).ceil().clamp(1, aggregatedData.length);
+      final labelInterval = (aggregatedData.length / maxLabels)
+          .ceil()
+          .clamp(1, aggregatedData.length);
 
       for (int i = 0; i < aggregatedData.length; i += labelInterval) {
-        final x = leftPadding + (chartWidth * (i / (aggregatedData.length - 1)));
+        final x =
+            leftPadding + (chartWidth * (i / (aggregatedData.length - 1)));
         final dataPoint = aggregatedData[i];
 
         String dateText;
         switch (aggregation) {
           case ChartAggregation.daily:
-            dateText = isMaximized ? DateFormat('MMM d').format(dataPoint.date) : DateFormat('M/d').format(dataPoint.date);
+            dateText = isMaximized
+                ? DateFormat('MMM d').format(dataPoint.date)
+                : DateFormat('M/d').format(dataPoint.date);
             break;
           case ChartAggregation.weekly:
-            dateText = isMaximized ? 'Week ${DateFormat('MMM d').format(dataPoint.date)}' : DateFormat('M/d').format(dataPoint.date);
+            dateText = isMaximized
+                ? 'Week ${DateFormat('MMM d').format(dataPoint.date)}'
+                : DateFormat('M/d').format(dataPoint.date);
             break;
           case ChartAggregation.monthly:
             dateText = DateFormat('MMM y').format(dataPoint.date);
@@ -942,7 +998,8 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
         textPainter.textDirection = ui.TextDirection.ltr;
         textPainter.layout();
 
-        textPainter.paint(canvas, Offset(x - textPainter.width / 2, topPadding + chartHeight + 8));
+        textPainter.paint(canvas,
+            Offset(x - textPainter.width / 2, topPadding + chartHeight + 8));
       }
     }
 
@@ -953,7 +1010,8 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
         fontSize: 16,
         fontWeight: FontWeight.bold,
       );
-      final yAxisTextSpan = TextSpan(text: 'Mood Rating', style: yAxisLabelStyle);
+      final yAxisTextSpan =
+          TextSpan(text: 'Mood Rating', style: yAxisLabelStyle);
       final yAxisTextPainter = TextPainter(text: yAxisTextSpan);
       yAxisTextPainter.textDirection = ui.TextDirection.ltr;
       yAxisTextPainter.layout();
@@ -974,14 +1032,15 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
       xAxisTextPainter.textDirection = ui.TextDirection.ltr;
       xAxisTextPainter.layout();
 
-      xAxisTextPainter.paint(canvas, Offset(
-          leftPadding + chartWidth / 2 - xAxisTextPainter.width / 2,
-          topPadding + chartHeight + 35
-      ));
+      xAxisTextPainter.paint(
+          canvas,
+          Offset(leftPadding + chartWidth / 2 - xAxisTextPainter.width / 2,
+              topPadding + chartHeight + 35));
     }
   }
 
-  void _drawMoodLines(Canvas canvas, Size size, double leftPadding, double topPadding, double chartWidth, double chartHeight) {
+  void _drawMoodLines(Canvas canvas, Size size, double leftPadding,
+      double topPadding, double chartWidth, double chartHeight) {
     final colors = [Colors.orange, Colors.blue, Colors.purple];
     final lineNames = ['Morning', 'Midday', 'Evening'];
 
@@ -990,7 +1049,9 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
       final lineName = lineNames[segment];
       if (!(lineVisibility[lineName] ?? true)) continue;
 
-      final points = aggregatedData.where((point) => point.moods[segment] != null).toList();
+      final points = aggregatedData
+          .where((point) => point.moods[segment] != null)
+          .toList();
       if (points.isEmpty) continue;
 
       final linePaint = Paint()
@@ -1009,8 +1070,11 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
       for (final point in points) {
         if (aggregatedData.length <= 1) continue;
 
-        final x = leftPadding + (chartWidth * (point.index / (aggregatedData.length - 1)));
-        final y = topPadding + chartHeight - (chartHeight * ((point.moods[segment]! - 1) / 9));
+        final x = leftPadding +
+            (chartWidth * (point.index / (aggregatedData.length - 1)));
+        final y = topPadding +
+            chartHeight -
+            (chartHeight * ((point.moods[segment]! - 1) / 9));
 
         // Check for invalid values
         if (x.isNaN || y.isNaN || x.isInfinite || y.isInfinite) continue;
@@ -1030,7 +1094,8 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
 
     // Draw average line
     if (lineVisibility['Average'] ?? true) {
-      final averagePoints = aggregatedData.where((point) => point.average != null).toList();
+      final averagePoints =
+          aggregatedData.where((point) => point.average != null).toList();
       if (averagePoints.isNotEmpty) {
         final averagePaint = Paint()
           ..color = Colors.green.shade600
@@ -1044,8 +1109,11 @@ class AggregatedMoodLineChartPainter extends CustomPainter {
         for (final point in averagePoints) {
           if (aggregatedData.length <= 1) continue;
 
-          final x = leftPadding + (chartWidth * (point.index / (aggregatedData.length - 1)));
-          final y = topPadding + chartHeight - (chartHeight * ((point.average! - 1) / 9));
+          final x = leftPadding +
+              (chartWidth * (point.index / (aggregatedData.length - 1)));
+          final y = topPadding +
+              chartHeight -
+              (chartHeight * ((point.average! - 1) / 9));
 
           // Check for invalid values
           if (x.isNaN || y.isNaN || x.isInfinite || y.isInfinite) continue;

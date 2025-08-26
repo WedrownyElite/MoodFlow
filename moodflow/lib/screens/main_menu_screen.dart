@@ -31,7 +31,8 @@ class MainMenuScreen extends StatefulWidget {
   State<MainMenuScreen> createState() => _MainMenuScreenState();
 }
 
-class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStateMixin {
+class _MainMenuScreenState extends State<MainMenuScreen>
+    with TickerProviderStateMixin {
   late BlurTransitionService _blurService;
 
   @override
@@ -65,7 +66,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
 
     if (!mounted) return;
 
-    final shouldAsk = await EnhancedNotificationService.shouldAskForPermission();
+    final shouldAsk =
+        await EnhancedNotificationService.shouldAskForPermission();
     if (shouldAsk) {
       _showNotificationPermissionDialog();
     }
@@ -81,7 +83,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
     if (result == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🔔 Notifications enabled! You\'ll get helpful reminders.'),
+          content:
+              Text('🔔 Notifications enabled! You\'ll get helpful reminders.'),
           backgroundColor: Colors.green,
         ),
       );
@@ -97,11 +100,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
   LinearGradient _getBackgroundGradient(BuildContext context) {
     final brightness = widget.themeMode == ThemeMode.system
         ? MediaQuery.platformBrightnessOf(context)
-        : (widget.themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light);
+        : (widget.themeMode == ThemeMode.dark
+            ? Brightness.dark
+            : Brightness.light);
 
     return brightness == Brightness.dark
         ? const LinearGradient(colors: [Colors.black87, Colors.grey])
-        : const LinearGradient(colors: [Colors.blueAccent, Colors.lightBlueAccent]);
+        : const LinearGradient(
+            colors: [Colors.blueAccent, Colors.lightBlueAccent]);
   }
 
   Future<void> _navigateWithBlur(Widget destination) async {
@@ -146,7 +152,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
                     _buildPrimaryButton(
                       'Log Mood',
                       Icons.edit_note,
-                          () => _navigateToMoodLog(),
+                      () => _navigateToMoodLog(),
                     ),
 
                     const SizedBox(height: 24),
@@ -154,43 +160,79 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
                     // Quick access grid (3x2)
                     Row(
                       children: [
-                        Expanded(child: _buildQuickButton('History', Icons.history, () => _navigateWithBlur(const MoodHistoryScreen()))),
+                        Expanded(
+                            child: _buildQuickButton(
+                                'History',
+                                Icons.history,
+                                () => _navigateWithBlur(
+                                    const MoodHistoryScreen()))),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildQuickButton('Trends', Icons.show_chart, () => _navigateWithBlur(const MoodTrendsScreen()))),
+                        Expanded(
+                            child: _buildQuickButton(
+                                'Trends',
+                                Icons.show_chart,
+                                () => _navigateWithBlur(
+                                    const MoodTrendsScreen()))),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(child: _buildQuickButton('Goals', Icons.flag, () => _navigateWithBlur(const GoalsScreen()))),
+                        Expanded(
+                            child: _buildQuickButton('Goals', Icons.flag,
+                                () => _navigateWithBlur(const GoalsScreen()))),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildQuickButton('AI Analysis', Icons.psychology, () => _navigateWithBlur(const AIAnalysisScreen()))),
+                        Expanded(
+                            child: _buildQuickButton(
+                                'AI Analysis',
+                                Icons.psychology,
+                                () => _navigateWithBlur(
+                                    const AIAnalysisScreen()))),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(child: _buildQuickButton('Insights', Icons.psychology, () => _navigateWithBlur(const InsightsScreen()))),
+                        Expanded(
+                            child: _buildQuickButton(
+                                'Insights',
+                                Icons.psychology,
+                                () =>
+                                    _navigateWithBlur(const InsightsScreen()))),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildQuickButton('Factors', Icons.analytics, () => _navigateWithBlur(const CorrelationScreen(initialTabIndex: 0)))),
+                        Expanded(
+                            child: _buildQuickButton(
+                                'Factors',
+                                Icons.analytics,
+                                () => _navigateWithBlur(const CorrelationScreen(
+                                    initialTabIndex: 0)))),
                       ],
                     ),
 
                     const SizedBox(height: 24),
-                    
+
                     // Secondary actions row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildSecondaryButton('Backup', Icons.cloud_upload, () => _navigateWithBlur(const BackupExportScreen())),
-                        _buildSecondaryButton('Settings', Icons.settings, () => _navigateWithScale(
-                          SettingsScreen(
-                            themeMode: widget.themeMode,
-                            useCustomGradient: widget.useCustomGradient,
-                            onThemeModeChanged: widget.onThemeModeChanged,
-                            onUseCustomGradientChanged: widget.onUseCustomGradientChanged,
-                          ),
-                        )),
+                        _buildSecondaryButton(
+                            'Backup',
+                            Icons.cloud_upload,
+                            () =>
+                                _navigateWithBlur(const BackupExportScreen())),
+                        _buildSecondaryButton(
+                            'Settings',
+                            Icons.settings,
+                            () => _navigateWithScale(
+                                  SettingsScreen(
+                                    themeMode: widget.themeMode,
+                                    useCustomGradient: widget.useCustomGradient,
+                                    onThemeModeChanged:
+                                        widget.onThemeModeChanged,
+                                    onUseCustomGradientChanged:
+                                        widget.onUseCustomGradientChanged,
+                                  ),
+                                )),
                       ],
                     ),
                   ],
@@ -208,7 +250,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
 
     final brightness = widget.themeMode == ThemeMode.system
         ? MediaQuery.platformBrightnessOf(context)
-        : (widget.themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light);
+        : (widget.themeMode == ThemeMode.dark
+            ? Brightness.dark
+            : Brightness.light);
 
     await _blurService.executeTransition(() async {
       Navigator.pushNamed(
@@ -221,31 +265,36 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
       );
     });
   }
-  
-  Widget _buildPrimaryButton(String label, IconData icon, VoidCallback onPressed) {
+
+  Widget _buildPrimaryButton(
+      String label, IconData icon, VoidCallback onPressed) {
     return SizedBox(
       width: double.infinity,
       height: 64,
       child: ElevatedButton.icon(
         icon: Icon(icon, size: 28),
-        label: Text(label, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        label: Text(label,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).primaryColor,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
     );
   }
 
-  Widget _buildQuickButton(String label, IconData icon, VoidCallback onPressed) {
+  Widget _buildQuickButton(
+      String label, IconData icon, VoidCallback onPressed) {
     return SizedBox(
       height: 80,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.all(12),
         ),
         child: Column(
@@ -253,14 +302,17 @@ class _MainMenuScreenState extends State<MainMenuScreen> with TickerProviderStat
           children: [
             Icon(icon, size: 24),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 12), textAlign: TextAlign.center),
+            Text(label,
+                style: const TextStyle(fontSize: 12),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSecondaryButton(String label, IconData icon, VoidCallback onPressed) {
+  Widget _buildSecondaryButton(
+      String label, IconData icon, VoidCallback onPressed) {
     return TextButton.icon(
       icon: Icon(icon, size: 20),
       label: Text(label),

@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../data/mood_data_service.dart';
@@ -39,7 +39,6 @@ class MoodAnalysisService {
 
       // 4. Parse AI response
       return _parseAIResponse(aiResponse);
-
     } catch (e) {
       return MoodAnalysisResult(
         success: false,
@@ -98,7 +97,6 @@ class MoodAnalysisService {
 
       // 4. Parse AI response
       return _parseAIResponse(aiResponse);
-
     } catch (e) {
       return MoodAnalysisResult(
         success: false,
@@ -110,7 +108,8 @@ class MoodAnalysisService {
   }
 
   /// Gather mood data for analysis
-  static Future<List<DayMoodAnalysis>> _gatherMoodData(DateTime startDate, DateTime endDate) async {
+  static Future<List<DayMoodAnalysis>> _gatherMoodData(
+      DateTime startDate, DateTime endDate) async {
     final moodData = <DayMoodAnalysis>[];
 
     DateTime currentDate = startDate;
@@ -144,14 +143,14 @@ class MoodAnalysisService {
 
   /// Gather selected data types for analysis
   static Future<List<EnhancedDayAnalysis>> _gatherSelectedData(
-      DateTime startDate,
-      DateTime endDate, {
-        bool includeMoodData = true,
-        bool includeWeatherData = false,
-        bool includeSleepData = false,
-        bool includeActivityData = false,
-        bool includeWorkStressData = false,
-      }) async {
+    DateTime startDate,
+    DateTime endDate, {
+    bool includeMoodData = true,
+    bool includeWeatherData = false,
+    bool includeSleepData = false,
+    bool includeActivityData = false,
+    bool includeWorkStressData = false,
+  }) async {
     final analysisData = <EnhancedDayAnalysis>[];
 
     DateTime currentDate = startDate;
@@ -176,8 +175,12 @@ class MoodAnalysisService {
       }
 
       // Gather correlation data if any correlation types selected
-      if (includeWeatherData || includeSleepData || includeActivityData || includeWorkStressData) {
-        final correlationData = await CorrelationDataService.loadCorrelationData(currentDate);
+      if (includeWeatherData ||
+          includeSleepData ||
+          includeActivityData ||
+          includeWorkStressData) {
+        final correlationData =
+            await CorrelationDataService.loadCorrelationData(currentDate);
         if (correlationData != null) {
           dayAnalysis.correlationData = correlationData;
           hasData = true;
@@ -195,12 +198,15 @@ class MoodAnalysisService {
   }
 
   /// Build prompt for AI analysis
-  static String _buildAnalysisPrompt(List<DayMoodAnalysis> moodData, DateTime startDate, DateTime endDate) {
+  static String _buildAnalysisPrompt(
+      List<DayMoodAnalysis> moodData, DateTime startDate, DateTime endDate) {
     final buffer = StringBuffer();
 
-    buffer.writeln('Please analyze the following mood tracking data and provide insights and recommendations.');
+    buffer.writeln(
+        'Please analyze the following mood tracking data and provide insights and recommendations.');
     buffer.writeln('');
-    buffer.writeln('DATE RANGE: ${_formatDate(startDate)} to ${_formatDate(endDate)}');
+    buffer.writeln(
+        'DATE RANGE: ${_formatDate(startDate)} to ${_formatDate(endDate)}');
     buffer.writeln('MOOD SCALE: 1 (very poor) to 10 (excellent)');
     buffer.writeln('TIME SEGMENTS: Morning (0), Midday (1), Evening (2)');
     buffer.writeln('');
@@ -223,16 +229,20 @@ class MoodAnalysisService {
     }
 
     buffer.writeln('Please provide:');
-    buffer.writeln('1. KEY INSIGHTS: 3-5 specific patterns or trends you notice');
-    buffer.writeln('2. RECOMMENDATIONS: 3-5 actionable suggestions for improving mood or maintaining good patterns');
+    buffer
+        .writeln('1. KEY INSIGHTS: 3-5 specific patterns or trends you notice');
+    buffer.writeln(
+        '2. RECOMMENDATIONS: 3-5 actionable suggestions for improving mood or maintaining good patterns');
     buffer.writeln('');
     buffer.writeln('Format your response as JSON with this structure:');
     buffer.writeln('{');
     buffer.writeln('  "insights": [');
-    buffer.writeln('    {"title": "Insight Title", "description": "Detailed explanation", "type": "positive|negative|neutral"}');
+    buffer.writeln(
+        '    {"title": "Insight Title", "description": "Detailed explanation", "type": "positive|negative|neutral"}');
     buffer.writeln('  ],');
     buffer.writeln('  "recommendations": [');
-    buffer.writeln('    {"title": "Recommendation Title", "description": "Actionable advice", "priority": "high|medium|low"}');
+    buffer.writeln(
+        '    {"title": "Recommendation Title", "description": "Actionable advice", "priority": "high|medium|low"}');
     buffer.writeln('  ]');
     buffer.writeln('}');
 
@@ -241,27 +251,39 @@ class MoodAnalysisService {
 
   /// Build enhanced analysis prompt with correlation data
   static String _buildEnhancedAnalysisPrompt(
-      List<EnhancedDayAnalysis> analysisData,
-      DateTime startDate,
-      DateTime endDate, {
-        bool includeMoodData = true,
-        bool includeWeatherData = false,
-        bool includeSleepData = false,
-        bool includeActivityData = false,
-        bool includeWorkStressData = false,
-      }) {
+    List<EnhancedDayAnalysis> analysisData,
+    DateTime startDate,
+    DateTime endDate, {
+    bool includeMoodData = true,
+    bool includeWeatherData = false,
+    bool includeSleepData = false,
+    bool includeActivityData = false,
+    bool includeWorkStressData = false,
+  }) {
     final buffer = StringBuffer();
 
-    buffer.writeln('Please analyze the following mood and lifestyle data and provide insights and recommendations.');
+    buffer.writeln(
+        'Please analyze the following mood and lifestyle data and provide insights and recommendations.');
     buffer.writeln('');
-    buffer.writeln('DATE RANGE: ${_formatDate(startDate)} to ${_formatDate(endDate)}');
+    buffer.writeln(
+        'DATE RANGE: ${_formatDate(startDate)} to ${_formatDate(endDate)}');
     buffer.writeln('');
     buffer.writeln('DATA TYPES INCLUDED:');
-    if (includeMoodData) buffer.writeln('- Mood ratings (1-10 scale) and notes');
-    if (includeWeatherData) buffer.writeln('- Weather conditions and temperature');
-    if (includeSleepData) buffer.writeln('- Sleep quality (1-10 scale), duration, and schedule');
-    if (includeActivityData) buffer.writeln('- Exercise levels and social activities');
-    if (includeWorkStressData) buffer.writeln('- Work stress levels (1-10 scale)');
+    if (includeMoodData) {
+      buffer.writeln('- Mood ratings (1-10 scale) and notes');
+    }
+    if (includeWeatherData) {
+      buffer.writeln('- Weather conditions and temperature');
+    }
+    if (includeSleepData) {
+      buffer.writeln('- Sleep quality (1-10 scale), duration, and schedule');
+    }
+    if (includeActivityData) {
+      buffer.writeln('- Exercise levels and social activities');
+    }
+    if (includeWorkStressData) {
+      buffer.writeln('- Work stress levels (1-10 scale)');
+    }
     buffer.writeln('');
 
     if (includeMoodData) {
@@ -293,11 +315,13 @@ class MoodAnalysisService {
       if (day.correlationData != null) {
         final corr = day.correlationData!;
 
-        if (includeWeatherData && (corr.weather != null || corr.temperature != null)) {
+        if (includeWeatherData &&
+            (corr.weather != null || corr.temperature != null)) {
           buffer.write('  Weather: ');
           if (corr.weather != null) buffer.write(corr.weather!.name);
           if (corr.temperature != null) {
-            buffer.write(', ${corr.temperature!.toStringAsFixed(1)}°${corr.temperatureUnit == 'fahrenheit' ? 'F' : 'C'}');
+            buffer.write(
+                ', ${corr.temperature!.toStringAsFixed(1)}°${corr.temperatureUnit == 'fahrenheit' ? 'F' : 'C'}');
           }
           buffer.writeln();
         }
@@ -307,7 +331,8 @@ class MoodAnalysisService {
             buffer.writeln('  Sleep Quality: ${corr.sleepQuality}/10');
           }
           if (corr.bedtime != null && corr.wakeTime != null) {
-            buffer.writeln('  Sleep: ${DateFormat('HH:mm').format(corr.bedtime!)} - ${DateFormat('HH:mm').format(corr.wakeTime!)}');
+            buffer.writeln(
+                '  Sleep: ${DateFormat('HH:mm').format(corr.bedtime!)} - ${DateFormat('HH:mm').format(corr.wakeTime!)}');
           }
         }
 
@@ -329,18 +354,23 @@ class MoodAnalysisService {
     }
 
     buffer.writeln('Please provide:');
-    buffer.writeln('1. KEY INSIGHTS: 3-5 specific patterns or trends you notice in the selected data types');
-    buffer.writeln('2. RECOMMENDATIONS: 3-5 actionable suggestions based on the correlations and patterns found');
+    buffer.writeln(
+        '1. KEY INSIGHTS: 3-5 specific patterns or trends you notice in the selected data types');
+    buffer.writeln(
+        '2. RECOMMENDATIONS: 3-5 actionable suggestions based on the correlations and patterns found');
     buffer.writeln('');
-    buffer.writeln('Focus your analysis on the relationships between the selected data types.');
+    buffer.writeln(
+        'Focus your analysis on the relationships between the selected data types.');
     buffer.writeln('');
     buffer.writeln('Format your response as JSON with this structure:');
     buffer.writeln('{');
     buffer.writeln('  "insights": [');
-    buffer.writeln('    {"title": "Insight Title", "description": "Detailed explanation", "type": "positive|negative|neutral"}');
+    buffer.writeln(
+        '    {"title": "Insight Title", "description": "Detailed explanation", "type": "positive|negative|neutral"}');
     buffer.writeln('  ],');
     buffer.writeln('  "recommendations": [');
-    buffer.writeln('    {"title": "Recommendation Title", "description": "Actionable advice", "priority": "high|medium|low"}');
+    buffer.writeln(
+        '    {"title": "Recommendation Title", "description": "Actionable advice", "priority": "high|medium|low"}');
     buffer.writeln('  ]');
     buffer.writeln('}');
 
@@ -363,7 +393,8 @@ class MoodAnalysisService {
         'messages': [
           {
             'role': 'system',
-            'content': 'You are a helpful mood analysis assistant. Analyze mood tracking data and provide insights and recommendations. Always respond with valid JSON in the requested format.',
+            'content':
+                'You are a helpful mood analysis assistant. Analyze mood tracking data and provide insights and recommendations. Always respond with valid JSON in the requested format.',
           },
           {
             'role': 'user',
@@ -379,7 +410,8 @@ class MoodAnalysisService {
       final data = jsonDecode(response.body);
       return data['choices'][0]['message']['content'] as String;
     } else {
-      throw Exception('OpenAI API error: ${response.statusCode} - ${response.body}');
+      throw Exception(
+          'OpenAI API error: ${response.statusCode} - ${response.body}');
     }
   }
 
@@ -429,7 +461,6 @@ class MoodAnalysisService {
         insights: insights,
         recommendations: recommendations,
       );
-
     } catch (e) {
       return MoodAnalysisResult(
         success: false,
@@ -442,17 +473,23 @@ class MoodAnalysisService {
 
   static InsightType _parseInsightType(String? type) {
     switch (type?.toLowerCase()) {
-      case 'positive': return InsightType.positive;
-      case 'negative': return InsightType.negative;
-      default: return InsightType.neutral;
+      case 'positive':
+        return InsightType.positive;
+      case 'negative':
+        return InsightType.negative;
+      default:
+        return InsightType.neutral;
     }
   }
 
   static RecommendationPriority _parsePriority(String? priority) {
     switch (priority?.toLowerCase()) {
-      case 'high': return RecommendationPriority.high;
-      case 'low': return RecommendationPriority.low;
-      default: return RecommendationPriority.medium;
+      case 'high':
+        return RecommendationPriority.high;
+      case 'low':
+        return RecommendationPriority.low;
+      default:
+        return RecommendationPriority.medium;
     }
   }
 
@@ -503,7 +540,8 @@ class MoodAnalysisService {
   }
 
   /// Save analysis result with timestamp
-  static Future<void> saveAnalysisResult(MoodAnalysisResult result, DateTime startDate, DateTime endDate) async {
+  static Future<void> saveAnalysisResult(
+      MoodAnalysisResult result, DateTime startDate, DateTime endDate) async {
     if (!result.success) return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -522,7 +560,8 @@ class MoodAnalysisService {
     // Keep only last 20 analyses
     final limitedAnalyses = existingAnalyses.take(20).toList();
 
-    final jsonData = limitedAnalyses.map((analysis) => analysis.toJson()).toList();
+    final jsonData =
+        limitedAnalyses.map((analysis) => analysis.toJson()).toList();
     await prefs.setString(_savedAnalysesKey, jsonEncode(jsonData));
   }
 
@@ -558,7 +597,6 @@ class MoodAnalysisService {
     return prefs.getString('openai_api_key') ?? '';
   }
 }
-
 
 // Data classes
 class DayMoodAnalysis {
@@ -644,45 +682,56 @@ class SavedAnalysis {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'createdAt': createdAt.toIso8601String(),
-    'startDate': startDate.toIso8601String(),
-    'endDate': endDate.toIso8601String(),
-    'result': {
-      'success': result.success,
-      'insights': result.insights.map((i) => {
-        'title': i.title,
-        'description': i.description,
-        'type': i.type.name,
-      }).toList(),
-      'recommendations': result.recommendations.map((r) => {
-        'title': r.title,
-        'description': r.description,
-        'priority': r.priority.name,
-      }).toList(),
-    },
-  };
+        'id': id,
+        'createdAt': createdAt.toIso8601String(),
+        'startDate': startDate.toIso8601String(),
+        'endDate': endDate.toIso8601String(),
+        'result': {
+          'success': result.success,
+          'insights': result.insights
+              .map((i) => {
+                    'title': i.title,
+                    'description': i.description,
+                    'type': i.type.name,
+                  })
+              .toList(),
+          'recommendations': result.recommendations
+              .map((r) => {
+                    'title': r.title,
+                    'description': r.description,
+                    'priority': r.priority.name,
+                  })
+              .toList(),
+        },
+      };
 
   factory SavedAnalysis.fromJson(Map<String, dynamic> json) => SavedAnalysis(
-    id: json['id'],
-    createdAt: DateTime.parse(json['createdAt']),
-    startDate: DateTime.parse(json['startDate']),
-    endDate: DateTime.parse(json['endDate']),
-    result: MoodAnalysisResult(
-      success: json['result']['success'],
-      insights: (json['result']['insights'] as List).map((i) => MoodInsight(
-        title: i['title'],
-        description: i['description'],
-        type: InsightType.values.firstWhere((t) => t.name == i['type']),
-      )).toList(),
-      recommendations: (json['result']['recommendations'] as List).map((r) => MoodRecommendation(
-        title: r['title'],
-        description: r['description'],
-        priority: RecommendationPriority.values.firstWhere((p) => p.name == r['priority']),
-      )).toList(),
-    ),
-  );
+        id: json['id'],
+        createdAt: DateTime.parse(json['createdAt']),
+        startDate: DateTime.parse(json['startDate']),
+        endDate: DateTime.parse(json['endDate']),
+        result: MoodAnalysisResult(
+          success: json['result']['success'],
+          insights: (json['result']['insights'] as List)
+              .map((i) => MoodInsight(
+                    title: i['title'],
+                    description: i['description'],
+                    type: InsightType.values
+                        .firstWhere((t) => t.name == i['type']),
+                  ))
+              .toList(),
+          recommendations: (json['result']['recommendations'] as List)
+              .map((r) => MoodRecommendation(
+                    title: r['title'],
+                    description: r['description'],
+                    priority: RecommendationPriority.values
+                        .firstWhere((p) => p.name == r['priority']),
+                  ))
+              .toList(),
+        ),
+      );
 }
 
 enum InsightType { positive, negative, neutral }
+
 enum RecommendationPriority { high, medium, low }

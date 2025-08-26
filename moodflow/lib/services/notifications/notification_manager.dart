@@ -21,7 +21,8 @@ class NotificationManager {
   }
 
   // Remove all the placeholder/testing methods and keep only these essentials:
-  static Future<void> showTestNotification(BuildContext context, String title, String body) async {
+  static Future<void> showTestNotification(
+      BuildContext context, String title, String body) async {
     await RealNotificationService.showNotification(
       id: 9999,
       title: title,

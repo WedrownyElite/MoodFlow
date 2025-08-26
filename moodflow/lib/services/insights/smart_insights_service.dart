@@ -1,11 +1,10 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/mood_data_service.dart';
 import '../data/correlation_data_service.dart';
 import '../notifications/real_notification_service.dart';
 import '../utils/logger.dart';
-import '../data/mood_data_service.dart';
 
 enum InsightType {
   pattern,
@@ -48,43 +47,44 @@ class SmartInsight {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'description': description,
-    'type': type.name,
-    'priority': priority.name,
-    'createdAt': createdAt.toIso8601String(),
-    'data': data,
-    'isRead': isRead,
-    'actionText': actionText,
-    'actionRoute': actionRoute,
-  };
+        'id': id,
+        'title': title,
+        'description': description,
+        'type': type.name,
+        'priority': priority.name,
+        'createdAt': createdAt.toIso8601String(),
+        'data': data,
+        'isRead': isRead,
+        'actionText': actionText,
+        'actionRoute': actionRoute,
+      };
 
   factory SmartInsight.fromJson(Map<String, dynamic> json) => SmartInsight(
-    id: json['id'],
-    title: json['title'],
-    description: json['description'],
-    type: InsightType.values.firstWhere((e) => e.name == json['type']),
-    priority: AlertPriority.values.firstWhere((e) => e.name == json['priority']),
-    createdAt: DateTime.parse(json['createdAt']),
-    data: json['data'] ?? {},
-    isRead: json['isRead'] ?? false,
-    actionText: json['actionText'],
-    actionRoute: json['actionRoute'],
-  );
+        id: json['id'],
+        title: json['title'],
+        description: json['description'],
+        type: InsightType.values.firstWhere((e) => e.name == json['type']),
+        priority:
+            AlertPriority.values.firstWhere((e) => e.name == json['priority']),
+        createdAt: DateTime.parse(json['createdAt']),
+        data: json['data'] ?? {},
+        isRead: json['isRead'] ?? false,
+        actionText: json['actionText'],
+        actionRoute: json['actionRoute'],
+      );
 
   SmartInsight markAsRead() => SmartInsight(
-    id: id,
-    title: title,
-    description: description,
-    type: type,
-    priority: priority,
-    createdAt: createdAt,
-    data: data,
-    isRead: true,
-    actionText: actionText,
-    actionRoute: actionRoute,
-  );
+        id: id,
+        title: title,
+        description: description,
+        type: type,
+        priority: priority,
+        createdAt: createdAt,
+        data: data,
+        isRead: true,
+        actionText: actionText,
+        actionRoute: actionRoute,
+      );
 }
 
 class WeeklySummary {
@@ -152,9 +152,9 @@ class SmartInsightsService {
   static const String _userPatternsKey = 'user_patterns';
 
   /// Generate all types of insights
-  static Future<List<SmartInsight>> generateInsights({bool forceRefresh = false}) async {
+  static Future<List<SmartInsight>> generateInsights(
+      {bool forceRefresh = false}) async {
     final insights = <SmartInsight>[];
-    final now = DateTime.now();
 
     // Check if we need to run analysis (once per day)
     if (!forceRefresh && !await _shouldRunAnalysis()) {
@@ -225,17 +225,17 @@ class SmartInsightsService {
   }
 
   static Future<List<SmartInsight>> _analyzeTimeOfDayPatterns(
-      Map<DateTime, Map<int, double>> moodData,
-      ) async {
+    Map<DateTime, Map<int, double>> moodData,
+  ) async {
     final insights = <SmartInsight>[];
     final timeSegmentTotals = <int, List<double>>{0: [], 1: [], 2: []};
 
     // Collect all mood ratings by time segment
-    moodData.values.forEach((dayMoods) {
-      dayMoods.forEach((segment, mood) {
-        timeSegmentTotals[segment]!.add(mood);
-      });
-    });
+    for (final dayMoods in moodData.values) {
+      for (final entry in dayMoods.entries) {
+        timeSegmentTotals[entry.key]!.add(entry.value);
+      }
+    }
 
     // Calculate averages
     final averages = <int, double>{};
@@ -254,13 +254,15 @@ class SmartInsightsService {
       final worst = sortedTimes.last;
       final difference = best.value - worst.value;
 
-      if (difference >= 1.5) { // Significant difference
+      if (difference >= 1.5) {
+        // Significant difference
         final timeNames = ['morning', 'midday', 'evening'];
 
         insights.add(SmartInsight(
           id: 'time_pattern_${DateTime.now().millisecondsSinceEpoch}',
           title: 'Your ${timeNames[best.key]} energy is strongest',
-          description: 'You consistently feel ${difference.toStringAsFixed(1)} points better in the ${timeNames[best.key]} (${best.value.toStringAsFixed(1)}/10) vs ${timeNames[worst.key]} (${worst.value.toStringAsFixed(1)}/10)',
+          description:
+              'You consistently feel ${difference.toStringAsFixed(1)} points better in the ${timeNames[best.key]} (${best.value.toStringAsFixed(1)}/10) vs ${timeNames[worst.key]} (${worst.value.toStringAsFixed(1)}/10)',
           type: InsightType.pattern,
           priority: AlertPriority.medium,
           createdAt: DateTime.now(),
@@ -279,15 +281,16 @@ class SmartInsightsService {
   }
 
   static Future<List<SmartInsight>> _analyzeWeeklyPatterns(
-      Map<DateTime, Map<int, double>> moodData,
-      ) async {
+    Map<DateTime, Map<int, double>> moodData,
+  ) async {
     final insights = <SmartInsight>[];
     final weekdayMoods = <int, List<double>>{};
 
     // Group by weekday (1=Monday, 7=Sunday)
     moodData.forEach((date, dayMoods) {
       final weekday = date.weekday;
-      final dayAverage = dayMoods.values.reduce((a, b) => a + b) / dayMoods.length;
+      final dayAverage =
+          dayMoods.values.reduce((a, b) => a + b) / dayMoods.length;
       weekdayMoods.putIfAbsent(weekday, () => []).add(dayAverage);
     });
 
@@ -299,7 +302,8 @@ class SmartInsightsService {
       }
     });
 
-    if (weekdayAverages.length >= 5) { // Need most days of week
+    if (weekdayAverages.length >= 5) {
+      // Need most days of week
       final sortedDays = weekdayAverages.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -308,12 +312,22 @@ class SmartInsightsService {
       final difference = bestDay.value - worstDay.value;
 
       if (difference >= 1.2) {
-        final dayNames = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        final dayNames = [
+          '',
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+          'Sunday'
+        ];
 
         insights.add(SmartInsight(
           id: 'weekday_pattern_${DateTime.now().millisecondsSinceEpoch}',
           title: '${dayNames[bestDay.key]}s are your best days',
-          description: 'Your mood averages ${bestDay.value.toStringAsFixed(1)} on ${dayNames[bestDay.key]}s vs ${worstDay.value.toStringAsFixed(1)} on ${dayNames[worstDay.key]}s',
+          description:
+              'Your mood averages ${bestDay.value.toStringAsFixed(1)} on ${dayNames[bestDay.key]}s vs ${worstDay.value.toStringAsFixed(1)} on ${dayNames[worstDay.key]}s',
           type: InsightType.pattern,
           priority: AlertPriority.medium,
           createdAt: DateTime.now(),
@@ -331,8 +345,8 @@ class SmartInsightsService {
   }
 
   static Future<List<SmartInsight>> _analyzeTrends(
-      Map<DateTime, Map<int, double>> moodData,
-      ) async {
+    Map<DateTime, Map<int, double>> moodData,
+  ) async {
     final insights = <SmartInsight>[];
 
     if (moodData.length < 14) return insights;
@@ -340,7 +354,8 @@ class SmartInsightsService {
     // Calculate daily averages and sort by date
     final dailyAverages = <DateTime, double>{};
     moodData.forEach((date, dayMoods) {
-      dailyAverages[date] = dayMoods.values.reduce((a, b) => a + b) / dayMoods.length;
+      dailyAverages[date] =
+          dayMoods.values.reduce((a, b) => a + b) / dayMoods.length;
     });
 
     final sortedDates = dailyAverages.keys.toList()..sort();
@@ -349,12 +364,14 @@ class SmartInsightsService {
 
     if (recentWeek.length >= 5 && previousWeek.length >= 5) {
       final recentAvg = recentWeek
-          .map((date) => dailyAverages[date]!)
-          .reduce((a, b) => a + b) / recentWeek.length;
+              .map((date) => dailyAverages[date]!)
+              .reduce((a, b) => a + b) /
+          recentWeek.length;
 
       final previousAvg = previousWeek
-          .map((date) => dailyAverages[date]!)
-          .reduce((a, b) => a + b) / previousWeek.length;
+              .map((date) => dailyAverages[date]!)
+              .reduce((a, b) => a + b) /
+          previousWeek.length;
 
       final change = recentAvg - previousAvg;
 
@@ -363,7 +380,8 @@ class SmartInsightsService {
           insights.add(SmartInsight(
             id: 'trend_improving_${DateTime.now().millisecondsSinceEpoch}',
             title: '📈 Your mood is improving!',
-            description: 'This week you\'re averaging ${recentAvg.toStringAsFixed(1)}, up ${change.toStringAsFixed(1)} points from last week (${previousAvg.toStringAsFixed(1)})',
+            description:
+                'This week you\'re averaging ${recentAvg.toStringAsFixed(1)}, up ${change.toStringAsFixed(1)} points from last week (${previousAvg.toStringAsFixed(1)})',
             type: InsightType.celebration,
             priority: AlertPriority.medium,
             createdAt: DateTime.now(),
@@ -379,7 +397,8 @@ class SmartInsightsService {
           insights.add(SmartInsight(
             id: 'trend_declining_${DateTime.now().millisecondsSinceEpoch}',
             title: 'Your mood has been lower lately',
-            description: 'This week you\'re averaging ${recentAvg.toStringAsFixed(1)}, down ${change.abs().toStringAsFixed(1)} points from last week. Consider some self-care activities.',
+            description:
+                'This week you\'re averaging ${recentAvg.toStringAsFixed(1)}, down ${change.abs().toStringAsFixed(1)} points from last week. Consider some self-care activities.',
             type: InsightType.concern,
             priority: AlertPriority.high,
             createdAt: DateTime.now(),
@@ -467,7 +486,8 @@ class SmartInsightsService {
         insights.add(SmartInsight(
           id: 'high_mood_consistency_${now.millisecondsSinceEpoch}',
           title: '🌟 Great mood consistency!',
-          description: '${percentage.round()}% of your recent days had mood ratings of 7+. You\'re doing amazing!',
+          description:
+              '${percentage.round()}% of your recent days had mood ratings of 7+. You\'re doing amazing!',
           type: InsightType.achievement,
           priority: AlertPriority.medium,
           createdAt: now,
@@ -496,7 +516,8 @@ class SmartInsightsService {
       insights.add(SmartInsight(
         id: 'low_mood_concern_${now.millisecondsSinceEpoch}',
         title: 'Consider reaching out for support',
-        description: 'You\'ve had $lowMoodDays days recently with consistently low mood ratings. Remember that it\'s okay to ask for help.',
+        description:
+            'You\'ve had $lowMoodDays days recently with consistently low mood ratings. Remember that it\'s okay to ask for help.',
         type: InsightType.concern,
         priority: AlertPriority.critical,
         createdAt: now,
@@ -508,7 +529,8 @@ class SmartInsightsService {
     // Check for declining sleep correlation
     final correlationData = <CorrelationData>[];
     for (final date in last14Days.keys) {
-      final correlation = await CorrelationDataService.loadCorrelationData(date);
+      final correlation =
+          await CorrelationDataService.loadCorrelationData(date);
       if (correlation != null && correlation.sleepQuality != null) {
         correlationData.add(correlation);
       }
@@ -521,13 +543,15 @@ class SmartInsightsService {
           .toList();
 
       if (recentSleep.length >= 5) {
-        final avgSleep = recentSleep.reduce((a, b) => a + b) / recentSleep.length;
+        final avgSleep =
+            recentSleep.reduce((a, b) => a + b) / recentSleep.length;
 
         if (avgSleep <= 4.0) {
           insights.add(SmartInsight(
             id: 'poor_sleep_concern_${now.millisecondsSinceEpoch}',
             title: 'Your sleep quality needs attention',
-            description: 'Your recent sleep quality averages ${avgSleep.toStringAsFixed(1)}/10. Poor sleep can significantly impact your mood.',
+            description:
+                'Your recent sleep quality averages ${avgSleep.toStringAsFixed(1)}/10. Poor sleep can significantly impact your mood.',
             type: InsightType.concern,
             priority: AlertPriority.high,
             createdAt: now,
@@ -558,11 +582,13 @@ class SmartInsightsService {
     }
 
     // Perfect day celebration
-    if (todayMoods.length == 3 && todayMoods.values.every((mood) => mood >= 8.0)) {
+    if (todayMoods.length == 3 &&
+        todayMoods.values.every((mood) => mood >= 8.0)) {
       insights.add(SmartInsight(
         id: 'perfect_day_${now.millisecondsSinceEpoch}',
         title: '🎉 Perfect day!',
-        description: 'All your mood ratings today are 8+ (${todayMoods.values.map((m) => m.toStringAsFixed(1)).join(", ")}). Celebrate this amazing day!',
+        description:
+            'All your mood ratings today are 8+ (${todayMoods.values.map((m) => m.toStringAsFixed(1)).join(", ")}). Celebrate this amazing day!',
         type: InsightType.celebration,
         priority: AlertPriority.high,
         createdAt: now,
@@ -573,16 +599,21 @@ class SmartInsightsService {
     // Personal best celebration
     final last90Days = await _getLast90DaysMoodData();
     if (last90Days.isNotEmpty && todayMoods.isNotEmpty) {
-      final todayAvg = todayMoods.values.reduce((a, b) => a + b) / todayMoods.length;
+      final todayAvg =
+          todayMoods.values.reduce((a, b) => a + b) / todayMoods.length;
       final historicalAverages = last90Days.values
-          .map((dayMoods) => dayMoods.values.reduce((a, b) => a + b) / dayMoods.length)
-          .toList()..sort();
+          .map((dayMoods) =>
+              dayMoods.values.reduce((a, b) => a + b) / dayMoods.length)
+          .toList()
+        ..sort();
 
-      if (historicalAverages.length >= 30 && todayAvg >= historicalAverages.last) {
+      if (historicalAverages.length >= 30 &&
+          todayAvg >= historicalAverages.last) {
         insights.add(SmartInsight(
           id: 'personal_best_${now.millisecondsSinceEpoch}',
           title: '🏆 Personal best!',
-          description: 'Today\'s average mood (${todayAvg.toStringAsFixed(1)}) ties your highest in the last 90 days!',
+          description:
+              'Today\'s average mood (${todayAvg.toStringAsFixed(1)}) ties your highest in the last 90 days!',
           type: InsightType.celebration,
           priority: AlertPriority.medium,
           createdAt: now,
@@ -610,15 +641,18 @@ class SmartInsightsService {
         switch (correlation.category) {
           case 'weather':
             title = '☀️ Weather tip';
-            description = 'Based on your data, ${correlation.description.toLowerCase()}. Plan outdoor activities on sunny days!';
+            description =
+                'Based on your data, ${correlation.description.toLowerCase()}. Plan outdoor activities on sunny days!';
             break;
           case 'sleep':
             title = '😴 Sleep matters';
-            description = correlation.description + '. Consider a consistent bedtime routine.';
+            description =
+                '${correlation.description}. Consider a consistent bedtime routine.';
             break;
           case 'exercise':
             title = '🏃‍♀️ Move your body';
-            description = correlation.description + '. Even light activity can help!';
+            description =
+                '${correlation.description}. Even light activity can help!';
             break;
         }
 
@@ -655,8 +689,9 @@ class SmartInsightsService {
       if (!hasLoggedToday && now.hour >= 20) {
         await RealNotificationService.showNotification(
           id: 5001,
-          title: '🔥 Don\'t break your ${currentStreak}-day streak!',
-          body: 'You\'ve been doing great with consistent tracking. Log your mood before bed.',
+          title: '🔥 Don\'t break your $currentStreak-day streak!',
+          body:
+              'You\'ve been doing great with consistent tracking. Log your mood before bed.',
           payload: jsonEncode({
             'type': 'streak_protection',
             'streak': currentStreak,
@@ -675,7 +710,8 @@ class SmartInsightsService {
       await RealNotificationService.scheduleDailyNotification(
         id: 5002 + bestTime,
         title: 'Perfect timing! ⭐',
-        body: 'This is typically your best ${timeNames[bestTime]} time. How are you feeling?',
+        body:
+            'This is typically your best ${timeNames[bestTime]} time. How are you feeling?',
         time: NotificationTime(reminderTimes[bestTime], 0),
         payload: jsonEncode({
           'type': 'optimal_time_reminder',
@@ -686,8 +722,10 @@ class SmartInsightsService {
   }
 
   /// Generate weekly summary
-  static Future<WeeklySummary> generateWeeklySummary([DateTime? weekStart]) async {
-    weekStart ??= DateTime.now().subtract(Duration(days: DateTime.now().weekday - 1));
+  static Future<WeeklySummary> generateWeeklySummary(
+      [DateTime? weekStart]) async {
+    weekStart ??=
+        DateTime.now().subtract(Duration(days: DateTime.now().weekday - 1));
     final weekEnd = weekStart.add(const Duration(days: 6));
 
     final weekMoodData = <DateTime, Map<int, double>>{};
@@ -725,11 +763,13 @@ class SmartInsightsService {
 
     // Calculate statistics
     final dailyAverages = <double>[];
-    weekMoodData.values.forEach((dayMoods) {
-      dailyAverages.add(dayMoods.values.reduce((a, b) => a + b) / dayMoods.length);
-    });
+    for (final dayMoods in weekMoodData.values) {
+      dailyAverages
+          .add(dayMoods.values.reduce((a, b) => a + b) / dayMoods.length);
+    }
 
-    final averageMood = dailyAverages.reduce((a, b) => a + b) / dailyAverages.length;
+    final averageMood =
+        dailyAverages.reduce((a, b) => a + b) / dailyAverages.length;
     final bestDay = dailyAverages.reduce(max);
     final worstDay = dailyAverages.reduce(min);
 
@@ -755,15 +795,18 @@ class SmartInsightsService {
     final recommendations = <String>[];
 
     if (averageMood >= 7.5) {
-      highlights.add('Great week! Your average mood was ${averageMood.toStringAsFixed(1)}');
+      highlights.add(
+          'Great week! Your average mood was ${averageMood.toStringAsFixed(1)}');
     }
 
     if (weekMoodData.length >= 6) {
-      highlights.add('Excellent consistency - logged ${weekMoodData.length}/7 days');
+      highlights
+          .add('Excellent consistency - logged ${weekMoodData.length}/7 days');
     }
 
     if (bestDay >= 9.0) {
-      highlights.add('You had an amazing day with ${bestDay.toStringAsFixed(1)} average mood!');
+      highlights.add(
+          'You had an amazing day with ${bestDay.toStringAsFixed(1)} average mood!');
     }
 
     if (trend == 'improving') {
@@ -793,24 +836,29 @@ class SmartInsightsService {
   }
 
   // Helper methods
-  static Future<Map<DateTime, Map<int, double>>> _getLast30DaysMoodData() async {
+  static Future<Map<DateTime, Map<int, double>>>
+      _getLast30DaysMoodData() async {
     return await _getMoodDataForPeriod(30);
   }
 
-  static Future<Map<DateTime, Map<int, double>>> _getLast14DaysMoodData() async {
+  static Future<Map<DateTime, Map<int, double>>>
+      _getLast14DaysMoodData() async {
     return await _getMoodDataForPeriod(14);
   }
 
-  static Future<Map<DateTime, Map<int, double>>> _getLast90DaysMoodData() async {
+  static Future<Map<DateTime, Map<int, double>>>
+      _getLast90DaysMoodData() async {
     return await _getMoodDataForPeriod(90);
   }
 
-  static Future<Map<DateTime, Map<int, double>>> _getMoodDataForPeriod(int days) async {
+  static Future<Map<DateTime, Map<int, double>>> _getMoodDataForPeriod(
+      int days) async {
     final moodData = <DateTime, Map<int, double>>{};
     final now = DateTime.now();
 
     for (int i = 0; i < days; i++) {
-      final date = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
+      final date =
+          DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
       final dayMoods = <int, double>{};
 
       for (int segment = 0; segment < 3; segment++) {

@@ -1,4 +1,4 @@
-﻿// lib/widgets/weather_settings_widget.dart
+// lib/widgets/weather_settings_widget.dart
 import 'package:flutter/material.dart';
 import '../services/data/correlation_data_service.dart';
 import 'weather_api_setup_dialog.dart';
@@ -33,7 +33,7 @@ class _WeatherSettingsWidgetState extends State<WeatherSettingsWidget> {
       final fullKey = await CorrelationDataService.getWeatherApiKey();
       if (fullKey != null && fullKey.length > 8) {
         keyPreview =
-        '${fullKey.substring(0, 4)}...${fullKey.substring(fullKey.length - 4)}';
+            '${fullKey.substring(0, 4)}...${fullKey.substring(fullKey.length - 4)}';
       }
     }
 
@@ -128,7 +128,8 @@ class _WeatherSettingsWidgetState extends State<WeatherSettingsWidget> {
                         ),
                         const SizedBox(height: 4),
                         Text('Weather: ${weather.description}'),
-                        Text('Temperature: ${weather.temperature.toStringAsFixed(1)}°C'),
+                        Text(
+                            'Temperature: ${weather.temperature.toStringAsFixed(1)}°C'),
                         Text('Condition: ${weather.condition.name}'),
                       ],
                     ),
@@ -211,7 +212,7 @@ class _WeatherSettingsWidgetState extends State<WeatherSettingsWidget> {
         title: const Text('Remove Weather API'),
         content: const Text(
           'Are you sure you want to remove your weather API configuration? '
-              'This will disable automatic weather fetching.',
+          'This will disable automatic weather fetching.',
         ),
         actions: [
           TextButton(
@@ -302,17 +303,22 @@ class _WeatherSettingsWidgetState extends State<WeatherSettingsWidget> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _isConfigured ? Colors.green.shade50 : Colors.grey.shade50,
+                color:
+                    _isConfigured ? Colors.green.shade50 : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: _isConfigured ? Colors.green.shade200 : Colors.grey.shade200,
+                  color: _isConfigured
+                      ? Colors.green.shade200
+                      : Colors.grey.shade200,
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
                     _isConfigured ? Icons.check_circle : Icons.info,
-                    color: _isConfigured ? Colors.green.shade600 : Colors.grey.shade600,
+                    color: _isConfigured
+                        ? Colors.green.shade600
+                        : Colors.grey.shade600,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -324,7 +330,9 @@ class _WeatherSettingsWidgetState extends State<WeatherSettingsWidget> {
                           _isConfigured ? 'API Configured' : 'Not Configured',
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
-                            color: _isConfigured ? Colors.green.shade700 : Colors.grey.shade700,
+                            color: _isConfigured
+                                ? Colors.green.shade700
+                                : Colors.grey.shade700,
                           ),
                         ),
                         if (_isConfigured && _apiKeyPreview != null)
@@ -451,47 +459,66 @@ class _WeatherSettingsWidgetState extends State<WeatherSettingsWidget> {
                         Row(
                           children: [
                             Expanded(
-                              child: RadioListTile<String>(
-                                title: const Text('Celsius (°C)'),
-                                value: 'celsius',
-                                groupValue: _temperatureUnit,
-                                onChanged: (value) async {
-                                  if (value != null) {
-                                    await CorrelationDataService.setTemperatureUnit(value);
-                                    setState(() => _temperatureUnit = value);
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Temperature unit changed to ${value == 'celsius' ? 'Celsius' : 'Fahrenheit'}'),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                contentPadding: EdgeInsets.zero,
-                                dense: true,
+                              child: InkWell(
+                                onTap: () => _setTemperatureUnit('celsius'),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 8, horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: _temperatureUnit == 'celsius'
+                                        ? Theme.of(context)
+                                            .primaryColor
+                                            .withValues(alpha: 0.1)
+                                        : null,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: _temperatureUnit == 'celsius'
+                                          ? Theme.of(context).primaryColor
+                                          : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Radio<String>(
+                                        value: 'celsius',
+                                      ),
+                                      const Expanded(
+                                          child: Text('Celsius (°C)')),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 8),
                             Expanded(
-                              child: RadioListTile<String>(
-                                title: const Text('Fahrenheit (°F)'),
-                                value: 'fahrenheit',
-                                groupValue: _temperatureUnit,
-                                onChanged: (value) async {
-                                  if (value != null) {
-                                    await CorrelationDataService.setTemperatureUnit(value);
-                                    setState(() => _temperatureUnit = value);
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Temperature unit changed to ${value == 'celsius' ? 'Celsius' : 'Fahrenheit'}'),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                contentPadding: EdgeInsets.zero,
-                                dense: true,
+                              child: InkWell(
+                                onTap: () => _setTemperatureUnit('fahrenheit'),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 8, horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: _temperatureUnit == 'fahrenheit'
+                                        ? Theme.of(context)
+                                            .primaryColor
+                                            .withValues(alpha: 0.1)
+                                        : null,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: _temperatureUnit == 'fahrenheit'
+                                          ? Theme.of(context).primaryColor
+                                          : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Radio<String>(
+                                        value: 'fahrenheit',
+                                      ),
+                                      const Expanded(
+                                          child: Text('Fahrenheit (°F)')),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -502,9 +529,9 @@ class _WeatherSettingsWidgetState extends State<WeatherSettingsWidget> {
                   const SizedBox(height: 8),
                   Text(
                     '• Automatically fetches weather data when logging daily factors\n'
-                        '• Helps identify correlations between weather and your mood\n'
-                        '• Uses OpenWeatherMap\'s free API (requires account)\n'
-                        '• Your API key is stored securely on your device only',
+                    '• Helps identify correlations between weather and your mood\n'
+                    '• Uses OpenWeatherMap\'s free API (requires account)\n'
+                    '• Your API key is stored securely on your device only',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.blue.shade600,
@@ -516,6 +543,24 @@ class _WeatherSettingsWidgetState extends State<WeatherSettingsWidget> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _setTemperatureUnit(String? value) async {
+    if (value == null) return;
+
+    await CorrelationDataService.setTemperatureUnit(value);
+
+    if (!mounted) return; // Check mounted before setState
+    setState(() => _temperatureUnit = value);
+
+    if (!mounted) return; // Check mounted before using context
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            'Temperature unit changed to ${value == 'celsius' ? 'Celsius' : 'Fahrenheit'}'),
       ),
     );
   }

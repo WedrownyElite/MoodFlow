@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:icloud_storage/icloud_storage.dart';
@@ -24,7 +24,9 @@ class ICloudService {
     try {
       // Check if iCloud is available
       if (!await isAvailable()) {
-        return BackupResult(false, error: 'iCloud is not available. Please check your iCloud settings.');
+        return BackupResult(false,
+            error:
+                'iCloud is not available. Please check your iCloud settings.');
       }
 
       // Export all data
@@ -32,7 +34,8 @@ class ICloudService {
       final jsonString = jsonEncode(exportData.toJson());
 
       // Create temporary file
-      final fileName = 'moodflow_backup_${DateTime.now().millisecondsSinceEpoch}.json';
+      final fileName =
+          'moodflow_backup_${DateTime.now().millisecondsSinceEpoch}.json';
       final tempDir = Directory.systemTemp;
       final tempFile = File('${tempDir.path}/$fileName');
       await tempFile.writeAsString(jsonString);
@@ -44,7 +47,7 @@ class ICloudService {
         destinationRelativePath: '$_backupFolderName/$fileName',
         onProgress: (stream) {
           stream.listen(
-                (progress) => debugPrint('Upload Progress: $progress'),
+            (progress) => debugPrint('Upload Progress: $progress'),
             onDone: () => debugPrint('Upload Completed'),
             onError: (err) => debugPrint('Upload Error: $err'),
             cancelOnError: true,
@@ -59,10 +62,12 @@ class ICloudService {
 
       return BackupResult(
         true,
-        message: 'Backup uploaded successfully to iCloud (${_formatFileSize(jsonString.length)})',
+        message:
+            'Backup uploaded successfully to iCloud (${_formatFileSize(jsonString.length)})',
       );
     } catch (e) {
-      return BackupResult(false, error: 'iCloud upload failed: ${e.toString()}');
+      return BackupResult(false,
+          error: 'iCloud upload failed: ${e.toString()}');
     }
   }
 
@@ -108,12 +113,14 @@ class ICloudService {
         }
       });
 
-      return backupFiles.map((file) => ICloudBackupFile(
-        relativePath: _safeGetRelativePath(file),
-        name: _safeGetFileName(file),
-        createdDate: _safeGetFileDate(file),
-        downloadStatus: _safeGetDownloadStatus(file),
-      )).toList();
+      return backupFiles
+          .map((file) => ICloudBackupFile(
+                relativePath: _safeGetRelativePath(file),
+                name: _safeGetFileName(file),
+                createdDate: _safeGetFileDate(file),
+                downloadStatus: _safeGetDownloadStatus(file),
+              ))
+          .toList();
     } catch (e) {
       debugPrint('Error listing iCloud backups: $e');
       return [];
@@ -139,7 +146,7 @@ class ICloudService {
         destinationFilePath: tempDownloadPath,
         onProgress: (stream) {
           stream.listen(
-                (progress) => debugPrint('Download Progress: $progress'),
+            (progress) => debugPrint('Download Progress: $progress'),
             onDone: () => debugPrint('Download Completed'),
             onError: (err) => debugPrint('Download Error: $err'),
             cancelOnError: true,
@@ -170,10 +177,12 @@ class ICloudService {
               'Imported ${importResult.importedMoods} moods and ${importResult.importedGoals} goals.',
         );
       } else {
-        return BackupResult(false, error: importResult.error ?? 'Import failed');
+        return BackupResult(false,
+            error: importResult.error ?? 'Import failed');
       }
     } catch (e) {
-      return BackupResult(false, error: 'iCloud download failed: ${e.toString()}');
+      return BackupResult(false,
+          error: 'iCloud download failed: ${e.toString()}');
     }
   }
 

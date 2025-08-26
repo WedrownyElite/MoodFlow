@@ -1,4 +1,4 @@
-﻿// lib/screens/correlation_screen.dart
+// lib/screens/correlation_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/data/correlation_data_service.dart';
@@ -9,7 +9,8 @@ class CorrelationScreen extends StatefulWidget {
   final int? initialTabIndex;
 
   const CorrelationScreen({
-    super.key, this.initialDate,
+    super.key,
+    this.initialDate,
     this.initialTabIndex,
   });
 
@@ -17,7 +18,8 @@ class CorrelationScreen extends StatefulWidget {
   State<CorrelationScreen> createState() => _CorrelationScreenState();
 }
 
-class _CorrelationScreenState extends State<CorrelationScreen> with TickerProviderStateMixin {
+class _CorrelationScreenState extends State<CorrelationScreen>
+    with TickerProviderStateMixin {
   late TabController _tabController;
   DateTime _selectedDate = DateTime.now();
   CorrelationData? _currentData;
@@ -59,13 +61,10 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
     });
   }
 
-  Future<String> _getTemperatureUnit() async {
-    return await CorrelationDataService.getTemperatureUnit();
-  }
-
   String _formatTemperature(double temperature) {
     // If we have stored temperature data, convert from stored unit to display unit
-    if (_currentData?.temperature != null && _currentData?.temperatureUnit != null) {
+    if (_currentData?.temperature != null &&
+        _currentData?.temperatureUnit != null) {
       final displayTemp = _getTemperatureInUnit(_temperatureUnit);
       return '${displayTemp.toStringAsFixed(1)}°${_temperatureUnit == 'celsius' ? 'C' : 'F'}';
     }
@@ -74,15 +73,11 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
     return '${temperature.toStringAsFixed(1)}°${_temperatureUnit == 'celsius' ? 'C' : 'F'}';
   }
 
-  Future<String> _getTemperatureUnitSymbol() async {
-    final unit = await CorrelationDataService.getTemperatureUnit();
-    return unit == 'celsius' ? 'C' : 'F';
-  }
-  
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
-    final data = await CorrelationDataService.loadCorrelationData(_selectedDate);
+    final data =
+        await CorrelationDataService.loadCorrelationData(_selectedDate);
 
     setState(() {
       _currentData = data ?? CorrelationData(date: _selectedDate);
@@ -93,7 +88,8 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
   Future<void> _saveData() async {
     if (_currentData == null || !_hasChanges) return;
 
-    final success = await CorrelationDataService.saveCorrelationData(_selectedDate, _currentData!);
+    final success = await CorrelationDataService.saveCorrelationData(
+        _selectedDate, _currentData!);
 
     if (success) {
       setState(() => _hasChanges = false);
@@ -153,10 +149,15 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
       return;
     }
 
-    setState(() => _isFetchingWeather = true);
+    if (mounted) {
+      setState(() => _isFetchingWeather = true);
+    }
 
     try {
-      final weather = await CorrelationDataService.autoFetchWeather(forDate: _selectedDate);
+      final weather =
+          await CorrelationDataService.autoFetchWeather(forDate: _selectedDate);
+
+      if (!mounted) return;
 
       if (weather != null) {
         final updatedData = _currentData!.copyWith(
@@ -170,23 +171,21 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
 
         _updateData(updatedData);
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Weather updated: ${weather.description}, ${_formatTemperature(weather.temperature)}'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Weather updated: ${weather.description}, ${_formatTemperature(weather.temperature)}'),
+            backgroundColor: Colors.green,
+          ),
+        );
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not fetch weather data. Check your location settings.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Could not fetch weather data. Check your location settings.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -199,7 +198,9 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
       }
     }
 
-    setState(() => _isFetchingWeather = false);
+    if (mounted) {
+      setState(() => _isFetchingWeather = false);
+    }
   }
 
   @override
@@ -260,7 +261,8 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                       )
                     else if (_hasChanges)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.orange.shade100,
                           borderRadius: BorderRadius.circular(12),
@@ -278,11 +280,13 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                   ],
                 ),
                 // Quick weather display
-                if (_currentData?.weather != null || _currentData?.temperature != null) ...[
+                if (_currentData?.weather != null ||
+                    _currentData?.temperature != null) ...[
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.wb_sunny, size: 16, color: Colors.grey.shade600),
+                      Icon(Icons.wb_sunny,
+                          size: 16, color: Colors.grey.shade600),
                       const SizedBox(width: 4),
                       Text(
                         _buildWeatherSummary(),
@@ -294,7 +298,8 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                       if (_currentData?.autoWeather == true)
                         Container(
                           margin: const EdgeInsets.only(left: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.green.shade100,
                             borderRadius: BorderRadius.circular(8),
@@ -320,25 +325,25 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
             child: _currentData == null
                 ? const Center(child: CircularProgressIndicator())
                 : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildWeatherTab(),
-                _buildSleepTab(),
-                _buildActivityTab(),
-                _buildOtherTab(),
-              ],
-            ),
+                    controller: _tabController,
+                    children: [
+                      _buildWeatherTab(),
+                      _buildSleepTab(),
+                      _buildActivityTab(),
+                      _buildOtherTab(),
+                    ],
+                  ),
           ),
         ],
       ),
       floatingActionButton: _hasChanges
           ? FloatingActionButton.extended(
-        onPressed: _saveData,
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.save),
-        label: const Text('Save'),
-      )
+              onPressed: _saveData,
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.save),
+              label: const Text('Save'),
+            )
           : null,
     );
   }
@@ -387,12 +392,14 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.wb_sunny, size: 20, color: Colors.orange),
+                      const Icon(Icons.wb_sunny,
+                          size: 20, color: Colors.orange),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
                           'Auto-fetch weather',
-                          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w500, fontSize: 16),
                         ),
                       ),
                       if (_isFetchingWeather)
@@ -403,8 +410,12 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                         )
                       else
                         ElevatedButton.icon(
-                          onPressed: _autoWeatherEnabled ? _fetchWeatherAutomatically : _setupWeatherApi,
-                          icon: Icon(_autoWeatherEnabled ? Icons.refresh : Icons.settings),
+                          onPressed: _autoWeatherEnabled
+                              ? _fetchWeatherAutomatically
+                              : _setupWeatherApi,
+                          icon: Icon(_autoWeatherEnabled
+                              ? Icons.refresh
+                              : Icons.settings),
                           label: Text(_autoWeatherEnabled ? 'Fetch' : 'Setup'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).primaryColor,
@@ -434,7 +445,8 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.thermostat, color: Colors.blue.shade600, size: 20),
+                          Icon(Icons.thermostat,
+                              color: Colors.blue.shade600, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             'Temperature: ${_formatTemperature(_currentData!.temperature!)}',
@@ -464,27 +476,49 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                     'Temperature Unit',
                     style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                   ),
-                  RadioListTile<String>(
-                    title: const Text('Celsius (°C)'),
-                    value: 'celsius',
+                  const SizedBox(height: 8),
+                  RadioGroup<String>(
                     groupValue: _temperatureUnit,
                     onChanged: (value) async {
                       if (value != null) {
                         await CorrelationDataService.setTemperatureUnit(value);
-                        setState(() => _temperatureUnit = value);
+                        if (mounted) {
+                          setState(() => _temperatureUnit = value);
+                        }
                       }
                     },
-                  ),
-                  RadioListTile<String>(
-                    title: const Text('Fahrenheit (°F)'),
-                    value: 'fahrenheit',
-                    groupValue: _temperatureUnit,
-                    onChanged: (value) async {
-                      if (value != null) {
-                        await CorrelationDataService.setTemperatureUnit(value);
-                        setState(() => _temperatureUnit = value);
-                      }
-                    },
+                    child: Column(
+                      children: [
+                        ListTile(
+                          title: const Text('Celsius (°C)'),
+                          leading: Radio<String>(
+                            value: 'celsius',
+                          ),
+                          onTap: () async {
+                            await CorrelationDataService.setTemperatureUnit(
+                                'celsius');
+                            if (mounted) {
+                              setState(() => _temperatureUnit = 'celsius');
+                            }
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        ListTile(
+                          title: const Text('Fahrenheit (°F)'),
+                          leading: Radio<String>(
+                            value: 'fahrenheit',
+                          ),
+                          onTap: () async {
+                            await CorrelationDataService.setTemperatureUnit(
+                                'fahrenheit');
+                            if (mounted) {
+                              setState(() => _temperatureUnit = 'fahrenheit');
+                            }
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -515,7 +549,8 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                     _updateData(_currentData!.copyWith(weather: null));
                   }
                 },
-                selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+                selectedColor:
+                    Theme.of(context).primaryColor.withValues(alpha: 0.2),
                 checkmarkColor: Theme.of(context).primaryColor,
               );
             }).toList(),
@@ -597,20 +632,25 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                 children: [
                   Row(
                     children: [
-                      const Text('Sleep Quality:', style: TextStyle(fontWeight: FontWeight.w500)),
+                      const Text('Sleep Quality:',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
                       const Spacer(),
                       if (_currentData?.sleepQuality != null)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _getSleepQualityColor(_currentData!.sleepQuality!).withValues(alpha: 0.2),
+                            color: _getSleepQualityColor(
+                                    _currentData!.sleepQuality!)
+                                .withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
                             '${_currentData!.sleepQuality!.toStringAsFixed(1)}/10',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: _getSleepQualityColor(_currentData!.sleepQuality!),
+                              color: _getSleepQualityColor(
+                                  _currentData!.sleepQuality!),
                             ),
                           ),
                         ),
@@ -619,16 +659,20 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                   const SizedBox(height: 8),
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
-                      showValueIndicator: ShowValueIndicator.always,
+                      showValueIndicator: ShowValueIndicator.onDrag,
                     ),
                     child: Slider(
                       value: _currentData?.sleepQuality ?? 5.0,
                       min: 1.0,
                       max: 10.0,
                       divisions: 9,
-                      label: _getSleepQualityLabel(_currentData?.sleepQuality ?? 5.0),
+                      label: _getSleepQualityLabel(
+                          _currentData?.sleepQuality ?? 5.0),
                       onChanged: (value) {
-                        _updateData(_currentData!.copyWith(sleepQuality: value));
+                        if (mounted) {
+                          _updateData(
+                              _currentData!.copyWith(sleepQuality: value));
+                        }
                       },
                     ),
                   ),
@@ -664,34 +708,40 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Bedtime', style: TextStyle(fontSize: 14)),
+                            const Text('Bedtime',
+                                style: TextStyle(fontSize: 14)),
                             const SizedBox(height: 4),
                             InkWell(
                               onTap: () => _selectBedtime(),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color: Theme.of(context).brightness == Brightness.dark
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
                                         ? Colors.grey.shade600
                                         : Colors.grey.shade300,
                                   ),
                                   borderRadius: BorderRadius.circular(8),
                                   // Add background color for dark mode
-                                  color: Theme.of(context).brightness == Brightness.dark
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
                                       ? Colors.grey.shade800
                                       : Colors.transparent,
                                 ),
                                 child: Text(
                                   _currentData?.bedtime != null
-                                      ? DateFormat('h:mm a').format(_currentData!.bedtime!)
+                                      ? DateFormat('h:mm a')
+                                          .format(_currentData!.bedtime!)
                                       : 'Select time',
                                   style: TextStyle(
                                     // Use theme-aware text color
                                     color: _currentData?.bedtime != null
-                                        ? (Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.white
-                                        : Colors.black87)
+                                        ? (Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white
+                                            : Colors.black87)
                                         : Colors.grey,
                                   ),
                                 ),
@@ -705,34 +755,40 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Wake time', style: TextStyle(fontSize: 14)),
+                            const Text('Wake time',
+                                style: TextStyle(fontSize: 14)),
                             const SizedBox(height: 4),
                             InkWell(
                               onTap: () => _selectWakeTime(),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color: Theme.of(context).brightness == Brightness.dark
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
                                         ? Colors.grey.shade600
                                         : Colors.grey.shade300,
                                   ),
                                   borderRadius: BorderRadius.circular(8),
                                   // Add background color for dark mode
-                                  color: Theme.of(context).brightness == Brightness.dark
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
                                       ? Colors.grey.shade800
                                       : Colors.transparent,
                                 ),
                                 child: Text(
                                   _currentData?.wakeTime != null
-                                      ? DateFormat('h:mm a').format(_currentData!.wakeTime!)
+                                      ? DateFormat('h:mm a')
+                                          .format(_currentData!.wakeTime!)
                                       : 'Select time',
                                   style: TextStyle(
                                     // Use theme-aware text color
                                     color: _currentData?.wakeTime != null
-                                        ? (Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.white
-                                        : Colors.black87)
+                                        ? (Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white
+                                            : Colors.black87)
                                         : Colors.grey,
                                   ),
                                 ),
@@ -743,8 +799,8 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                       ),
                     ],
                   ),
-
-                  if (_currentData?.bedtime != null && _currentData?.wakeTime != null) ...[
+                  if (_currentData?.bedtime != null &&
+                      _currentData?.wakeTime != null) ...[
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -754,7 +810,8 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.access_time, size: 16, color: Colors.blue.shade600),
+                          Icon(Icons.access_time,
+                              size: 16, color: Colors.blue.shade600),
                           const SizedBox(width: 8),
                           Text(
                             'Sleep duration: ${_formatDuration(_calculateSleepDuration())}',
@@ -805,20 +862,23 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                     style: TextStyle(fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 12),
-                  ...ActivityLevel.values.map((level) {
-                    final isSelected = _currentData?.exerciseLevel == level;
-                    return RadioListTile<ActivityLevel>(
-                      title: Text(_getActivityLevelTitle(level)),
-                      subtitle: Text(_getActivityLevelDescription(level)),
-                      value: level,
-                      groupValue: _currentData?.exerciseLevel,
-                      onChanged: (value) {
-                        _updateData(_currentData!.copyWith(exerciseLevel: value));
-                      },
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                    );
-                  }),
+                  RadioGroup<ActivityLevel>(
+                    groupValue: _currentData?.exerciseLevel,
+                    onChanged: (value) {
+                      _updateData(_currentData!.copyWith(exerciseLevel: value));
+                    },
+                    child: Column(
+                      children: ActivityLevel.values.map((level) {
+                        return RadioListTile<ActivityLevel>(
+                          title: Text(_getActivityLevelTitle(level)),
+                          subtitle: Text(_getActivityLevelDescription(level)),
+                          value: level,
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -847,18 +907,23 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                     spacing: 8,
                     runSpacing: 8,
                     children: SocialActivity.values.map((activity) {
-                      final isSelected = _currentData?.socialActivity == activity;
+                      final isSelected =
+                          _currentData?.socialActivity == activity;
                       return FilterChip(
                         selected: isSelected,
                         label: Text(_getSocialActivityLabel(activity)),
                         onSelected: (selected) {
                           if (selected) {
-                            _updateData(_currentData!.copyWith(socialActivity: activity));
+                            _updateData(_currentData!
+                                .copyWith(socialActivity: activity));
                           } else {
-                            _updateData(_currentData!.copyWith(socialActivity: null));
+                            _updateData(
+                                _currentData!.copyWith(socialActivity: null));
                           }
                         },
-                        selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+                        selectedColor: Theme.of(context)
+                            .primaryColor
+                            .withValues(alpha: 0.2),
                         checkmarkColor: Theme.of(context).primaryColor,
                       );
                     }).toList(),
@@ -898,13 +963,16 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                 children: [
                   Row(
                     children: [
-                      const Text('Work Stress Level:', style: TextStyle(fontWeight: FontWeight.w500)),
+                      const Text('Work Stress Level:',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
                       const Spacer(),
                       if (_currentData?.workStress != null)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _getStressColor(_currentData!.workStress!).withValues(alpha: 0.2),
+                            color: _getStressColor(_currentData!.workStress!)
+                                .withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
@@ -925,7 +993,10 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                     divisions: 9,
                     label: _getStressLabel(_currentData?.workStress ?? 5),
                     onChanged: (value) {
-                      _updateData(_currentData!.copyWith(workStress: value.round()));
+                      if (mounted) {
+                        _updateData(
+                            _currentData!.copyWith(workStress: value.round()));
+                      }
                     },
                   ),
                   const Row(
@@ -963,14 +1034,16 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                     spacing: 8,
                     children: [
                       ..._currentData!.customTags.map((tag) => Chip(
-                        label: Text(tag),
-                        deleteIcon: const Icon(Icons.close, size: 16),
-                        onDeleted: () {
-                          final newTags = List<String>.from(_currentData!.customTags);
-                          newTags.remove(tag);
-                          _updateData(_currentData!.copyWith(customTags: newTags));
-                        },
-                      )),
+                            label: Text(tag),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              final newTags =
+                                  List<String>.from(_currentData!.customTags);
+                              newTags.remove(tag);
+                              _updateData(
+                                  _currentData!.copyWith(customTags: newTags));
+                            },
+                          )),
                       ActionChip(
                         label: const Text('Add tag'),
                         avatar: const Icon(Icons.add, size: 16),
@@ -998,14 +1071,17 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
                   ),
                   const SizedBox(height: 8),
                   TextField(
-                    controller: TextEditingController(text: _currentData?.notes ?? ''),
+                    controller:
+                        TextEditingController(text: _currentData?.notes ?? ''),
                     maxLines: 4,
                     decoration: const InputDecoration(
-                      hintText: 'Any other factors that might have influenced your mood today...',
+                      hintText:
+                          'Any other factors that might have influenced your mood today...',
                       border: OutlineInputBorder(),
                     ),
                     onChanged: (value) {
-                      _updateData(_currentData!.copyWith(notes: value.isEmpty ? null : value));
+                      _updateData(_currentData!
+                          .copyWith(notes: value.isEmpty ? null : value));
                     },
                   ),
                 ],
@@ -1027,29 +1103,42 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
       return currentTemp;
     }
 
-    return CorrelationDataService.convertTemperature(currentTemp, storedUnit, targetUnit);
+    return CorrelationDataService.convertTemperature(
+        currentTemp, storedUnit, targetUnit);
   }
 
   // Helper methods
   String _getWeatherLabel(WeatherCondition condition) {
     switch (condition) {
-      case WeatherCondition.sunny: return 'Sunny';
-      case WeatherCondition.cloudy: return 'Cloudy';
-      case WeatherCondition.rainy: return 'Rainy';
-      case WeatherCondition.stormy: return 'Stormy';
-      case WeatherCondition.snowy: return 'Snowy';
-      case WeatherCondition.foggy: return 'Foggy';
+      case WeatherCondition.sunny:
+        return 'Sunny';
+      case WeatherCondition.cloudy:
+        return 'Cloudy';
+      case WeatherCondition.rainy:
+        return 'Rainy';
+      case WeatherCondition.stormy:
+        return 'Stormy';
+      case WeatherCondition.snowy:
+        return 'Snowy';
+      case WeatherCondition.foggy:
+        return 'Foggy';
     }
   }
 
   String _getWeatherEmoji(WeatherCondition condition) {
     switch (condition) {
-      case WeatherCondition.sunny: return '☀️';
-      case WeatherCondition.cloudy: return '☁️';
-      case WeatherCondition.rainy: return '🌧️';
-      case WeatherCondition.stormy: return '⛈️';
-      case WeatherCondition.snowy: return '🌨️';
-      case WeatherCondition.foggy: return '🌫️';
+      case WeatherCondition.sunny:
+        return '☀️';
+      case WeatherCondition.cloudy:
+        return '☁️';
+      case WeatherCondition.rainy:
+        return '🌧️';
+      case WeatherCondition.stormy:
+        return '⛈️';
+      case WeatherCondition.snowy:
+        return '🌨️';
+      case WeatherCondition.foggy:
+        return '🌫️';
     }
   }
 
@@ -1068,30 +1157,44 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
 
   String _getActivityLevelTitle(ActivityLevel level) {
     switch (level) {
-      case ActivityLevel.none: return 'No Exercise';
-      case ActivityLevel.light: return 'Light Activity';
-      case ActivityLevel.moderate: return 'Moderate Exercise';
-      case ActivityLevel.intense: return 'Intense Workout';
+      case ActivityLevel.none:
+        return 'No Exercise';
+      case ActivityLevel.light:
+        return 'Light Activity';
+      case ActivityLevel.moderate:
+        return 'Moderate Exercise';
+      case ActivityLevel.intense:
+        return 'Intense Workout';
     }
   }
 
   String _getActivityLevelDescription(ActivityLevel level) {
     switch (level) {
-      case ActivityLevel.none: return 'Sedentary day, no planned exercise';
-      case ActivityLevel.light: return 'Walking, stretching, light movement';
-      case ActivityLevel.moderate: return 'Jogging, cycling, gym workout';
-      case ActivityLevel.intense: return 'High-intensity training, sports';
+      case ActivityLevel.none:
+        return 'Sedentary day, no planned exercise';
+      case ActivityLevel.light:
+        return 'Walking, stretching, light movement';
+      case ActivityLevel.moderate:
+        return 'Jogging, cycling, gym workout';
+      case ActivityLevel.intense:
+        return 'High-intensity training, sports';
     }
   }
 
   String _getSocialActivityLabel(SocialActivity activity) {
     switch (activity) {
-      case SocialActivity.none: return 'Solo';
-      case SocialActivity.friends: return 'Friends';
-      case SocialActivity.family: return 'Family';
-      case SocialActivity.work: return 'Colleagues';
-      case SocialActivity.party: return 'Party/Event';
-      case SocialActivity.date: return 'Date';
+      case SocialActivity.none:
+        return 'Solo';
+      case SocialActivity.friends:
+        return 'Friends';
+      case SocialActivity.family:
+        return 'Family';
+      case SocialActivity.work:
+        return 'Colleagues';
+      case SocialActivity.party:
+        return 'Party/Event';
+      case SocialActivity.date:
+        return 'Date';
     }
   }
 
@@ -1134,6 +1237,8 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
   }
 
   Future<void> _selectBedtime() async {
+    if (!mounted) return;
+
     // Show date picker first for bedtime date
     final bedtimeDate = await showDatePicker(
       context: context,
@@ -1143,7 +1248,7 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
       helpText: 'Select bedtime date',
     );
 
-    if (bedtimeDate == null) return;
+    if (!mounted || bedtimeDate == null) return;
 
     // Then show time picker
     final time = await showTimePicker(
@@ -1154,20 +1259,22 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
       helpText: 'Select bedtime',
     );
 
-    if (time != null) {
-      final bedtime = DateTime(
-        bedtimeDate.year,
-        bedtimeDate.month,
-        bedtimeDate.day,
-        time.hour,
-        time.minute,
-      );
+    if (!mounted || time == null) return;
 
-      _updateData(_currentData!.copyWith(bedtime: bedtime));
-    }
+    final bedtime = DateTime(
+      bedtimeDate.year,
+      bedtimeDate.month,
+      bedtimeDate.day,
+      time.hour,
+      time.minute,
+    );
+
+    _updateData(_currentData!.copyWith(bedtime: bedtime));
   }
 
   Future<void> _selectWakeTime() async {
+    if (!mounted) return;
+
     // Show date picker first for wake time date
     final wakeDate = await showDatePicker(
       context: context,
@@ -1177,7 +1284,7 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
       helpText: 'Select wake up date',
     );
 
-    if (wakeDate == null) return;
+    if (!mounted || wakeDate == null) return;
 
     // Then show time picker
     final time = await showTimePicker(
@@ -1188,17 +1295,17 @@ class _CorrelationScreenState extends State<CorrelationScreen> with TickerProvid
       helpText: 'Select wake up time',
     );
 
-    if (time != null) {
-      final wakeTime = DateTime(
-        wakeDate.year,
-        wakeDate.month,
-        wakeDate.day,
-        time.hour,
-        time.minute,
-      );
+    if (!mounted || time == null) return;
 
-      _updateData(_currentData!.copyWith(wakeTime: wakeTime));
-    }
+    final wakeTime = DateTime(
+      wakeDate.year,
+      wakeDate.month,
+      wakeDate.day,
+      time.hour,
+      time.minute,
+    );
+
+    _updateData(_currentData!.copyWith(wakeTime: wakeTime));
   }
 
   Future<void> _showAddTagDialog() async {

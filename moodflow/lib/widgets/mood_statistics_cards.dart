@@ -6,9 +6,9 @@ import '../services/data/mood_trends_service.dart';
 import '../services/data/mood_data_service.dart';
 
 enum StreakCalculationMode {
-  strict,   // Must log on actual day
-  lenient,  // Allows backfilling
-  both,     // Show both types
+  strict, // Must log on actual day
+  lenient, // Allows backfilling
+  both, // Show both types
 }
 
 class MoodStatisticsCards extends StatefulWidget {
@@ -46,7 +46,8 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
 
   Future<void> _loadStreakPreference() async {
     final prefs = await SharedPreferences.getInstance();
-    final modeIndex = prefs.getInt('streak_calculation_mode') ?? StreakCalculationMode.both.index;
+    final modeIndex = prefs.getInt('streak_calculation_mode') ??
+        StreakCalculationMode.both.index;
     setState(() {
       _streakMode = StreakCalculationMode.values[modeIndex];
     });
@@ -224,19 +225,19 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
               children: [
                 RadioListTile<StreakCalculationMode>(
                   title: const Text('Strict Mode'),
-                  subtitle: const Text('Must log moods on the actual day (within 6 hours)'),
+                  subtitle: const Text(
+                      'Must log moods on the actual day (within 6 hours)'),
                   value: StreakCalculationMode.strict,
                 ),
-
                 RadioListTile<StreakCalculationMode>(
                   title: const Text('Lenient Mode'),
                   subtitle: const Text('Allows backfilling missed days'),
                   value: StreakCalculationMode.lenient,
                 ),
-
                 RadioListTile<StreakCalculationMode>(
                   title: const Text('Show Both'),
-                  subtitle: const Text('Display both strict and lenient streaks'),
+                  subtitle:
+                      const Text('Display both strict and lenient streaks'),
                   value: StreakCalculationMode.both,
                 ),
               ],
@@ -325,7 +326,8 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.local_fire_department, color: Colors.orange.shade600, size: 20),
+                  Icon(Icons.local_fire_department,
+                      color: Colors.orange.shade600, size: 20),
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
@@ -441,14 +443,17 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
           const SizedBox(height: 12),
 
           // Bottom row - Best/Worst days
-          if (widget.statistics.bestDay != null && widget.statistics.worstDay != null) ...[
+          if (widget.statistics.bestDay != null &&
+              widget.statistics.worstDay != null) ...[
             Row(
               children: [
                 Expanded(
                   child: _buildStatCard(
                     title: 'Best Day',
-                    value: DateFormat('MMM d').format(widget.statistics.bestDay!),
-                    subtitle: '${widget.statistics.bestDayMood!.toStringAsFixed(1)} 😊',
+                    value:
+                        DateFormat('MMM d').format(widget.statistics.bestDay!),
+                    subtitle:
+                        '${widget.statistics.bestDayMood!.toStringAsFixed(1)} 😊',
                     icon: Icons.trending_up,
                     color: Colors.green.shade600,
                   ),
@@ -457,8 +462,10 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
                 Expanded(
                   child: _buildStatCard(
                     title: 'Toughest Day',
-                    value: DateFormat('MMM d').format(widget.statistics.worstDay!),
-                    subtitle: '${widget.statistics.worstDayMood!.toStringAsFixed(1)} 💪',
+                    value:
+                        DateFormat('MMM d').format(widget.statistics.worstDay!),
+                    subtitle:
+                        '${widget.statistics.worstDayMood!.toStringAsFixed(1)} 💪',
                     icon: Icons.trending_down,
                     color: Colors.red.shade600,
                   ),
@@ -564,7 +571,9 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
         insightText = "You're brightest in the morning! ☀️";
         insightIcon = Icons.wb_sunny;
         insightColor = Colors.orange.shade600;
-        textColor = isDarkMode ? Colors.orange.shade300 : const Color.fromARGB(255, 160, 73, 1);
+        textColor = isDarkMode
+            ? Colors.orange.shade300
+            : const Color.fromARGB(255, 160, 73, 1);
         break;
       case 1: // Midday
         insightText = "Midday energy is your strength! ⚡";
@@ -576,7 +585,8 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
         insightText = "Evenings bring out your best! 🌙";
         insightIcon = Icons.nights_stay;
         insightColor = Colors.purple.shade600;
-        textColor = isDarkMode ? Colors.purple.shade300 : Colors.purple.shade700;
+        textColor =
+            isDarkMode ? Colors.purple.shade300 : Colors.purple.shade700;
         break;
       default:
         insightText = "Keep tracking to find your patterns!";
@@ -594,11 +604,11 @@ class _MoodStatisticsCardsState extends State<MoodStatisticsCards> {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(
-                insightIcon,
-                color: isDarkMode ? insightColor.withValues(alpha: 0.8) : insightColor,
-                size: 24
-            ),
+            Icon(insightIcon,
+                color: isDarkMode
+                    ? insightColor.withValues(alpha: 0.8)
+                    : insightColor,
+                size: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

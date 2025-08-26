@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../backup/google_drive_service.dart';
 import '../backup/icloud_service.dart';
@@ -79,9 +79,13 @@ class RealCloudBackupService {
         // Sort by date (newest first)
         sortedBackups.sort((a, b) {
           if (Platform.isAndroid) {
-            return (b as DriveBackupFile).createdTime?.compareTo((a as DriveBackupFile).createdTime ?? DateTime.now()) ?? 0;
+            return (b as DriveBackupFile).createdTime?.compareTo(
+                    (a as DriveBackupFile).createdTime ?? DateTime.now()) ??
+                0;
           } else {
-            return (b as ICloudBackupFile).createdDate.compareTo((a as ICloudBackupFile).createdDate);
+            return (b as ICloudBackupFile)
+                .createdDate
+                .compareTo((a as ICloudBackupFile).createdDate);
           }
         });
 
@@ -101,7 +105,7 @@ class RealCloudBackupService {
       Logger.backupService('Error cleaning up old backups: $e');
     }
   }
-  
+
   /// Perform automatic cloud backup
   static Future<bool> performAutomaticBackup() async {
     try {
@@ -122,7 +126,8 @@ class RealCloudBackupService {
       if (Platform.isAndroid) {
         // For Android, check if signed in first
         if (!_googleDriveService.isSignedIn) {
-          Logger.backupService('❌ Not signed into Google Drive - skipping auto backup');
+          Logger.backupService(
+              '❌ Not signed into Google Drive - skipping auto backup');
           return false;
         }
         result = await _googleDriveService.uploadBackup();
@@ -136,7 +141,8 @@ class RealCloudBackupService {
         await _cleanupOldBackups();
         return true;
       } else {
-        Logger.backupService('❌ Automatic cloud backup failed: ${result.error}');
+        Logger.backupService(
+            '❌ Automatic cloud backup failed: ${result.error}');
         return false;
       }
     } catch (e) {
@@ -151,7 +157,8 @@ class RealCloudBackupService {
       Logger.backupService('🔄 Starting manual cloud backup...');
 
       if (!await isCloudBackupAvailable()) {
-        return BackupResult(false, error: 'Cloud backup not available on this platform');
+        return BackupResult(false,
+            error: 'Cloud backup not available on this platform');
       }
 
       final cloudService = _getCloudService();
@@ -172,7 +179,8 @@ class RealCloudBackupService {
 
       return result;
     } catch (e) {
-      return BackupResult(false, error: 'Manual backup failed: ${e.toString()}');
+      return BackupResult(false,
+          error: 'Manual backup failed: ${e.toString()}');
     }
   }
 
@@ -181,7 +189,8 @@ class RealCloudBackupService {
     try {
       // Only check once per day to avoid annoying the user
       final lastCheck = await _getLastRestoreCheckTime();
-      if (lastCheck != null && DateTime.now().difference(lastCheck).inHours < 24) {
+      if (lastCheck != null &&
+          DateTime.now().difference(lastCheck).inHours < 24) {
         return;
       }
 
@@ -202,7 +211,8 @@ class RealCloudBackupService {
 
       // If backups exist, you might want to notify the user or show a restore option
       if (hasBackups) {
-        Logger.backupService('✅ Cloud backups found - user can restore from Backup & Export screen');
+        Logger.backupService(
+            '✅ Cloud backups found - user can restore from Backup & Export screen');
       }
     } catch (e) {
       Logger.backupService('Error checking for restore on startup: $e');
@@ -401,7 +411,8 @@ class RealCloudBackupService {
     Logger.backupService('📊 Backup status: $status');
 
     if (Platform.isAndroid && !_googleDriveService.isSignedIn) {
-      Logger.backupService('🔑 Not signed into Google Drive - attempting sign in...');
+      Logger.backupService(
+          '🔑 Not signed into Google Drive - attempting sign in...');
       final signedIn = await signInToCloudService();
       if (!signedIn) {
         Logger.backupService('❌ Failed to sign into Google Drive');
@@ -419,7 +430,6 @@ class RealCloudBackupService {
       Logger.backupService('📋 Listing available backups...');
       final backups = await listAvailableBackups();
       Logger.backupService('📁 Found ${backups.length} backups');
-
     } else {
       Logger.backupService('❌ Test backup failed: ${backupResult.error}');
     }

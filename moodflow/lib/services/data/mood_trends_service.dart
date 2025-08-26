@@ -19,10 +19,12 @@ class MoodTrendsService {
 
     // Pre-load all SharedPreferences keys at once
     final prefs = await SharedPreferences.getInstance();
-    final allKeys = prefs.getKeys().where((key) => key.startsWith('mood_')).toSet();
+    final allKeys =
+        prefs.getKeys().where((key) => key.startsWith('mood_')).toSet();
 
     DateTime currentDate = startDate;
-    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+    while (currentDate.isBefore(endDate) ||
+        currentDate.isAtSameMomentAs(endDate)) {
       final dayData = DayMoodData(date: currentDate);
 
       // Check all segments for this day using pre-loaded keys
@@ -53,7 +55,8 @@ class MoodTrendsService {
   /// Get total days logged with caching
   static Future<int> getTotalDaysLogged() async {
     final prefs = await SharedPreferences.getInstance();
-    final moodKeys = prefs.getKeys().where((key) => key.startsWith('mood_')).toList();
+    final moodKeys =
+        prefs.getKeys().where((key) => key.startsWith('mood_')).toList();
 
     // Extract unique dates from keys (format: mood_YYYY-MM-DD_segment)
     final uniqueDates = <String>{};
@@ -70,10 +73,7 @@ class MoodTrendsService {
   /// Calculate statistics for a specific date range (affects most stats)
   /// But keeps global stats for days logged and streaks
   static Future<MoodStatistics> calculateStatisticsForDateRange(
-      List<DayMoodData> trends,
-      DateTime startDate,
-      DateTime endDate
-      ) async {
+      List<DayMoodData> trends, DateTime startDate, DateTime endDate) async {
     if (trends.isEmpty) {
       // Even if no trends in range, still get total days logged and streaks
       final totalDaysLogged = await getTotalDaysLogged();
@@ -90,7 +90,7 @@ class MoodTrendsService {
     final allMoods = <double>[];
     final timeSegmentMoods = <int, List<double>>{
       0: [], // Morning
-      1: [], // Midday  
+      1: [], // Midday
       2: [], // Evening
     };
 
@@ -103,7 +103,10 @@ class MoodTrendsService {
 
     // Process trends to calculate date-range specific statistics
     for (final day in trends) {
-      final dayMoods = day.moods.values.where((mood) => mood != null).cast<double>().toList();
+      final dayMoods = day.moods.values
+          .where((mood) => mood != null)
+          .cast<double>()
+          .toList();
 
       if (dayMoods.isNotEmpty) {
         final dayAverage = dayMoods.reduce((a, b) => a + b) / dayMoods.length;
@@ -128,7 +131,9 @@ class MoodTrendsService {
       }
     }
 
-    final overallAverage = allMoods.isNotEmpty ? allMoods.reduce((a, b) => a + b) / allMoods.length : 0.0;
+    final overallAverage = allMoods.isNotEmpty
+        ? allMoods.reduce((a, b) => a + b) / allMoods.length
+        : 0.0;
 
     // Calculate time segment averages within the date range
     final timeSegmentAverages = <int, double>{};
@@ -166,7 +171,8 @@ class MoodTrendsService {
   /// Calculate current streak globally with real-time updates
   static Future<int> _calculateCurrentStreakGlobal() async {
     final prefs = await SharedPreferences.getInstance();
-    final allKeys = prefs.getKeys().where((key) => key.startsWith('mood_')).toSet();
+    final allKeys =
+        prefs.getKeys().where((key) => key.startsWith('mood_')).toSet();
 
     int streak = 0;
     final today = DateTime.now();
@@ -209,7 +215,8 @@ class MoodTrendsService {
 
   /// LEGACY: Calculate statistics from mood trends (for backwards compatibility)
   /// This method is now deprecated in favor of calculateStatisticsForDateRange
-  static Future<MoodStatistics> calculateStatistics(List<DayMoodData> trends) async {
+  static Future<MoodStatistics> calculateStatistics(
+      List<DayMoodData> trends) async {
     // For backwards compatibility, calculate stats for the entire trends list
     if (trends.isEmpty) {
       final totalDaysLogged = await getTotalDaysLogged();
@@ -231,7 +238,8 @@ class MoodTrendsService {
   }
 
   /// Get mood data formatted for line chart
-  static List<ChartPoint> getChartData(List<DayMoodData> trends, int timeSegment) {
+  static List<ChartPoint> getChartData(
+      List<DayMoodData> trends, int timeSegment) {
     final points = <ChartPoint>[];
 
     for (int i = 0; i < trends.length; i++) {
@@ -251,7 +259,10 @@ class MoodTrendsService {
 
     for (int i = 0; i < trends.length; i++) {
       final day = trends[i];
-      final moods = day.moods.values.where((mood) => mood != null).cast<double>().toList();
+      final moods = day.moods.values
+          .where((mood) => mood != null)
+          .cast<double>()
+          .toList();
 
       if (moods.isNotEmpty) {
         final average = moods.reduce((a, b) => a + b) / moods.length;
@@ -265,7 +276,11 @@ class MoodTrendsService {
 
 class DayMoodData {
   final DateTime date;
-  final Map<int, double?> moods = {0: null, 1: null, 2: null}; // Morning, Midday, Evening
+  final Map<int, double?> moods = {
+    0: null,
+    1: null,
+    2: null
+  }; // Morning, Midday, Evening
 
   DayMoodData({required this.date});
 

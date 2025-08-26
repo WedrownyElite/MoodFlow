@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart' as notifications;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'
+    as notifications;
 import 'real_notification_service.dart';
 
 class EnhancedNotificationService {
@@ -16,9 +17,9 @@ class EnhancedNotificationService {
   static Future<bool> shouldAskForPermission() async {
     final prefs = await SharedPreferences.getInstance();
     final hasAsked = prefs.getBool(_permissionAskedKey) ?? false;
-    
+
     if (hasAsked) return false;
-    
+
     // Also check if permissions are already granted
     final areEnabled = await RealNotificationService.areNotificationsEnabled();
     return !areEnabled;
@@ -41,7 +42,7 @@ class EnhancedNotificationService {
   static Future<void> saveSettings(NotificationSettings settings) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_settingsKey, jsonEncode(settings.toJson()));
-    
+
     // Update scheduled notifications based on new settings
     await _updateScheduledNotifications(settings);
   }
@@ -50,11 +51,11 @@ class EnhancedNotificationService {
   static Future<NotificationSettings> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final settingsJson = prefs.getString(_settingsKey);
-    
+
     if (settingsJson == null) {
       return NotificationSettings.defaultSettings();
     }
-    
+
     try {
       final Map<String, dynamic> json = jsonDecode(settingsJson);
       return NotificationSettings.fromJson(json);
@@ -62,9 +63,10 @@ class EnhancedNotificationService {
       return NotificationSettings.defaultSettings();
     }
   }
-  
+
   /// Update scheduled notifications based on settings
-  static Future<void> _updateScheduledNotifications(NotificationSettings settings) async {
+  static Future<void> _updateScheduledNotifications(
+      NotificationSettings settings) async {
     if (!settings.enabled) {
       // Cancel all notifications if disabled
       await RealNotificationService.cancelAllNotifications();
@@ -80,9 +82,12 @@ class EnhancedNotificationService {
         morningEnabled: settings.morningAccessReminder,
         middayEnabled: settings.middayAccessReminder,
         eveningEnabled: settings.eveningAccessReminder,
-        morningTime: NotificationTime(settings.morningTime.hour, settings.morningTime.minute),
-        middayTime: NotificationTime(settings.middayTime.hour, settings.middayTime.minute),
-        eveningTime: NotificationTime(settings.eveningTime.hour, settings.eveningTime.minute),
+        morningTime: NotificationTime(
+            settings.morningTime.hour, settings.morningTime.minute),
+        middayTime: NotificationTime(
+            settings.middayTime.hour, settings.middayTime.minute),
+        eveningTime: NotificationTime(
+            settings.eveningTime.hour, settings.eveningTime.minute),
       );
     }
 
@@ -90,7 +95,8 @@ class EnhancedNotificationService {
     if (settings.endOfDayReminder) {
       await RealNotificationService.scheduleEndOfDayReminder(
         enabled: true,
-        time: NotificationTime(settings.endOfDayTime.hour, settings.endOfDayTime.minute),
+        time: NotificationTime(
+            settings.endOfDayTime.hour, settings.endOfDayTime.minute),
       );
     }
   }
@@ -101,7 +107,8 @@ class EnhancedNotificationService {
   }
 
   /// Get real pending notifications from the system
-  static Future<List<notifications.PendingNotificationRequest>> getSystemPendingNotifications() async {
+  static Future<List<notifications.PendingNotificationRequest>>
+      getSystemPendingNotifications() async {
     return await RealNotificationService.getPendingNotifications();
   }
 }
@@ -186,9 +193,11 @@ class NotificationSettings {
     return NotificationSettings(
       enabled: enabled ?? this.enabled,
       accessReminders: accessReminders ?? this.accessReminders,
-      morningAccessReminder: morningAccessReminder ?? this.morningAccessReminder,
+      morningAccessReminder:
+          morningAccessReminder ?? this.morningAccessReminder,
       middayAccessReminder: middayAccessReminder ?? this.middayAccessReminder,
-      eveningAccessReminder: eveningAccessReminder ?? this.eveningAccessReminder,
+      eveningAccessReminder:
+          eveningAccessReminder ?? this.eveningAccessReminder,
       endOfDayReminder: endOfDayReminder ?? this.endOfDayReminder,
       endOfDayTime: endOfDayTime ?? this.endOfDayTime,
       morningTime: morningTime ?? this.morningTime,
@@ -198,8 +207,10 @@ class NotificationSettings {
       goalProgress: goalProgress ?? this.goalProgress,
       goalEncouragement: goalEncouragement ?? this.goalEncouragement,
       streakCelebrations: streakCelebrations ?? this.streakCelebrations,
-      correlationNotifications: correlationNotifications ?? this.correlationNotifications,
-      smartInsightNotifications: smartInsightNotifications ?? this.smartInsightNotifications,
+      correlationNotifications:
+          correlationNotifications ?? this.correlationNotifications,
+      smartInsightNotifications:
+          smartInsightNotifications ?? this.smartInsightNotifications,
     );
   }
 
@@ -268,12 +279,12 @@ class NotificationContent {
 }
 
 enum NotificationType {
-  accessReminder,      // "Morning mood logging is now available!"
-  endOfDayReminder,    // "Don't forget to log your missing moods"
-  endOfDayComplete,    // "Perfect day of mood tracking!"
-  goalProgress,        // "Goal Progress Update"
-  goalEncouragement,   // "Keep working toward your goal!"
-  streakCelebration,   // "7 day streak!"
+  accessReminder, // "Morning mood logging is now available!"
+  endOfDayReminder, // "Don't forget to log your missing moods"
+  endOfDayComplete, // "Perfect day of mood tracking!"
+  goalProgress, // "Goal Progress Update"
+  goalEncouragement, // "Keep working toward your goal!"
+  streakCelebration, // "7 day streak!"
 }
 
 class TimeOfDay {
@@ -283,5 +294,6 @@ class TimeOfDay {
   const TimeOfDay({required this.hour, required this.minute});
 
   @override
-  String toString() => '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+  String toString() =>
+      '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 }

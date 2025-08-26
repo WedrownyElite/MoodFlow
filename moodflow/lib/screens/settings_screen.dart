@@ -3,8 +3,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import '../services/notifications/enhanced_notification_service.dart' as notifications;
-import '../services/notifications/real_notification_service.dart' as real_notifications;
+import '../services/notifications/real_notification_service.dart'
+    as real_notifications;
 import '../services/backup/cloud_backup_service.dart';
 import '../screens/backup_export_screen.dart';
 import '../services/data/correlation_data_service.dart';
@@ -198,14 +198,14 @@ class _AppearanceSection extends StatelessWidget {
         ),
         child: selected
             ? Container(
-          margin: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Theme.of(context).primaryColor,
-          ),
-        )
+                margin: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Theme.of(context).primaryColor,
+                ),
+              )
             : null,
       ),
     );
@@ -243,7 +243,6 @@ class _CloudBackupSectionState extends State<_CloudBackupSection> {
           children: [
             _buildSectionHeader('Cloud Backup'),
             const SizedBox(height: 12),
-
             FutureBuilder<Map<String, dynamic>>(
               future: RealCloudBackupService.getBackupStatus(),
               builder: (context, snapshot) {
@@ -258,13 +257,17 @@ class _CloudBackupSectionState extends State<_CloudBackupSection> {
                     if (isAvailable && isSignedIn) ...[
                       SwitchListTile(
                         title: const Text('Automatic cloud backup'),
-                        subtitle: const Text('Backup data immediately when you make changes'),
+                        subtitle: const Text(
+                            'Backup data immediately when you make changes'),
                         value: status['autoBackupEnabled'] ?? true,
                         onChanged: (value) async {
-                          await RealCloudBackupService.setAutoBackupEnabled(value);
+                          await RealCloudBackupService.setAutoBackupEnabled(
+                              value);
                           setState(() {});
                           widget.onShowSnackBar(
-                            value ? 'Auto backup enabled' : 'Auto backup disabled',
+                            value
+                                ? 'Auto backup enabled'
+                                : 'Auto backup disabled',
                             value ? Colors.green : Colors.orange,
                           );
                         },
@@ -276,57 +279,72 @@ class _CloudBackupSectionState extends State<_CloudBackupSection> {
                     // Cloud backup status
                     ListTile(
                       leading: Icon(
-                        isAvailable && isSignedIn ? Icons.cloud_done : Icons.cloud_off,
-                        color: isAvailable && isSignedIn ? Colors.green : Colors.grey,
+                        isAvailable && isSignedIn
+                            ? Icons.cloud_done
+                            : Icons.cloud_off,
+                        color: isAvailable && isSignedIn
+                            ? Colors.green
+                            : Colors.grey,
                       ),
                       title: Text(
                         isAvailable && isSignedIn
                             ? 'Cloud backup active'
                             : isAvailable
-                            ? 'Cloud backup not signed in'
-                            : 'Cloud backup not available',
+                                ? 'Cloud backup not signed in'
+                                : 'Cloud backup not available',
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(status['type'] ?? 'Unknown'),
                           if (lastBackup != null)
-                            Text('Last backup: ${_formatLastBackupTime(lastBackup)}'),
+                            Text(
+                                'Last backup: ${_formatLastBackupTime(lastBackup)}'),
                         ],
                       ),
                       trailing: isAvailable
                           ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (!isSignedIn)
-                            ElevatedButton(
-                              onPressed: () async {
-                                final success = await RealCloudBackupService.signInToCloudService();
-                                if (success) {
-                                  widget.onShowSnackBar('Signed in successfully!', Colors.green);
-                                  setState(() {});
-                                } else {
-                                  widget.onShowSnackBar('Sign in failed', Colors.red);
-                                }
-                              },
-                              child: const Text('Sign In'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (!isSignedIn)
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      final success =
+                                          await RealCloudBackupService
+                                              .signInToCloudService();
+                                      if (success) {
+                                        widget.onShowSnackBar(
+                                            'Signed in successfully!',
+                                            Colors.green);
+                                        setState(() {});
+                                      } else {
+                                        widget.onShowSnackBar(
+                                            'Sign in failed', Colors.red);
+                                      }
+                                    },
+                                    child: const Text('Sign In'),
+                                  )
+                                else
+                                  IconButton(
+                                    icon: const Icon(Icons.backup),
+                                    onPressed: () async {
+                                      widget.onShowSnackBar(
+                                          'Starting backup...', Colors.blue);
+                                      final result =
+                                          await RealCloudBackupService
+                                              .performManualBackup();
+                                      widget.onShowSnackBar(
+                                        result.success
+                                            ? 'Backup completed!'
+                                            : 'Backup failed: ${result.error}',
+                                        result.success
+                                            ? Colors.green
+                                            : Colors.red,
+                                      );
+                                    },
+                                  ),
+                              ],
                             )
-                          else
-                            IconButton(
-                              icon: const Icon(Icons.backup),
-                              onPressed: () async {
-                                widget.onShowSnackBar('Starting backup...', Colors.blue);
-                                final result = await RealCloudBackupService.performManualBackup();
-                                widget.onShowSnackBar(
-                                  result.success
-                                      ? 'Backup completed!'
-                                      : 'Backup failed: ${result.error}',
-                                  result.success ? Colors.green : Colors.red,
-                                );
-                              },
-                            ),
-                        ],
-                      )
                           : null,
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -342,7 +360,8 @@ class _CloudBackupSectionState extends State<_CloudBackupSection> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const BackupExportScreen(initialTabIndex: 2),
+                              builder: (context) =>
+                                  const BackupExportScreen(initialTabIndex: 2),
                             ),
                           );
                         },
@@ -389,10 +408,12 @@ class _WeatherIntegrationSection extends StatefulWidget {
   const _WeatherIntegrationSection({required this.onShowSnackBar});
 
   @override
-  State<_WeatherIntegrationSection> createState() => _WeatherIntegrationSectionState();
+  State<_WeatherIntegrationSection> createState() =>
+      _WeatherIntegrationSectionState();
 }
 
-class _WeatherIntegrationSectionState extends State<_WeatherIntegrationSection> {
+class _WeatherIntegrationSectionState
+    extends State<_WeatherIntegrationSection> {
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -404,7 +425,6 @@ class _WeatherIntegrationSectionState extends State<_WeatherIntegrationSection> 
           children: [
             _buildSectionHeader('Weather Integration'),
             const SizedBox(height: 12),
-
             FutureBuilder<bool>(
               future: CorrelationDataService.isWeatherApiConfigured(),
               builder: (context, snapshot) {
@@ -429,19 +449,19 @@ class _WeatherIntegrationSectionState extends State<_WeatherIntegrationSection> 
                       ),
                       trailing: isConfigured
                           ? IconButton(
-                        icon: const Icon(Icons.science),
-                        onPressed: _testWeatherApi,
-                      )
+                              icon: const Icon(Icons.science),
+                              onPressed: _testWeatherApi,
+                            )
                           : null,
                       onTap: _configureWeatherApi,
                       contentPadding: EdgeInsets.zero,
                     ),
-
                     if (isConfigured) ...[
                       const Divider(),
                       ListTile(
                         title: const Text('View weather correlations'),
-                        subtitle: const Text('See how weather affects your mood'),
+                        subtitle:
+                            const Text('See how weather affects your mood'),
                         leading: const Icon(Icons.analytics),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
@@ -451,7 +471,8 @@ class _WeatherIntegrationSectionState extends State<_WeatherIntegrationSection> 
                       ),
                       ListTile(
                         title: const Text('Remove weather API'),
-                        subtitle: const Text('Disable automatic weather tracking'),
+                        subtitle:
+                            const Text('Disable automatic weather tracking'),
                         leading: const Icon(Icons.delete, color: Colors.red),
                         onTap: _removeWeatherApi,
                         contentPadding: EdgeInsets.zero,
@@ -475,7 +496,8 @@ class _WeatherIntegrationSectionState extends State<_WeatherIntegrationSection> 
 
     if (result == true) {
       setState(() {});
-      widget.onShowSnackBar('Weather API configured successfully!', Colors.green);
+      widget.onShowSnackBar(
+          'Weather API configured successfully!', Colors.green);
     }
   }
 
@@ -494,7 +516,8 @@ class _WeatherIntegrationSectionState extends State<_WeatherIntegrationSection> 
           Colors.green,
         );
       } else {
-        widget.onShowSnackBar('API test failed. Check your API key.', Colors.red);
+        widget.onShowSnackBar(
+            'API test failed. Check your API key.', Colors.red);
       }
     } catch (e) {
       widget.onShowSnackBar('API test error: ${e.toString()}', Colors.red);
@@ -508,7 +531,7 @@ class _WeatherIntegrationSectionState extends State<_WeatherIntegrationSection> 
         title: const Text('Remove Weather API'),
         content: const Text(
           'Are you sure you want to remove your weather API configuration? '
-              'This will disable automatic weather fetching.',
+          'This will disable automatic weather fetching.',
         ),
         actions: [
           TextButton(
@@ -655,7 +678,7 @@ class _DebugSection extends StatelessWidget {
         title: const Text('Reset Onboarding'),
         content: const Text(
           'This will reset the onboarding flow so it shows again on next app launch. '
-              'This is for testing purposes only.',
+          'This is for testing purposes only.',
         ),
         actions: [
           TextButton(
@@ -674,7 +697,8 @@ class _DebugSection extends StatelessWidget {
     if (confirmed == true) {
       await OnboardingService.resetOnboarding();
       if (context.mounted) {
-        onShowSnackBar('Onboarding reset! Restart the app to see it again.', Colors.green);
+        onShowSnackBar(
+            'Onboarding reset! Restart the app to see it again.', Colors.green);
       }
     }
   }
@@ -694,7 +718,8 @@ class _DebugSection extends StatelessWidget {
   Future<void> _testImmediateNotification(BuildContext context) async {
     await real_notifications.RealNotificationService.scheduleTestNotificationIn(
         10, 'This test notification was scheduled 10 seconds ago!');
-    onShowSnackBar('📱 Test notification scheduled for 10 seconds from now!', Colors.green);
+    onShowSnackBar('📱 Test notification scheduled for 10 seconds from now!',
+        Colors.green);
   }
 
   Future<void> _sendMorningAccessNotification(BuildContext context) async {
@@ -702,11 +727,8 @@ class _DebugSection extends StatelessWidget {
       id: 8001,
       title: 'Good morning! ☀️',
       body: 'Morning mood logging is now available. How are you feeling?',
-      payload: jsonEncode({
-        'type': 'access_reminder',
-        'segment': 0,
-        'timeSegment': 'morning'
-      }),
+      payload: jsonEncode(
+          {'type': 'access_reminder', 'segment': 0, 'timeSegment': 'morning'}),
     );
     onShowSnackBar('📱 Morning access notification sent!', Colors.green);
   }
@@ -716,11 +738,8 @@ class _DebugSection extends StatelessWidget {
       id: 8002,
       title: 'Midday check-in ⚡',
       body: 'Midday mood logging is now available. Take a moment to check in.',
-      payload: jsonEncode({
-        'type': 'access_reminder',
-        'segment': 1,
-        'timeSegment': 'midday'
-      }),
+      payload: jsonEncode(
+          {'type': 'access_reminder', 'segment': 1, 'timeSegment': 'midday'}),
     );
     onShowSnackBar('📱 Midday access notification sent!', Colors.green);
   }
@@ -730,11 +749,8 @@ class _DebugSection extends StatelessWidget {
       id: 8003,
       title: 'Evening reflection 🌙',
       body: 'Evening mood logging is now available. How has your evening been?',
-      payload: jsonEncode({
-        'type': 'access_reminder',
-        'segment': 2,
-        'timeSegment': 'evening'
-      }),
+      payload: jsonEncode(
+          {'type': 'access_reminder', 'segment': 2, 'timeSegment': 'evening'}),
     );
     onShowSnackBar('📱 Evening access notification sent!', Colors.green);
   }
@@ -758,10 +774,7 @@ class _DebugSection extends StatelessWidget {
       id: 8005,
       title: 'Perfect day of mood tracking! 🎉',
       body: 'You logged all your moods today. Great job staying mindful!',
-      payload: jsonEncode({
-        'type': 'end_of_day',
-        'segmentsLogged': 3
-      }),
+      payload: jsonEncode({'type': 'end_of_day', 'segmentsLogged': 3}),
     );
     onShowSnackBar('📱 Day complete celebration sent!', Colors.green);
   }

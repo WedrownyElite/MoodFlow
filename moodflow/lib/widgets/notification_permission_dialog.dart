@@ -70,11 +70,12 @@ class NotificationPermissionDialog extends StatelessWidget {
         TextButton(
           onPressed: () async {
             await EnhancedNotificationService.markPermissionAsked();
-            
+
             // Save settings with notifications disabled
-            final settings = NotificationSettings.defaultSettings().copyWith(enabled: false);
+            final settings =
+                NotificationSettings.defaultSettings().copyWith(enabled: false);
             await EnhancedNotificationService.saveSettings(settings);
-            
+
             if (context.mounted) {
               Navigator.of(context).pop(false);
             }
@@ -84,20 +85,22 @@ class NotificationPermissionDialog extends StatelessWidget {
         ElevatedButton(
           onPressed: () async {
             await EnhancedNotificationService.markPermissionAsked();
-            
+
             // Request permissions using the real notification service
-            final granted = await EnhancedNotificationService.requestPermissions();
-            
+            final granted =
+                await EnhancedNotificationService.requestPermissions();
+
             if (granted) {
               // Save enabled settings and schedule notifications
               final settings = NotificationSettings.defaultSettings();
               await EnhancedNotificationService.saveSettings(settings);
             } else {
               // Save disabled settings if permission was denied
-              final settings = NotificationSettings.defaultSettings().copyWith(enabled: false);
+              final settings = NotificationSettings.defaultSettings()
+                  .copyWith(enabled: false);
               await EnhancedNotificationService.saveSettings(settings);
             }
-            
+
             if (context.mounted) {
               Navigator.of(context).pop(granted);
             }

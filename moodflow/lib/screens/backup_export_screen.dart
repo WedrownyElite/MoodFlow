@@ -1,11 +1,7 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:csv/csv.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import '../services/backup/backup_service.dart';
 import '../services/backup/export_service.dart';
 import '../services/backup/google_drive_service.dart';
@@ -13,8 +9,6 @@ import '../services/backup/icloud_service.dart';
 import '../services/data/backup_models.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/backup/cloud_backup_service.dart';
-import '../services/ai/mood_analysis_service.dart';
-import '../services/data/mood_data_service.dart';
 
 // REMOVE FOR PRODUCTION (CUSTOM CSV IMPORT)
 // Also delete the imports directory, and widgets/custom_csv_import_dialog.dart
@@ -143,7 +137,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
           // PDF Export
           _buildAdvancedExportCard(
             title: 'PDF Report',
-            description: 'Generate a comprehensive PDF report with selected data',
+            description:
+                'Generate a comprehensive PDF report with selected data',
             icon: Icons.picture_as_pdf,
             color: Colors.red,
             onTap: () => _showExportOptionsDialog(ExportType.pdf),
@@ -173,8 +168,6 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       ),
     );
   }
-  
-  
 
   Widget _buildBackupTab() {
     return SingleChildScrollView(
@@ -231,11 +224,13 @@ class _BackupExportScreenState extends State<BackupExportScreen>
           const SizedBox(height: 12),
 
           if (_googleDriveService.isSignedIn) ...[
-            _buildBackupHistorySection('Google Drive', _driveBackups, _isDriveLoading, _loadGoogleDriveBackups),
+            _buildBackupHistorySection('Google Drive', _driveBackups,
+                _isDriveLoading, _loadGoogleDriveBackups),
           ],
 
           if (_isICloudAvailable && Platform.isIOS) ...[
-            _buildBackupHistorySection('iCloud', _iCloudBackups, _isICloudLoading, _loadICloudBackups),
+            _buildBackupHistorySection(
+                'iCloud', _iCloudBackups, _isICloudLoading, _loadICloudBackups),
           ],
         ],
       ),
@@ -314,7 +309,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
           const SizedBox(height: 16),
           _buildRestoreCard(
             title: 'Import Your Custom CSV',
-            description: 'Import from your specific MoodLog CSV format (TEMPORARY)',
+            description:
+                'Import from your specific MoodLog CSV format (TEMPORARY)',
             icon: Icons.table_chart,
             color: Colors.orange,
             onTap: _importFromCustomCSV,
@@ -351,7 +347,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
                   const SizedBox(height: 8),
                   ElevatedButton(
                     onPressed: () async {
-                      final success = await RealCloudBackupService.signInToCloudService();
+                      final success =
+                          await RealCloudBackupService.signInToCloudService();
                       if (!mounted) return;
 
                       if (success) {
@@ -454,7 +451,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       Navigator.of(context).pop(); // Close loading dialog
 
       if (result.success) {
-        _showSuccessMessage(result.message ?? 'Cloud restore completed successfully!');
+        _showSuccessMessage(
+            result.message ?? 'Cloud restore completed successfully!');
       } else {
         _showErrorMessage(result.error ?? 'Cloud restore failed');
       }
@@ -644,7 +642,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
     );
   }
 
-  Widget _buildBackupHistorySection(String title, List items, bool isLoading, VoidCallback onLoad) {
+  Widget _buildBackupHistorySection(
+      String title, List items, bool isLoading, VoidCallback onLoad) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -658,7 +657,10 @@ class _BackupExportScreenState extends State<BackupExportScreen>
             TextButton.icon(
               onPressed: isLoading ? null : onLoad,
               icon: isLoading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.refresh),
               label: const Text('Refresh'),
             ),
@@ -671,11 +673,11 @@ class _BackupExportScreenState extends State<BackupExportScreen>
           )
         else
           ...items.take(3).map((item) => ListTile(
-            leading: const Icon(Icons.cloud_done),
-            title: Text(item.name ?? 'Backup'),
-            subtitle: Text(item.formattedDate ?? ''),
-            trailing: Text(item.formattedSize ?? ''),
-          )),
+                leading: const Icon(Icons.cloud_done),
+                title: Text(item.name ?? 'Backup'),
+                subtitle: Text(item.formattedDate ?? ''),
+                trailing: Text(item.formattedSize ?? ''),
+              )),
       ],
     );
   }
@@ -703,7 +705,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
               onPressed: () {
                 // TODO: Implement date range picker
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Date range selection coming soon')),
+                  const SnackBar(
+                      content: Text('Date range selection coming soon')),
                 );
               },
               child: const Text('Select Date Range'),
@@ -713,7 +716,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       ),
     );
   }
-  
+
   // Google Drive Methods
   Future<void> _backupToGoogleDrive() async {
     if (!_googleDriveService.isSignedIn) {
@@ -847,8 +850,7 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
           if (importResult.success) {
             _showSuccessMessage(
-                'Import completed! Added ${importResult.importedMoods} moods and ${importResult.importedGoals} goals.'
-            );
+                'Import completed! Added ${importResult.importedMoods} moods and ${importResult.importedGoals} goals.');
           } else {
             _showErrorMessage(importResult.error ?? 'Import failed');
           }
@@ -880,24 +882,25 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
   Future<bool> _showRestoreConfirmation() async {
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Restore Data'),
-        content: const Text(
-          'This will import data from the backup. Existing data will not be overwritten. Continue?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Restore Data'),
+            content: const Text(
+              'This will import data from the backup. Existing data will not be overwritten. Continue?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Restore'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Restore'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   void _showSuccessMessage(String message) {
@@ -934,11 +937,9 @@ class _BackupExportScreenState extends State<BackupExportScreen>
 
       if (result != null) {
         if (result.success) {
-          _showSuccessMessage(
-              'Custom CSV import completed!\n'
-                  'Imported/Overwrote: ${result.imported} mood entries\n'
-                  'Note: This import overwrites any existing data for the same dates'
-          );
+          _showSuccessMessage('Custom CSV import completed!\n'
+              'Imported/Overwrote: ${result.imported} mood entries\n'
+              'Note: This import overwrites any existing data for the same dates');
 
           // Show errors if any
           if (result.errors.isNotEmpty) {
@@ -969,16 +970,22 @@ class _BackupExportScreenState extends State<BackupExportScreen>
               Text('⏭️ Skipped: ${result.skipped} existing entries'),
               if (result.errors.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const Text('Errors:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                const Text('Errors:',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.red)),
                 const SizedBox(height: 8),
                 Flexible(
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: result.errors.map((error) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text('• $error', style: const TextStyle(fontSize: 12, color: Colors.red)),
-                      )).toList(),
+                      children: result.errors
+                          .map((error) => Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Text('• $error',
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.red)),
+                              ))
+                          .toList(),
                     ),
                   ),
                 ),
@@ -1009,7 +1016,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text('${type == ExportType.csv ? 'CSV' : 'PDF'} Export Options'),
+          title:
+              Text('${type == ExportType.csv ? 'CSV' : 'PDF'} Export Options'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1018,31 +1026,36 @@ class _BackupExportScreenState extends State<BackupExportScreen>
                   title: const Text('Mood Logs'),
                   subtitle: const Text('Daily mood ratings and notes'),
                   value: includeMoods,
-                  onChanged: (value) => setState(() => includeMoods = value ?? true),
+                  onChanged: (value) =>
+                      setState(() => includeMoods = value ?? true),
                 ),
                 CheckboxListTile(
                   title: const Text('Weather Data'),
                   subtitle: const Text('Saved weather conditions'),
                   value: includeWeather,
-                  onChanged: (value) => setState(() => includeWeather = value ?? true),
+                  onChanged: (value) =>
+                      setState(() => includeWeather = value ?? true),
                 ),
                 CheckboxListTile(
                   title: const Text('Sleep Data'),
                   subtitle: const Text('Sleep quality and duration'),
                   value: includeSleep,
-                  onChanged: (value) => setState(() => includeSleep = value ?? true),
+                  onChanged: (value) =>
+                      setState(() => includeSleep = value ?? true),
                 ),
                 CheckboxListTile(
                   title: const Text('Activity & Social Data'),
                   subtitle: const Text('Exercise and social activities'),
                   value: includeActivity,
-                  onChanged: (value) => setState(() => includeActivity = value ?? true),
+                  onChanged: (value) =>
+                      setState(() => includeActivity = value ?? true),
                 ),
                 CheckboxListTile(
                   title: const Text('All Correlation Data'),
                   subtitle: const Text('Include all correlation factors'),
                   value: includeCorrelations,
-                  onChanged: (value) => setState(() => includeCorrelations = value ?? true),
+                  onChanged: (value) =>
+                      setState(() => includeCorrelations = value ?? true),
                 ),
                 const Divider(),
                 ListTile(
@@ -1056,7 +1069,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
                   onTap: () async {
                     final picked = await showDateRangePicker(
                       context: context,
-                      firstDate: DateTime.now().subtract(const Duration(days: 365 * 3)),
+                      firstDate: DateTime.now()
+                          .subtract(const Duration(days: 365 * 3)),
                       lastDate: DateTime.now(),
                       initialDateRange: startDate != null && endDate != null
                           ? DateTimeRange(start: startDate!, end: endDate!)
@@ -1174,7 +1188,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       if (!mounted) return;
       Navigator.of(context).pop();
 
-      await ExportService.shareFile(filePath, subject: 'MoodFlow Data Export (CSV)');
+      await ExportService.shareFile(filePath,
+          subject: 'MoodFlow Data Export (CSV)');
       _showSuccessMessage('CSV export completed successfully!');
     } catch (e) {
       if (!mounted) return;
@@ -1218,7 +1233,8 @@ class _BackupExportScreenState extends State<BackupExportScreen>
       if (!mounted) return;
       Navigator.of(context).pop();
 
-      await ExportService.shareFile(filePath, subject: 'MoodFlow AI Analyses Export');
+      await ExportService.shareFile(filePath,
+          subject: 'MoodFlow AI Analyses Export');
       _showSuccessMessage('AI analyses exported successfully!');
     } catch (e) {
       if (!mounted) return;

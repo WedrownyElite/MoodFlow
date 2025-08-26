@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/backup_models.dart';
 import '../data/mood_data_service.dart';
@@ -23,7 +23,8 @@ class BackupService {
     final startDate = endDate.subtract(const Duration(days: 1095));
 
     DateTime currentDate = startDate;
-    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+    while (currentDate.isBefore(endDate) ||
+        currentDate.isAtSameMomentAs(endDate)) {
       // Existing mood collection code...
       for (int segment = 0; segment < 3; segment++) {
         final moodData = await MoodDataService.loadMood(currentDate, segment);
@@ -44,9 +45,11 @@ class BackupService {
       }
 
       // Collect correlation data
-      final correlationData = await CorrelationDataService.loadCorrelationData(currentDate);
+      final correlationData =
+          await CorrelationDataService.loadCorrelationData(currentDate);
       if (correlationData != null) {
-        correlationEntries.add(CorrelationEntryExport.fromCorrelationData(correlationData));
+        correlationEntries
+            .add(CorrelationEntryExport.fromCorrelationData(correlationData));
       }
 
       currentDate = currentDate.add(const Duration(days: 1));
@@ -69,7 +72,8 @@ class BackupService {
     }
 
     // Get notification settings
-    final notificationSettings = await EnhancedNotificationService.loadSettings();
+    final notificationSettings =
+        await EnhancedNotificationService.loadSettings();
     final notificationExport = NotificationSettingsExport(
       settings: notificationSettings.toJson(),
     );
@@ -116,7 +120,8 @@ class BackupService {
       // Import mood entries
       for (final entry in exportData.moodEntries) {
         // Check if entry already exists
-        final existing = await MoodDataService.loadMood(entry.date, entry.segment);
+        final existing =
+            await MoodDataService.loadMood(entry.date, entry.segment);
         if (existing != null && existing['rating'] != null) {
           skippedMoods++;
           continue;
@@ -142,7 +147,7 @@ class BackupService {
         }
 
         final goalType = GoalType.values.firstWhere(
-              (type) => type.toString() == goalExport.type,
+          (type) => type.toString() == goalExport.type,
           orElse: () => GoalType.averageMood,
         );
 
@@ -170,7 +175,8 @@ class BackupService {
       try {
         final prefs = await SharedPreferences.getInstance();
         if (exportData.savedAnalyses.isNotEmpty) {
-          await prefs.setString('saved_ai_analyses', jsonEncode(exportData.savedAnalyses));
+          await prefs.setString(
+              'saved_ai_analyses', jsonEncode(exportData.savedAnalyses));
         }
       } catch (e) {
         Logger.backupService('Failed to import saved analyses: $e');
@@ -182,7 +188,8 @@ class BackupService {
         final correlationData = CorrelationData(
           date: correlationExport.date,
           weather: correlationExport.weather != null
-              ? WeatherCondition.values.firstWhere((e) => e.name == correlationExport.weather!)
+              ? WeatherCondition.values
+                  .firstWhere((e) => e.name == correlationExport.weather!)
               : null,
           temperature: correlationExport.temperature,
           weatherDescription: correlationExport.weatherDescription,
@@ -193,10 +200,12 @@ class BackupService {
           bedtime: correlationExport.bedtime,
           wakeTime: correlationExport.wakeTime,
           exerciseLevel: correlationExport.exerciseLevel != null
-              ? ActivityLevel.values.firstWhere((e) => e.name == correlationExport.exerciseLevel!)
+              ? ActivityLevel.values
+                  .firstWhere((e) => e.name == correlationExport.exerciseLevel!)
               : null,
           socialActivity: correlationExport.socialActivity != null
-              ? SocialActivity.values.firstWhere((e) => e.name == correlationExport.socialActivity!)
+              ? SocialActivity.values.firstWhere(
+                  (e) => e.name == correlationExport.socialActivity!)
               : null,
           workStress: correlationExport.workStress,
           customTags: correlationExport.customTags,
@@ -205,14 +214,14 @@ class BackupService {
           weatherData: correlationExport.weatherData,
         );
 
-        await CorrelationDataService.saveCorrelationData(correlationExport.date, correlationData);
+        await CorrelationDataService.saveCorrelationData(
+            correlationExport.date, correlationData);
       }
 
       // Import notification settings (optional)
       try {
         final importedSettings = NotificationSettings.fromJson(
-            exportData.notificationSettings.settings
-        );
+            exportData.notificationSettings.settings);
         await EnhancedNotificationService.saveSettings(importedSettings);
       } catch (e) {
         Logger.backupService('Failed to import notification settings: $e');
@@ -249,10 +258,12 @@ class BackupService {
 
     // Set date range defaults
     endDate ??= DateTime.now();
-    startDate ??= endDate.subtract(const Duration(days: 1095)); // 3 years default
+    startDate ??=
+        endDate.subtract(const Duration(days: 1095)); // 3 years default
 
     DateTime currentDate = startDate;
-    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+    while (currentDate.isBefore(endDate) ||
+        currentDate.isAtSameMomentAs(endDate)) {
       // Collect mood entries if requested
       if (includeMoods) {
         for (int segment = 0; segment < 3; segment++) {
@@ -275,21 +286,29 @@ class BackupService {
       }
 
       // Collect correlation data if any correlation data is requested
-      if (includeWeather || includeSleep || includeActivity || includeCorrelations) {
-        final correlationData = await CorrelationDataService.loadCorrelationData(currentDate);
+      if (includeWeather ||
+          includeSleep ||
+          includeActivity ||
+          includeCorrelations) {
+        final correlationData =
+            await CorrelationDataService.loadCorrelationData(currentDate);
         if (correlationData != null) {
           // Create filtered correlation entry
           correlationEntries.add(CorrelationEntryExport(
             date: correlationData.date,
             weather: includeWeather ? correlationData.weather?.name : null,
             temperature: includeWeather ? correlationData.temperature : null,
-            weatherDescription: includeWeather ? correlationData.weatherDescription : null,
+            weatherDescription:
+                includeWeather ? correlationData.weatherDescription : null,
             sleepQuality: includeSleep ? correlationData.sleepQuality : null,
-            sleepDurationMinutes: includeSleep ? correlationData.sleepDuration?.inMinutes : null,
+            sleepDurationMinutes:
+                includeSleep ? correlationData.sleepDuration?.inMinutes : null,
             bedtime: includeSleep ? correlationData.bedtime : null,
             wakeTime: includeSleep ? correlationData.wakeTime : null,
-            exerciseLevel: includeActivity ? correlationData.exerciseLevel?.name : null,
-            socialActivity: includeActivity ? correlationData.socialActivity?.name : null,
+            exerciseLevel:
+                includeActivity ? correlationData.exerciseLevel?.name : null,
+            socialActivity:
+                includeActivity ? correlationData.socialActivity?.name : null,
             workStress: includeCorrelations ? correlationData.workStress : null,
             customTags: includeCorrelations ? correlationData.customTags : [],
             notes: includeCorrelations ? correlationData.notes : null,

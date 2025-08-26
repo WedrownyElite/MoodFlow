@@ -1,4 +1,4 @@
-﻿// lib/widgets/weather_api_setup_dialog.dart
+// lib/widgets/weather_api_setup_dialog.dart
 import 'package:flutter/material.dart';
 import '../services/data/correlation_data_service.dart';
 
@@ -11,7 +11,6 @@ class WeatherApiSetupDialog extends StatefulWidget {
 
 class _WeatherApiSetupDialogState extends State<WeatherApiSetupDialog> {
   final _apiKeyController = TextEditingController();
-  bool _isLoading = false;
   bool _isTestingApi = false;
   String? _errorMessage;
   bool _setupComplete = false;
@@ -60,7 +59,8 @@ class _WeatherApiSetupDialogState extends State<WeatherApiSetupDialog> {
         });
       } else {
         setState(() {
-          _errorMessage = 'API key test failed. Please check your key and try again.';
+          _errorMessage =
+              'API key test failed. Please check your key and try again.';
           _isTestingApi = false;
         });
       }
@@ -163,13 +163,13 @@ class _WeatherApiSetupDialogState extends State<WeatherApiSetupDialog> {
                     errorText: _errorMessage,
                     suffixIcon: _isTestingApi
                         ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
+                            width: 20,
+                            height: 20,
+                            child: Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
                         : null,
                   ),
                   maxLines: 1,
@@ -187,7 +187,8 @@ class _WeatherApiSetupDialogState extends State<WeatherApiSetupDialog> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.privacy_tip, size: 16, color: Colors.blue.shade600),
+                      Icon(Icons.privacy_tip,
+                          size: 16, color: Colors.blue.shade600),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
@@ -209,7 +210,8 @@ class _WeatherApiSetupDialogState extends State<WeatherApiSetupDialog> {
                   ),
                   child: Column(
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green.shade600, size: 48),
+                      Icon(Icons.check_circle,
+                          color: Colors.green.shade600, size: 48),
                       const SizedBox(height: 12),
                       Text(
                         'Weather API Setup Complete!',
@@ -242,10 +244,10 @@ class _WeatherApiSetupDialogState extends State<WeatherApiSetupDialog> {
             onPressed: _isTestingApi ? null : _saveApiKey,
             child: _isTestingApi
                 ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Text('Save & Test'),
           ),
         ] else ...[

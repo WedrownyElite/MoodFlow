@@ -1,5 +1,3 @@
-﻿// lib/services/onboarding/onboarding_service.dart
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import '../backup/cloud_backup_service.dart';
@@ -16,7 +14,8 @@ class OnboardingService {
   /// Check if user needs to see onboarding
   static Future<bool> shouldShowOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
-    final hasCompletedOnboarding = prefs.getBool(_onboardingCompleteKey) ?? false;
+    final hasCompletedOnboarding =
+        prefs.getBool(_onboardingCompleteKey) ?? false;
 
     // Also check if user has any existing mood data
     final hasExistingData = await _hasExistingMoodData();
@@ -47,7 +46,7 @@ class OnboardingService {
 
     if (!context.mounted) return;
 
-    // Step 2: Notification Setup  
+    // Step 2: Notification Setup
     await _showNotificationPrompt(context);
 
     if (!context.mounted) return;
@@ -103,7 +102,8 @@ class OnboardingService {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('☁️ Cloud backup enabled! Your data will be automatically backed up.'),
+              content: Text(
+                  '☁️ Cloud backup enabled! Your data will be automatically backed up.'),
               backgroundColor: Colors.green,
             ),
           );
@@ -113,7 +113,8 @@ class OnboardingService {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Cloud backup setup failed. You can try again in Settings.'),
+              content: Text(
+                  'Cloud backup setup failed. You can try again in Settings.'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -156,7 +157,8 @@ class OnboardingService {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('🔔 Notifications enabled! You\'ll get helpful reminders.'),
+              content: Text(
+                  '🔔 Notifications enabled! You\'ll get helpful reminders.'),
               backgroundColor: Colors.green,
             ),
           );
@@ -165,9 +167,11 @@ class OnboardingService {
     } else {
       // User declined notifications
       await EnhancedNotificationService.markPermissionAsked();
-      final settings = NotificationSettings.defaultSettings().copyWith(enabled: false);
+      final settings =
+          NotificationSettings.defaultSettings().copyWith(enabled: false);
       await EnhancedNotificationService.saveSettings(settings);
-      Logger.notificationService('ℹ️ User declined notifications during onboarding');
+      Logger.notificationService(
+          'ℹ️ User declined notifications during onboarding');
     }
   }
 
@@ -208,7 +212,8 @@ class OnboardingService {
               content: const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('To enable weather-mood correlations, you\'ll need a free OpenWeatherMap API key.'),
+                  Text(
+                      'To enable weather-mood correlations, you\'ll need a free OpenWeatherMap API key.'),
                   SizedBox(height: 12),
                   Text('You can set this up now or later in Settings.'),
                 ],
@@ -235,20 +240,24 @@ class OnboardingService {
           }
         }
 
-        Logger.correlationService('✅ Location permission granted during onboarding');
+        Logger.correlationService(
+            '✅ Location permission granted during onboarding');
       } else {
-        Logger.correlationService('❌ Location permission denied during onboarding');
+        Logger.correlationService(
+            '❌ Location permission denied during onboarding');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Location permission is needed for weather correlations. You can enable this in Settings.'),
+              content: Text(
+                  'Location permission is needed for weather correlations. You can enable this in Settings.'),
               backgroundColor: Colors.orange,
             ),
           );
         }
       }
     } else {
-      Logger.correlationService('ℹ️ User declined correlation services during onboarding');
+      Logger.correlationService(
+          'ℹ️ User declined correlation services during onboarding');
     }
   }
 
@@ -272,7 +281,8 @@ class CloudBackupPromptDialog extends StatelessWidget {
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.cloud_upload, color: Theme.of(context).primaryColor, size: 28),
+          Icon(Icons.cloud_upload,
+              color: Theme.of(context).primaryColor, size: 28),
           const SizedBox(width: 12),
           const Expanded(child: Text('Secure Your Data')),
         ],
@@ -286,11 +296,14 @@ class CloudBackupPromptDialog extends StatelessWidget {
             style: TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 16),
-          _buildFeature(Icons.backup, 'Automatic backups', 'Your data is saved to your Google Drive or iCloud'),
+          _buildFeature(Icons.backup, 'Automatic backups',
+              'Your data is saved to your Google Drive or iCloud'),
           const SizedBox(height: 8),
-          _buildFeature(Icons.sync, 'Sync across devices', 'Access your data on multiple devices'),
+          _buildFeature(Icons.sync, 'Sync across devices',
+              'Access your data on multiple devices'),
           const SizedBox(height: 8),
-          _buildFeature(Icons.security, 'Secure & private', 'Only you can access your data'),
+          _buildFeature(Icons.security, 'Secure & private',
+              'Only you can access your data'),
           const SizedBox(height: 16),
           Text(
             'You can change this setting anytime in the app.',
@@ -354,7 +367,8 @@ class NotificationPromptDialog extends StatelessWidget {
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.notifications_active, color: Theme.of(context).primaryColor, size: 28),
+          Icon(Icons.notifications_active,
+              color: Theme.of(context).primaryColor, size: 28),
           const SizedBox(width: 12),
           const Expanded(child: Text('Stay Consistent')),
         ],
@@ -368,11 +382,14 @@ class NotificationPromptDialog extends StatelessWidget {
             style: TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 16),
-          _buildFeature(Icons.access_time, 'Timely reminders', 'Morning, midday, and evening check-ins'),
+          _buildFeature(Icons.access_time, 'Timely reminders',
+              'Morning, midday, and evening check-ins'),
           const SizedBox(height: 8),
-          _buildFeature(Icons.bedtime, 'End-of-day prompts', 'Gentle reminders before bed'),
+          _buildFeature(Icons.bedtime, 'End-of-day prompts',
+              'Gentle reminders before bed'),
           const SizedBox(height: 8),
-          _buildFeature(Icons.local_fire_department, 'Celebrate streaks', 'Acknowledge your consistency'),
+          _buildFeature(Icons.local_fire_department, 'Celebrate streaks',
+              'Acknowledge your consistency'),
           const SizedBox(height: 16),
           Text(
             'You can customize or disable notifications anytime.',
@@ -436,7 +453,8 @@ class CorrelationPromptDialog extends StatelessWidget {
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.analytics, color: Theme.of(context).primaryColor, size: 28),
+          Icon(Icons.analytics,
+              color: Theme.of(context).primaryColor, size: 28),
           const SizedBox(width: 12),
           const Expanded(child: Text('Discover Patterns')),
         ],
@@ -450,11 +468,14 @@ class CorrelationPromptDialog extends StatelessWidget {
             style: TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 16),
-          _buildFeature(Icons.wb_sunny, 'Weather correlations', 'See how weather impacts your mood'),
+          _buildFeature(Icons.wb_sunny, 'Weather correlations',
+              'See how weather impacts your mood'),
           const SizedBox(height: 8),
-          _buildFeature(Icons.insights, 'Smart insights', 'Get personalized recommendations'),
+          _buildFeature(Icons.insights, 'Smart insights',
+              'Get personalized recommendations'),
           const SizedBox(height: 8),
-          _buildFeature(Icons.location_on, 'Location required', 'Used only for weather data'),
+          _buildFeature(Icons.location_on, 'Location required',
+              'Used only for weather data'),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),

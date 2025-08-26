@@ -6,19 +6,21 @@ class MoodAnalyticsService {
   static const String _goalsKey = 'mood_goals';
 
   /// Save correlation data (weather, sleep, exercise, etc.)
-  static Future<void> saveCorrelationData(DateTime date, Map<String, dynamic> data) async {
+  static Future<void> saveCorrelationData(
+      DateTime date, Map<String, dynamic> data) async {
     final prefs = await SharedPreferences.getInstance();
     final key = 'correlation_${date.toIso8601String().substring(0, 10)}';
     await prefs.setString(key, jsonEncode(data));
   }
 
   /// Load correlation data for a specific date
-  static Future<Map<String, dynamic>?> loadCorrelationData(DateTime date) async {
+  static Future<Map<String, dynamic>?> loadCorrelationData(
+      DateTime date) async {
     final prefs = await SharedPreferences.getInstance();
     final key = 'correlation_${date.toIso8601String().substring(0, 10)}';
     final jsonString = prefs.getString(key);
     if (jsonString == null) return null;
-    
+
     try {
       return jsonDecode(jsonString) as Map<String, dynamic>;
     } catch (_) {
@@ -29,30 +31,31 @@ class MoodAnalyticsService {
   /// Generate mood predictions based on historical data
   static Future<MoodPredictions> generatePredictions() async {
     final endDate = DateTime.now();
-    final startDate = endDate.subtract(const Duration(days: 90)); // 3 months of data
-    
+    final startDate =
+        endDate.subtract(const Duration(days: 90)); // 3 months of data
+
     final dayOfWeekMoods = <int, List<double>>{};
     final timeOfDayMoods = <int, List<double>>{};
     final weatherMoods = <String, List<double>>{};
-    
+
     // Collect historical data
     DateTime currentDate = startDate;
     while (currentDate.isBefore(endDate)) {
       final dayOfWeek = currentDate.weekday;
-      
+
       for (int segment = 0; segment < 3; segment++) {
         final moodData = await MoodDataService.loadMood(currentDate, segment);
         final correlationData = await loadCorrelationData(currentDate);
-        
+
         if (moodData != null && moodData['rating'] != null) {
           final mood = (moodData['rating'] as num).toDouble();
-          
+
           // Day of week patterns
           dayOfWeekMoods.putIfAbsent(dayOfWeek, () => []).add(mood);
-          
+
           // Time of day patterns
           timeOfDayMoods.putIfAbsent(segment, () => []).add(mood);
-          
+
           // Weather patterns
           if (correlationData != null && correlationData['weather'] != null) {
             final weather = correlationData['weather'] as String;
@@ -60,10 +63,10 @@ class MoodAnalyticsService {
           }
         }
       }
-      
+
       currentDate = currentDate.add(const Duration(days: 1));
     }
-    
+
     return MoodPredictions(
       dayOfWeekAverages: _calculateAverages(dayOfWeekMoods),
       timeOfDayAverages: _calculateAverages(timeOfDayMoods),
@@ -75,32 +78,34 @@ class MoodAnalyticsService {
   }
 
   /// Generate weekly/monthly reports
-  static Future<MoodReport> generateReport(DateTime startDate, DateTime endDate) async {
+  static Future<MoodReport> generateReport(
+      DateTime startDate, DateTime endDate) async {
     final moodEntries = <MoodReportEntry>[];
     double totalMood = 0;
     int moodCount = 0;
     final segmentTotals = <int, double>{0: 0, 1: 0, 2: 0};
     final segmentCounts = <int, int>{0: 0, 1: 0, 2: 0};
-    
+
     DateTime currentDate = startDate;
-    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+    while (currentDate.isBefore(endDate) ||
+        currentDate.isAtSameMomentAs(endDate)) {
       final dayMoods = <int, double>{};
       final correlationData = await loadCorrelationData(currentDate);
-      
+
       for (int segment = 0; segment < 3; segment++) {
         final moodData = await MoodDataService.loadMood(currentDate, segment);
         if (moodData != null && moodData['rating'] != null) {
           final mood = (moodData['rating'] as num).toDouble();
           dayMoods[segment] = mood;
-          
+
           totalMood += mood;
           moodCount++;
-          
+
           segmentTotals[segment] = (segmentTotals[segment] ?? 0) + mood;
           segmentCounts[segment] = (segmentCounts[segment] ?? 0) + 1;
         }
       }
-      
+
       if (dayMoods.isNotEmpty) {
         moodEntries.add(MoodReportEntry(
           date: currentDate,
@@ -108,17 +113,18 @@ class MoodAnalyticsService {
           correlationData: correlationData,
         ));
       }
-      
+
       currentDate = currentDate.add(const Duration(days: 1));
     }
-    
+
     final segmentAverages = <int, double>{};
     for (int segment = 0; segment < 3; segment++) {
       if (segmentCounts[segment]! > 0) {
-        segmentAverages[segment] = segmentTotals[segment]! / segmentCounts[segment]!;
+        segmentAverages[segment] =
+            segmentTotals[segment]! / segmentCounts[segment]!;
       }
     }
-    
+
     return MoodReport(
       startDate: startDate,
       endDate: endDate,
@@ -141,7 +147,7 @@ class MoodAnalyticsService {
     final prefs = await SharedPreferences.getInstance();
     final goalsJson = prefs.getString(_goalsKey);
     if (goalsJson == null) return [];
-    
+
     try {
       final List<dynamic> goalsList = jsonDecode(goalsJson);
       return goalsList.map((json) => MoodGoal.fromJson(json)).toList();
@@ -161,7 +167,8 @@ class MoodAnalyticsService {
     return averages;
   }
 
-  static Map<String, double> _calculateWeatherAverages(Map<String, List<double>> data) {
+  static Map<String, double> _calculateWeatherAverages(
+      Map<String, List<double>> data) {
     final averages = <String, double>{};
     data.forEach((key, values) {
       if (values.isNotEmpty) {
@@ -174,7 +181,7 @@ class MoodAnalyticsService {
   static K? _findBestKey<K>(Map<K, List<double>> data) {
     K? bestKey;
     double bestAverage = 0;
-    
+
     data.forEach((key, values) {
       if (values.isNotEmpty) {
         final average = values.reduce((a, b) => a + b) / values.length;
@@ -184,14 +191,14 @@ class MoodAnalyticsService {
         }
       }
     });
-    
+
     return bestKey;
   }
 
   static String? _findBestWeatherKey(Map<String, List<double>> data) {
     String? bestKey;
     double bestAverage = 0;
-    
+
     data.forEach((key, values) {
       if (values.isNotEmpty) {
         final average = values.reduce((a, b) => a + b) / values.length;
@@ -201,49 +208,53 @@ class MoodAnalyticsService {
         }
       }
     });
-    
+
     return bestKey;
   }
 
-  static List<String> _generateInsights(List<MoodReportEntry> entries, Map<int, double> segmentAverages) {
+  static List<String> _generateInsights(
+      List<MoodReportEntry> entries, Map<int, double> segmentAverages) {
     final insights = <String>[];
-    
+
     // Time of day insights
     final segments = ['morning', 'midday', 'evening'];
     if (segmentAverages.isNotEmpty) {
-      final bestSegment = segmentAverages.entries.reduce((a, b) => a.value > b.value ? a : b);
-      insights.add("You tend to feel best in the ${segments[bestSegment.key]} (${bestSegment.value.toStringAsFixed(1)}/10)");
+      final bestSegment =
+          segmentAverages.entries.reduce((a, b) => a.value > b.value ? a : b);
+      insights.add(
+          "You tend to feel best in the ${segments[bestSegment.key]} (${bestSegment.value.toStringAsFixed(1)}/10)");
     }
-    
+
     // Trend insights
     if (entries.length >= 7) {
       final recentEntries = entries.take(7).toList();
       final olderEntries = entries.skip(entries.length - 7).toList();
-      
+
       final recentAvg = _calculateDayAverages(recentEntries);
       final olderAvg = _calculateDayAverages(olderEntries);
-      
+
       if (recentAvg > olderAvg + 0.5) {
         insights.add("Your mood has been improving recently! Keep it up! 📈");
       } else if (recentAvg < olderAvg - 0.5) {
-        insights.add("Your mood has been lower lately. Consider self-care activities 💙");
+        insights.add(
+            "Your mood has been lower lately. Consider self-care activities 💙");
       }
     }
-    
+
     return insights;
   }
 
   static double _calculateDayAverages(List<MoodReportEntry> entries) {
     double total = 0;
     int count = 0;
-    
+
     for (final entry in entries) {
       for (final mood in entry.moods.values) {
         total += mood;
         count++;
       }
     }
-    
+
     return count > 0 ? total / count : 0;
   }
 }
@@ -344,7 +355,9 @@ class MoodGoal {
       targetValue: json['targetValue'],
       targetDays: json['targetDays'],
       createdDate: DateTime.parse(json['createdDate']),
-      completedDate: json['completedDate'] != null ? DateTime.parse(json['completedDate']) : null,
+      completedDate: json['completedDate'] != null
+          ? DateTime.parse(json['completedDate'])
+          : null,
       isCompleted: json['isCompleted'] ?? false,
     );
   }
@@ -352,10 +365,11 @@ class MoodGoal {
 
 class StreakCalculationService {
   /// Calculate different types of streaks for goal tracking
-  static Future<GoalStreakData> calculateStreakData(DateTime startDate, DateTime endDate) async {
-    int liveStreak = 0;        // Must be logged on actual day
-    int completionStreak = 0;  // Allows backfilling within 48 hours
-    int totalDaysLogged = 0;   // Total days with any mood data
+  static Future<GoalStreakData> calculateStreakData(
+      DateTime startDate, DateTime endDate) async {
+    int liveStreak = 0; // Must be logged on actual day
+    int completionStreak = 0; // Allows backfilling within 48 hours
+    int totalDaysLogged = 0; // Total days with any mood data
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -365,7 +379,8 @@ class StreakCalculationService {
     bool liveBroken = false;
     bool completionBroken = false;
 
-    while (currentDate.isAfter(startDate) || currentDate.isAtSameMomentAs(startDate)) {
+    while (currentDate.isAfter(startDate) ||
+        currentDate.isAtSameMomentAs(startDate)) {
       final dayMoods = await _getMoodsForDay(currentDate);
       final hasAnyMood = dayMoods.isNotEmpty;
 
@@ -373,7 +388,8 @@ class StreakCalculationService {
         totalDaysLogged++;
 
         // Check if mood was logged on the actual day (within reasonable hours)
-        final wasLoggedOnTime = await _wasMoodLoggedOnTime(currentDate, dayMoods);
+        final wasLoggedOnTime =
+            await _wasMoodLoggedOnTime(currentDate, dayMoods);
 
         if (!liveBroken) {
           if (wasLoggedOnTime) {
@@ -426,14 +442,18 @@ class StreakCalculationService {
   }
 
   /// Check if mood was logged within a reasonable timeframe of the actual day
-  static Future<bool> _wasMoodLoggedOnTime(DateTime targetDate, List<MoodLogEntry> moods) async {
-    final targetDayStart = DateTime(targetDate.year, targetDate.month, targetDate.day);
+  static Future<bool> _wasMoodLoggedOnTime(
+      DateTime targetDate, List<MoodLogEntry> moods) async {
+    final targetDayStart =
+        DateTime(targetDate.year, targetDate.month, targetDate.day);
     final targetDayEnd = targetDayStart.add(const Duration(days: 1));
-    final gracePeriodEnd = targetDayEnd.add(const Duration(hours: 6)); // 6 hour grace period
+    final gracePeriodEnd =
+        targetDayEnd.add(const Duration(hours: 6)); // 6 hour grace period
 
     for (final mood in moods) {
       // Check if this mood was logged on the target day or within grace period
-      if (mood.loggedAt.isAfter(targetDayStart) && mood.loggedAt.isBefore(gracePeriodEnd)) {
+      if (mood.loggedAt.isAfter(targetDayStart) &&
+          mood.loggedAt.isBefore(gracePeriodEnd)) {
         return true;
       }
     }
@@ -459,9 +479,9 @@ class MoodLogEntry {
 }
 
 class GoalStreakData {
-  final int liveStreak;        // Strict streak - logged on time
-  final int completionStreak;  // Lenient streak - allows backfilling
-  final int totalDaysLogged;   // Total completion count
+  final int liveStreak; // Strict streak - logged on time
+  final int completionStreak; // Lenient streak - allows backfilling
+  final int totalDaysLogged; // Total completion count
   final int totalDaysInPeriod; // Total possible days
 
   GoalStreakData({
@@ -471,14 +491,13 @@ class GoalStreakData {
     required this.totalDaysInPeriod,
   });
 
-  double get completionPercentage => totalDaysInPeriod > 0
-      ? (totalDaysLogged / totalDaysInPeriod) * 100
-      : 0.0;
+  double get completionPercentage =>
+      totalDaysInPeriod > 0 ? (totalDaysLogged / totalDaysInPeriod) * 100 : 0.0;
 }
 
 enum GoalType {
-  averageMood,    // "Maintain 7+ average mood"
+  averageMood, // "Maintain 7+ average mood"
   consecutiveDays, // "Log mood 7 days in a row"
-  minimumMood,    // "Have no days below 5"
+  minimumMood, // "Have no days below 5"
   improvementStreak, // "Improve mood 3 days in a row"
 }

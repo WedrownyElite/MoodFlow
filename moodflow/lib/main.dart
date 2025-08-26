@@ -3,9 +3,9 @@
 //  Copyright (c) 2025 OddologyInc. All rights reserved.
 //
 //  This software is licensed under the MoodFlow License.
-//  
+//
 //  - Free for personal, educational, and research use.
-//  - Modification and redistribution allowed with attribution 
+//  - Modification and redistribution allowed with attribution
 //    and inclusion of this license.
 //  - Commercial use and rebranding strictly prohibited.
 //
@@ -70,7 +70,6 @@ Future<void> _initializeServices() async {
 
     // 4. Initialize cloud backup services
     await _initializeCloudBackup();
-
   } catch (e) {
     Logger.moodService('❌ Error during service initialization: $e');
     // Continue with app launch even if some services fail
@@ -88,7 +87,8 @@ Future<void> _initializeCloudBackup() async {
         await RealCloudBackupService.checkForRestoreOnStartup();
         Logger.cloudService('✅ Cloud backup initialization complete');
       } else {
-        Logger.cloudService('❌ Real cloud backup system is not available on this platform');
+        Logger.cloudService(
+            '❌ Real cloud backup system is not available on this platform');
       }
     } else {
       // PRODUCTION: Silent cloud backup initialization
@@ -99,7 +99,8 @@ Future<void> _initializeCloudBackup() async {
         }
       } catch (e) {
         // Silent fail in production
-        Logger.cloudService('⚠️ Cloud backup initialization failed silently: $e');
+        Logger.cloudService(
+            '⚠️ Cloud backup initialization failed silently: $e');
       }
     }
   } catch (e) {
@@ -117,7 +118,7 @@ class MoodTrackerApp extends StatefulWidget {
 class _MoodTrackerAppState extends State<MoodTrackerApp> {
   ThemeMode _themeMode = ThemeMode.light;
   bool _useCustomGradient = true;
-  bool _showOnboarding = false;
+  bool _showOnboarding = false; // ignore: unused_field
 
   static const _prefThemeModeKey = 'theme_mode';
   static const _prefCustomGradientKey = 'use_custom_gradient';
@@ -263,20 +264,23 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
       ),
       routes: {
         '/': (context) => MainMenuScreen(
-          themeMode: _themeMode,
-          useCustomGradient: _useCustomGradient,
-          onThemeModeChanged: (ThemeMode? mode) {
-            if (mode != null) {
-              _setThemeMode(mode);
-            }
-          },
-          onUseCustomGradientChanged: _setUseCustomGradient,
-        ),
+              themeMode: _themeMode,
+              useCustomGradient: _useCustomGradient,
+              onThemeModeChanged: (ThemeMode? mode) {
+                if (mode != null) {
+                  _setThemeMode(mode);
+                }
+              },
+              onUseCustomGradientChanged: _setUseCustomGradient,
+            ),
         '/mood-log': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          final args = ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>?;
           final brightness = _themeMode == ThemeMode.system
               ? MediaQuery.platformBrightnessOf(context)
-              : (_themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light);
+              : (_themeMode == ThemeMode.dark
+                  ? Brightness.dark
+                  : Brightness.light);
 
           return MoodLogScreen(
             useCustomGradient: _useCustomGradient,
@@ -286,7 +290,8 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
           );
         },
         '/goals': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          final args = ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>?;
           return GoalsScreen(highlightGoalId: args?['goalId']);
         },
         '/correlation': (context) => const CorrelationScreen(),
@@ -296,18 +301,19 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
         '/ai-analysis': (context) => const AIAnalysisScreen(),
         '/backup-export': (context) => const BackupExportScreen(),
         '/settings': (context) => SettingsScreen(
-          themeMode: _themeMode,
-          useCustomGradient: _useCustomGradient,
-          onThemeModeChanged: (ThemeMode? mode) {
-            if (mode != null) {
-              _setThemeMode(mode);
-            }
-          },
-          onUseCustomGradientChanged: _setUseCustomGradient,
-        ),
+              themeMode: _themeMode,
+              useCustomGradient: _useCustomGradient,
+              onThemeModeChanged: (ThemeMode? mode) {
+                if (mode != null) {
+                  _setThemeMode(mode);
+                }
+              },
+              onUseCustomGradientChanged: _setUseCustomGradient,
+            ),
         // Add debug route (only available in debug mode)
         if (kDebugMode)
-          '/debug': (context) => kDebugMode ? const DebugDataScreen() : const SizedBox(),
+          '/debug': (context) =>
+              kDebugMode ? const DebugDataScreen() : const SizedBox(),
       },
     );
   }

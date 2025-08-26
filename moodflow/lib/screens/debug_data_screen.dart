@@ -1,4 +1,4 @@
-﻿// debug_data_screen.dart - Add this to help debug data persistence issues
+// debug_data_screen.dart - Add this to help debug data persistence issues
 
 import 'package:mood_flow/services/utils/logger.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +18,8 @@ class _DebugDataScreenState extends State<DebugDataScreen> {
 
   void _addLog(String message) {
     setState(() {
-      _debugLog.add('${DateTime.now().toIso8601String().substring(11, 19)}: $message');
+      _debugLog.add(
+          '${DateTime.now().toIso8601String().substring(11, 19)}: $message');
     });
     Logger.dataService(message);
   }
@@ -40,7 +41,8 @@ class _DebugDataScreenState extends State<DebugDataScreen> {
 
       // Test save
       _addLog("💾 Attempting to save...");
-      final saveSuccess = await MoodDataService.saveMood(testDate, testSegment, testRating, testNote);
+      final saveSuccess = await MoodDataService.saveMood(
+          testDate, testSegment, testRating, testNote);
       _addLog("💾 Save result: $saveSuccess");
 
       // Wait a moment
@@ -55,8 +57,10 @@ class _DebugDataScreenState extends State<DebugDataScreen> {
         final loadedRating = loadedData['rating'];
         final loadedNote = loadedData['note'];
 
-        _addLog("✅ Rating match: $loadedRating == $testRating? ${loadedRating == testRating}");
-        _addLog("✅ Note match: '$loadedNote' == '$testNote'? ${loadedNote == testNote}");
+        _addLog(
+            "✅ Rating match: $loadedRating == $testRating? ${loadedRating == testRating}");
+        _addLog(
+            "✅ Note match: '$loadedNote' == '$testNote'? ${loadedNote == testNote}");
 
         if (loadedRating == testRating && loadedNote == testNote) {
           _addLog("🎉 TEST PASSED: Data persistence is working!");
@@ -66,7 +70,6 @@ class _DebugDataScreenState extends State<DebugDataScreen> {
       } else {
         _addLog("❌ TEST FAILED: No data loaded!");
       }
-
     } catch (e) {
       _addLog("❌ TEST ERROR: $e");
     }
@@ -96,11 +99,12 @@ class _DebugDataScreenState extends State<DebugDataScreen> {
       }
 
       // Also check for other relevant keys
-      final otherKeys = allKeys.where((key) =>
-      key.contains('backup') ||
-          key.contains('notification') ||
-          key.contains('goal')
-      ).toList();
+      final otherKeys = allKeys
+          .where((key) =>
+              key.contains('backup') ||
+              key.contains('notification') ||
+              key.contains('goal'))
+          .toList();
 
       if (otherKeys.isNotEmpty) {
         _addLog("🔧 Other app data keys (${otherKeys.length}):");
@@ -108,7 +112,6 @@ class _DebugDataScreenState extends State<DebugDataScreen> {
           _addLog("  $key");
         }
       }
-
     } catch (e) {
       _addLog("❌ Error listing data: $e");
     }
@@ -204,49 +207,49 @@ class _DebugDataScreenState extends State<DebugDataScreen> {
           Expanded(
             child: _debugLog.isEmpty
                 ? const Center(
-              child: Text(
-                'Run a test to see debug output',
-                style: TextStyle(color: Colors.grey),
-              ),
-            )
+                    child: Text(
+                      'Run a test to see debug output',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
                 : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _debugLog.length,
-              itemBuilder: (context, index) {
-                final log = _debugLog[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 4),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: log.contains('❌')
-                        ? Colors.red.shade50
-                        : log.contains('✅') || log.contains('🎉')
-                        ? Colors.green.shade50
-                        : Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: log.contains('❌')
-                          ? Colors.red.shade200
-                          : log.contains('✅') || log.contains('🎉')
-                          ? Colors.green.shade200
-                          : Colors.grey.shade200,
-                    ),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _debugLog.length,
+                    itemBuilder: (context, index) {
+                      final log = _debugLog[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: log.contains('❌')
+                              ? Colors.red.shade50
+                              : log.contains('✅') || log.contains('🎉')
+                                  ? Colors.green.shade50
+                                  : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: log.contains('❌')
+                                ? Colors.red.shade200
+                                : log.contains('✅') || log.contains('🎉')
+                                    ? Colors.green.shade200
+                                    : Colors.grey.shade200,
+                          ),
+                        ),
+                        child: Text(
+                          log,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontFamily: 'monospace',
+                            color: log.contains('❌')
+                                ? Colors.red.shade800
+                                : log.contains('✅') || log.contains('🎉')
+                                    ? Colors.green.shade800
+                                    : Colors.black87,
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  child: Text(
-                    log,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontFamily: 'monospace',
-                      color: log.contains('❌')
-                          ? Colors.red.shade800
-                          : log.contains('✅') || log.contains('🎉')
-                          ? Colors.green.shade800
-                          : Colors.black87,
-                    ),
-                  ),
-                );
-              },
-            ),
           ),
 
           // Clear log button

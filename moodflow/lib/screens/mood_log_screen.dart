@@ -28,7 +28,8 @@ class MoodLogScreen extends StatefulWidget {
   State<MoodLogScreen> createState() => _MoodLogScreenState();
 }
 
-class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateMixin {
+class _MoodLogScreenState extends State<MoodLogScreen>
+    with TickerProviderStateMixin {
   final List<String> timeSegments = MoodDataService.timeSegments;
   int currentSegment = 0;
 
@@ -80,11 +81,13 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     final now = DateTime.now();
     final currentMinutes = now.hour * 60 + now.minute;
 
-    final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
-    final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
+    final eveningMinutes =
+        settings.eveningTime.hour * 60 + settings.eveningTime.minute;
+    final middayMinutes =
+        settings.middayTime.hour * 60 + settings.middayTime.minute;
 
     if (currentMinutes >= eveningMinutes) return 2; // Evening
-    if (currentMinutes >= middayMinutes) return 1;  // Midday
+    if (currentMinutes >= middayMinutes) return 1; // Midday
     return 0; // Morning
   }
 
@@ -93,7 +96,8 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
 
     _pageController?.addListener(() {
       if (_isNavigatingManually) {
-        Logger.moodService('⏭️ Ignoring PageView listener during manual navigation');
+        Logger.moodService(
+            '⏭️ Ignoring PageView listener during manual navigation');
         return;
       }
 
@@ -111,9 +115,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     );
 
     _gradientAnimationController = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 500)
-    );
+        vsync: this, duration: const Duration(milliseconds: 500));
     _gradientAnimationController?.addListener(() {
       if (mounted) setState(() {});
     });
@@ -132,7 +134,8 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       }
     }
 
-    if (highestAccessible > currentSegment && (_accessibilityCache[highestAccessible] ?? false)) {
+    if (highestAccessible > currentSegment &&
+        (_accessibilityCache[highestAccessible] ?? false)) {
       currentSegment = highestAccessible;
       if (mounted) {
         _pageController?.jumpToPage(currentSegment);
@@ -184,7 +187,8 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       _sessionMoodValues[segment] = rating;
       _noteControllers[segment]?.text = note;
 
-      Logger.moodService('✅ Loaded segment $segment: rating=$rating, note="$note"');
+      Logger.moodService(
+          '✅ Loaded segment $segment: rating=$rating, note="$note"');
     } catch (e) {
       Logger.moodService('❌ Error loading segment $segment: $e');
       // Set defaults on error
@@ -229,10 +233,12 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       case 0:
         return true;
       case 1:
-        final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
+        final middayMinutes =
+            settings.middayTime.hour * 60 + settings.middayTime.minute;
         return currentMinutes >= middayMinutes;
       case 2:
-        final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
+        final eveningMinutes =
+            settings.eveningTime.hour * 60 + settings.eveningTime.minute;
         return currentMinutes >= eveningMinutes;
       default:
         return false;
@@ -244,10 +250,12 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     final moodValue = _sessionMoodValues[segment] ?? 5.0;
     final noteText = _noteControllers[segment]?.text ?? '';
 
-    Logger.moodService('💾 Saving mood data for segment $segment: rating=$moodValue, note="$noteText"');
+    Logger.moodService(
+        '💾 Saving mood data for segment $segment: rating=$moodValue, note="$noteText"');
 
     try {
-      final success = await MoodDataService.saveMood(DateTime.now(), segment, moodValue, noteText);
+      final success = await MoodDataService.saveMood(
+          DateTime.now(), segment, moodValue, noteText);
 
       if (success) {
         Logger.moodService('✅ Mood saved successfully for segment $segment');
@@ -275,7 +283,9 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   void _initGradientSync() {
     final gradient = MoodGradientService.fallbackGradient(widget.isDarkMode);
     _currentGradient = gradient;
-    _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient).animate(_gradientAnimationController ?? AnimationController(vsync: this, duration: Duration.zero));
+    _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient)
+        .animate(_gradientAnimationController ??
+            AnimationController(vsync: this, duration: Duration.zero));
 
     if (widget.useCustomGradient) {
       _initGradient();
@@ -285,11 +295,15 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   void _initGradient() async {
     if (widget.useCustomGradient) {
       final moodValue = _sessionMoodValues[currentSegment] ?? 5.0;
-      final gradient = await MoodGradientService.computeGradientForMood(moodValue, currentSegment);
+      final gradient = await MoodGradientService.computeGradientForMood(
+          moodValue, currentSegment);
       if (mounted) {
         setState(() {
           _currentGradient = gradient;
-          _gradientAnimation = Tween<LinearGradient>(begin: gradient, end: gradient).animate(_gradientAnimationController ?? AnimationController(vsync: this, duration: Duration.zero));
+          _gradientAnimation = Tween<LinearGradient>(
+                  begin: gradient, end: gradient)
+              .animate(_gradientAnimationController ??
+                  AnimationController(vsync: this, duration: Duration.zero));
         });
       }
     }
@@ -297,11 +311,13 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
 
   void _updateGradientForMood(double mood) async {
     if (!widget.useCustomGradient) return;
-    final newGradient = await MoodGradientService.computeGradientForMood(mood, currentSegment);
+    final newGradient =
+        await MoodGradientService.computeGradientForMood(mood, currentSegment);
     _gradientAnimation = LinearGradientTween(
       begin: _currentGradient ?? newGradient,
       end: newGradient,
-    ).animate(_gradientAnimationController ?? AnimationController(vsync: this, duration: Duration.zero));
+    ).animate(_gradientAnimationController ??
+        AnimationController(vsync: this, duration: Duration.zero));
     _gradientAnimationController?.reset();
     _gradientAnimationController?.forward();
     _currentGradient = newGradient;
@@ -323,7 +339,6 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
 
       // STEP 3: Pre-update all state BEFORE blur transition
-      final oldSegment = currentSegment;
       currentSegment = newIndex;
 
       // Pre-update slider immediately
@@ -332,10 +347,12 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       // STEP 4: Pre-compute gradient if needed
       LinearGradient? newGradient;
       if (widget.useCustomGradient) {
-        newGradient = await MoodGradientService.computeGradientForMood(newMoodValue, newIndex);
+        newGradient = await MoodGradientService.computeGradientForMood(
+            newMoodValue, newIndex);
       }
 
-      Logger.moodService('🌀 Starting blur transition with all content pre-loaded...');
+      Logger.moodService(
+          '🌀 Starting blur transition with all content pre-loaded...');
 
       await _blurService?.executeTransition(() async {
         Logger.moodService('🌀 Inside blur transition - performing page jump');
@@ -350,7 +367,8 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
             _gradientAnimation = Tween<LinearGradient>(
               begin: newGradient,
               end: newGradient,
-            ).animate(_gradientAnimationController ?? AnimationController(vsync: this, duration: Duration.zero));
+            ).animate(_gradientAnimationController ??
+                AnimationController(vsync: this, duration: Duration.zero));
           });
         }
 
@@ -364,10 +382,10 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
       if (widget.useCustomGradient && newGradient != null) {
         _updateGradientForMood(newMoodValue);
       }
-
     } finally {
       // STEP 6: Always clear the navigation flag
-      await Future.delayed(const Duration(milliseconds: 100)); // Small safety delay
+      await Future.delayed(
+          const Duration(milliseconds: 100)); // Small safety delay
       _isNavigatingManually = false;
     }
 
@@ -393,7 +411,8 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
   }
 
   Widget _buildMoodPage(int index) {
-    final canEdit = index == currentSegment && (_accessibilityCache[index] ?? false);
+    final canEdit =
+        index == currentSegment && (_accessibilityCache[index] ?? false);
     final noteController = _noteControllers[index]!;
 
     return SingleChildScrollView(
@@ -403,7 +422,8 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
         children: [
           Text(
             '${timeSegments[index]} Mood',
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+            style: const TextStyle(
+                fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -435,13 +455,16 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                     _updateGradientForMood(value);
                   }
                 },
-                onChangeEnd: canEdit ? (value) {
-                  // FIXED: Save with debouncing to avoid excessive saves
-                  _saveDebounceTimer?.cancel();
-                  _saveDebounceTimer = Timer(const Duration(milliseconds: 500), () {
-                    _saveMoodData(index);
-                  });
-                } : null,
+                onChangeEnd: canEdit
+                    ? (value) {
+                        // FIXED: Save with debouncing to avoid excessive saves
+                        _saveDebounceTimer?.cancel();
+                        _saveDebounceTimer =
+                            Timer(const Duration(milliseconds: 500), () {
+                          _saveMoodData(index);
+                        });
+                      }
+                    : null,
               ),
             )
           else
@@ -459,33 +482,38 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
           const SizedBox(height: 8),
           Container(
             constraints: const BoxConstraints(minHeight: 150),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+                color: Colors.white, borderRadius: BorderRadius.circular(12)),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: canEdit
                 ? IgnorePointer(
-              ignoring: _blurService?.isTransitioning ?? false,
-              child: TextField(
-                controller: noteController,
-                maxLines: null,
-                minLines: 8,
-                style: const TextStyle(color: Colors.black),
-                decoration: const InputDecoration(border: InputBorder.none, hintText: 'Write your thoughts here...'),
-                onChanged: (text) {
-                  // FIXED: Save notes with debouncing
-                  _debounceTimer?.cancel();
-                  _debounceTimer = Timer(const Duration(milliseconds: 1000), () {
-                    _saveMoodData(index);
-                  });
-                },
-              ),
-            )
+                    ignoring: _blurService?.isTransitioning ?? false,
+                    child: TextField(
+                      controller: noteController,
+                      maxLines: null,
+                      minLines: 8,
+                      style: const TextStyle(color: Colors.black),
+                      decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Write your thoughts here...'),
+                      onChanged: (text) {
+                        // FIXED: Save notes with debouncing
+                        _debounceTimer?.cancel();
+                        _debounceTimer =
+                            Timer(const Duration(milliseconds: 1000), () {
+                          _saveMoodData(index);
+                        });
+                      },
+                    ),
+                  )
                 : Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              child: noteController.text.isEmpty
-                  ? const SizedBox.shrink()
-                  : Text(noteController.text, style: const TextStyle(color: Colors.black87)),
-            ),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    child: noteController.text.isEmpty
+                        ? const SizedBox.shrink()
+                        : Text(noteController.text,
+                            style: const TextStyle(color: Colors.black87)),
+                  ),
           ),
           const SizedBox(height: 32),
         ],
@@ -506,7 +534,10 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
         children: [
           const Text(
             'Quick Factors',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87),
           ),
           const SizedBox(height: 12),
           Row(
@@ -606,166 +637,200 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
           Container(
             decoration: BoxDecoration(gradient: gradient),
             child: Padding(
-              padding: EdgeInsets.only(top: kToolbarHeight + MediaQuery.of(context).padding.top),
+              padding: EdgeInsets.only(
+                  top: kToolbarHeight + MediaQuery.of(context).padding.top),
               child: Column(
                 children: [
                   Expanded(
-                    child: _blurService != null ? BlurTransitionWidget(
-                      blurService: _blurService!,
-                      child: PageView.builder(
-                        controller: _pageController ?? PageController(),
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: timeSegments.length,
-                        onPageChanged: (newIndex) async {
-                          // CRITICAL: Check if this is a manual navigation
-                          if (_isNavigatingManually) {
-                            Logger.moodService('⏭️ Ignoring PageView onPageChanged during manual navigation');
-                            return;
-                          }
+                    child: _blurService != null
+                        ? BlurTransitionWidget(
+                            blurService: _blurService!,
+                            child: PageView.builder(
+                              controller: _pageController ?? PageController(),
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: timeSegments.length,
+                              onPageChanged: (newIndex) async {
+                                // CRITICAL: Check if this is a manual navigation
+                                if (_isNavigatingManually) {
+                                  Logger.moodService(
+                                      '⏭️ Ignoring PageView onPageChanged during manual navigation');
+                                  return;
+                                }
 
-                          // Don't handle page changes during blur transitions
-                          if (_blurService?.isTransitioning ?? false) {
-                            Logger.moodService('⏭️ Ignoring page change during blur transition');
-                            return;
-                          }
+                                // Don't handle page changes during blur transitions
+                                if (_blurService?.isTransitioning ?? false) {
+                                  Logger.moodService(
+                                      '⏭️ Ignoring page change during blur transition');
+                                  return;
+                                }
 
-                          Logger.moodService('📄 PageView naturally changed to $newIndex (this should not happen during manual nav)');
+                                Logger.moodService(
+                                    '📄 PageView naturally changed to $newIndex (this should not happen during manual nav)');
 
-                          // Only handle natural page changes if they somehow occur
-                          if (!_canAccessSegment(newIndex)) {
-                            _pageController?.jumpToPage(currentSegment);
-                            return;
-                          }
+                                // Only handle natural page changes if they somehow occur
+                                if (!_canAccessSegment(newIndex)) {
+                                  _pageController?.jumpToPage(currentSegment);
+                                  return;
+                                }
 
-                          // Handle natural page change (shouldn't happen with NeverScrollableScrollPhysics)
-                          setState(() => _isInitialLoading = true);
-                          await _loadDataForSegmentFresh(newIndex);
-                          setState(() {
-                            currentSegment = newIndex;
-                            _isInitialLoading = false;
-                          });
+                                // Handle natural page change (shouldn't happen with NeverScrollableScrollPhysics)
+                                setState(() => _isInitialLoading = true);
+                                await _loadDataForSegmentFresh(newIndex);
+                                setState(() {
+                                  currentSegment = newIndex;
+                                  _isInitialLoading = false;
+                                });
 
-                          final newMoodValue = _sessionMoodValues[newIndex] ?? 5.0;
-                          await _sliderService?.animateToValue(newMoodValue);
+                                final newMoodValue =
+                                    _sessionMoodValues[newIndex] ?? 5.0;
+                                await _sliderService
+                                    ?.animateToValue(newMoodValue);
 
-                          if (widget.useCustomGradient) {
-                            _updateGradientForMood(newMoodValue);
-                          }
-                        },
-                        itemBuilder: (context, index) {
-                          return Container(
-                            key: ValueKey('mood_page_$index'),
-                            child: _buildMoodPage(index),
-                          );
-                        },
-                      ),
-                    ) :
-                    // Fallback without blur service
-                    PageView.builder(
-                      controller: _pageController ?? PageController(),
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: timeSegments.length,
-                      onPageChanged: (newIndex) {
-                        if (_isNavigatingManually) return;
-                        Logger.moodService('📄 Fallback PageView changed to $newIndex');
-                      },
-                      itemBuilder: (context, index) {
-                        return Container(
-                          key: ValueKey('mood_page_$index'),
-                          child: _buildMoodPage(index),
-                        );
-                      },
-                    ),
-                  ),
-                  _blurService != null ? BlurTransitionWidget(
-                    blurService: _blurService!,
-                    child: Container(
-                      color: Colors.black.withAlpha(50),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          if (_hasPreviousAccessibleSegment())
-                            IconButton(
-                              icon: const Icon(Icons.arrow_left, color: Colors.white, size: 32),
-                              onPressed: (_blurService?.isTransitioning ?? false) ? null : () {
-                                for (int i = currentSegment - 1; i >= 0; i--) {
-                                  if (_accessibilityCache[i] == true) {
-                                    _navigateToSegment(i);
-                                    break;
-                                  }
+                                if (widget.useCustomGradient) {
+                                  _updateGradientForMood(newMoodValue);
                                 }
                               },
-                            )
-                          else
-                            const SizedBox(width: 48),
-                          Text(
-                            timeSegments[currentSegment],
-                            style: const TextStyle(fontSize: 20, color: Colors.white),
+                              itemBuilder: (context, index) {
+                                return Container(
+                                  key: ValueKey('mood_page_$index'),
+                                  child: _buildMoodPage(index),
+                                );
+                              },
+                            ),
+                          )
+                        :
+                        // Fallback without blur service
+                        PageView.builder(
+                            controller: _pageController ?? PageController(),
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: timeSegments.length,
+                            onPageChanged: (newIndex) {
+                              if (_isNavigatingManually) return;
+                              Logger.moodService(
+                                  '📄 Fallback PageView changed to $newIndex');
+                            },
+                            itemBuilder: (context, index) {
+                              return Container(
+                                key: ValueKey('mood_page_$index'),
+                                child: _buildMoodPage(index),
+                              );
+                            },
                           ),
-                          if (_hasNextAccessibleSegment())
-                            IconButton(
-                              icon: const Icon(Icons.arrow_right, color: Colors.white, size: 32),
-                              onPressed: (_blurService?.isTransitioning ?? false) ? null : () {
-                                for (int i = currentSegment + 1; i < timeSegments.length; i++) {
-                                  if (_accessibilityCache[i] == true) {
-                                    _navigateToSegment(i);
-                                    break;
-                                  }
-                                }
-                              },
-                            )
-                          else
-                            const SizedBox(width: 48),
-                        ],
-                      ),
-                    ),
-                  ) : Container(
-                    color: Colors.black.withAlpha(50),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (_hasPreviousAccessibleSegment())
-                          IconButton(
-                            icon: const Icon(Icons.arrow_left, color: Colors.white, size: 32),
-                            onPressed: () {
-                              for (int i = currentSegment - 1; i >= 0; i--) {
-                                if (_accessibilityCache[i] == true) {
-                                  _navigateToSegment(i);
-                                  break;
-                                }
-                              }
-                            },
-                          )
-                        else
-                          const SizedBox(width: 48),
-                        Text(
-                          timeSegments[currentSegment],
-                          style: const TextStyle(fontSize: 20, color: Colors.white),
-                        ),
-                        if (_hasNextAccessibleSegment())
-                          IconButton(
-                            icon: const Icon(Icons.arrow_right, color: Colors.white, size: 32),
-                            onPressed: () {
-                              for (int i = currentSegment + 1; i < timeSegments.length; i++) {
-                                if (_accessibilityCache[i] == true) {
-                                  _navigateToSegment(i);
-                                  break;
-                                }
-                              }
-                            },
-                          )
-                        else
-                          const SizedBox(width: 48),
-                      ],
-                    ),
                   ),
+                  _blurService != null
+                      ? BlurTransitionWidget(
+                          blurService: _blurService!,
+                          child: Container(
+                            color: Colors.black.withAlpha(50),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                if (_hasPreviousAccessibleSegment())
+                                  IconButton(
+                                    icon: const Icon(Icons.arrow_left,
+                                        color: Colors.white, size: 32),
+                                    onPressed:
+                                        (_blurService?.isTransitioning ?? false)
+                                            ? null
+                                            : () {
+                                                for (int i = currentSegment - 1;
+                                                    i >= 0;
+                                                    i--) {
+                                                  if (_accessibilityCache[i] ==
+                                                      true) {
+                                                    _navigateToSegment(i);
+                                                    break;
+                                                  }
+                                                }
+                                              },
+                                  )
+                                else
+                                  const SizedBox(width: 48),
+                                Text(
+                                  timeSegments[currentSegment],
+                                  style: const TextStyle(
+                                      fontSize: 20, color: Colors.white),
+                                ),
+                                if (_hasNextAccessibleSegment())
+                                  IconButton(
+                                    icon: const Icon(Icons.arrow_right,
+                                        color: Colors.white, size: 32),
+                                    onPressed:
+                                        (_blurService?.isTransitioning ?? false)
+                                            ? null
+                                            : () {
+                                                for (int i = currentSegment + 1;
+                                                    i < timeSegments.length;
+                                                    i++) {
+                                                  if (_accessibilityCache[i] ==
+                                                      true) {
+                                                    _navigateToSegment(i);
+                                                    break;
+                                                  }
+                                                }
+                                              },
+                                  )
+                                else
+                                  const SizedBox(width: 48),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: Colors.black.withAlpha(50),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              if (_hasPreviousAccessibleSegment())
+                                IconButton(
+                                  icon: const Icon(Icons.arrow_left,
+                                      color: Colors.white, size: 32),
+                                  onPressed: () {
+                                    for (int i = currentSegment - 1;
+                                        i >= 0;
+                                        i--) {
+                                      if (_accessibilityCache[i] == true) {
+                                        _navigateToSegment(i);
+                                        break;
+                                      }
+                                    }
+                                  },
+                                )
+                              else
+                                const SizedBox(width: 48),
+                              Text(
+                                timeSegments[currentSegment],
+                                style: const TextStyle(
+                                    fontSize: 20, color: Colors.white),
+                              ),
+                              if (_hasNextAccessibleSegment())
+                                IconButton(
+                                  icon: const Icon(Icons.arrow_right,
+                                      color: Colors.white, size: 32),
+                                  onPressed: () {
+                                    for (int i = currentSegment + 1;
+                                        i < timeSegments.length;
+                                        i++) {
+                                      if (_accessibilityCache[i] == true) {
+                                        _navigateToSegment(i);
+                                        break;
+                                      }
+                                    }
+                                  },
+                                )
+                              else
+                                const SizedBox(width: 48),
+                            ],
+                          ),
+                        ),
                 ],
               ),
             ),
           ),
-
           if (_isInitialLoading)
             Container(
               color: Colors.black54,

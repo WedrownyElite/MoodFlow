@@ -15,12 +15,13 @@ class NotificationTime {
   const NotificationTime(this.hour, this.minute);
 
   @override
-  String toString() => '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+  String toString() =>
+      '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 }
 
 class RealNotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
   static late tz.Location _localTimeZone;
 
@@ -41,17 +42,21 @@ class RealNotificationService {
       try {
         _localTimeZone = tz.getLocation(timeZoneName);
       } catch (e) {
-        debugPrint('⚠️ Could not find timezone $timeZoneName, trying common alternatives...');
+        debugPrint(
+            '⚠️ Could not find timezone $timeZoneName, trying common alternatives...');
 
         // Try common timezone mappings
         String? alternativeZone;
         if (timeZoneName.contains('EST') || timeZoneName.contains('EDT')) {
           alternativeZone = 'America/New_York';
-        } else if (timeZoneName.contains('CST') || timeZoneName.contains('CDT')) {
+        } else if (timeZoneName.contains('CST') ||
+            timeZoneName.contains('CDT')) {
           alternativeZone = 'America/Chicago';
-        } else if (timeZoneName.contains('MST') || timeZoneName.contains('MDT')) {
+        } else if (timeZoneName.contains('MST') ||
+            timeZoneName.contains('MDT')) {
           alternativeZone = 'America/Denver';
-        } else if (timeZoneName.contains('PST') || timeZoneName.contains('PDT')) {
+        } else if (timeZoneName.contains('PST') ||
+            timeZoneName.contains('PDT')) {
           alternativeZone = 'America/Los_Angeles';
         }
 
@@ -82,7 +87,8 @@ class RealNotificationService {
     debugPrint('🕐 UTC offset: ${now.timeZoneOffset}');
 
     // Android initialization settings
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
     // iOS initialization settings
     const iosSettings = DarwinInitializationSettings(
@@ -134,12 +140,13 @@ class RealNotificationService {
       return false;
     } else if (Platform.isIOS) {
       final result = await _notifications
-          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+            alert: true,
+            badge: true,
+            sound: true,
+          );
       return result ?? false;
     }
     return false;
@@ -151,7 +158,8 @@ class RealNotificationService {
       return await Permission.notification.isGranted;
     } else if (Platform.isIOS) {
       final result = await _notifications
-          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
           ?.checkPermissions();
       return result?.isEnabled ?? false;
     }
@@ -257,18 +265,21 @@ class RealNotificationService {
 
     debugPrint('🔔 Current system time: $systemNow');
     debugPrint('🔔 Scheduling notification for: $systemTime');
-    debugPrint('🔔 Time difference: ${scheduledDate.difference(now).inMinutes} minutes');
+    debugPrint(
+        '🔔 Time difference: ${scheduledDate.difference(now).inMinutes} minutes');
     debugPrint('🔔 Timezone: ${_localTimeZone.name}');
 
     return scheduledDate;
   }
 
-  static Future<void> scheduleTestNotificationIn(int seconds, String message) async {
+  static Future<void> scheduleTestNotificationIn(
+      int seconds, String message) async {
     final now = tz.TZDateTime.now(_localTimeZone);
     final scheduledTime = now.add(Duration(seconds: seconds));
 
     debugPrint('🔔 Current time: ${DateTime.now()}');
-    debugPrint('🔔 Test notification scheduled for: ${scheduledTime.toLocal()} (in $seconds seconds)');
+    debugPrint(
+        '🔔 Test notification scheduled for: ${scheduledTime.toLocal()} (in $seconds seconds)');
 
     const androidDetails = AndroidNotificationDetails(
       'mood_tracker_test',
@@ -312,7 +323,8 @@ class RealNotificationService {
   }
 
   /// Get pending notifications
-  static Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+  static Future<List<PendingNotificationRequest>>
+      getPendingNotifications() async {
     return await _notifications.pendingNotificationRequests();
   }
 

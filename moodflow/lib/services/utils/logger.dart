@@ -1,8 +1,8 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 
 /// A centralized logging utility for the MoodFlow app.
-/// 
+///
 /// Usage:
 /// ```dart
 /// Logger.log('Simple message');
@@ -74,7 +74,8 @@ class Logger {
   }
 
   /// Error level logging - shows in both debug and production
-  static void error(String message, {String? tag, Object? error, StackTrace? stackTrace}) {
+  static void error(String message,
+      {String? tag, Object? error, StackTrace? stackTrace}) {
     final formattedMessage = _formatMessage(message, tag, level: 'ERROR');
 
     if (kDebugMode) {
@@ -99,19 +100,26 @@ class Logger {
 
   /// Service-specific loggers for better organization
   static void dataService(String message) => log(message, tag: 'DataService');
-  static void backupService(String message) => log(message, tag: 'BackupService');
-  static void notificationService(String message) => log(message, tag: 'NotificationService');
+  static void backupService(String message) =>
+      log(message, tag: 'BackupService');
+  static void notificationService(String message) =>
+      log(message, tag: 'NotificationService');
   static void cloudService(String message) => log(message, tag: 'CloudService');
   static void moodService(String message) => log(message, tag: 'MoodService');
-  static void trendsService(String message) => log(message, tag: 'TrendsService');
-  static void analyticsService(String message) => log(message, tag: 'AnalyticsService');
+  static void trendsService(String message) =>
+      log(message, tag: 'TrendsService');
+  static void analyticsService(String message) =>
+      log(message, tag: 'AnalyticsService');
   static void aiService(String message) => log(message, tag: 'AIService');
-  static void smartInsightService(String message) => log(message, tag: 'SmartInsightService');
-  static void correlationService(String message) => log(message, tag: 'CorrelationService');
+  static void smartInsightService(String message) =>
+      log(message, tag: 'SmartInsightService');
+  static void correlationService(String message) =>
+      log(message, tag: 'CorrelationService');
 
   /// Format message with timestamp and tag
   static String _formatMessage(String message, String? tag, {String? level}) {
-    final timestamp = DateTime.now().toIso8601String().substring(11, 23); // HH:mm:ss.SSS
+    final timestamp =
+        DateTime.now().toIso8601String().substring(11, 23); // HH:mm:ss.SSS
     final tagPart = tag != null ? '[$tag] ' : '';
     final levelPart = level != null ? '$level: ' : '';
 
@@ -131,7 +139,8 @@ extension LoggerShortcuts on String {
   void info({String? tag}) => Logger.info(this, tag: tag);
 
   /// Quick warning log: 'message'.warning();
-  void warning({String? tag, Object? error}) => Logger.warning(this, tag: tag, error: error);
+  void warning({String? tag, Object? error}) =>
+      Logger.warning(this, tag: tag, error: error);
 
   /// Quick error log: 'message'.error();
   void error({String? tag, Object? error, StackTrace? stackTrace}) =>
@@ -147,9 +156,11 @@ class LoggerHelper {
   }
 
   /// Log the completion of a method/function
-  static void methodEnd(String methodName, {String? className, Duration? duration}) {
+  static void methodEnd(String methodName,
+      {String? className, Duration? duration}) {
     final tag = className ?? 'Method';
-    final durationText = duration != null ? ' (${duration.inMilliseconds}ms)' : '';
+    final durationText =
+        duration != null ? ' (${duration.inMilliseconds}ms)' : '';
     Logger.debug('✅ Completed $methodName$durationText', tag: tag);
   }
 

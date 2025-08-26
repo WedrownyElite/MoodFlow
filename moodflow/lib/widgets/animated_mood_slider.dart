@@ -59,7 +59,7 @@ class AnimatedMoodSlider extends StatelessWidget {
         final currentValue = sliderService.value.clamp(min, max);
         final emoji = _getMoodEmoji(currentValue);
         final number = currentValue.round();
-        
+
         return SliderTheme(
           data: SliderTheme.of(context).copyWith(
             // Make the popup bigger

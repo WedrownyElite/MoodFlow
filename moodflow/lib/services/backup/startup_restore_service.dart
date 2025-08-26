@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'cloud_backup_service.dart';
@@ -19,7 +19,7 @@ class StartupRestoreService {
 
       // Check if user has any existing data
       if (await _hasExistingMoodData()) {
-          Logger.backupService('User has existing data, skipping restore prompt');
+        Logger.backupService('User has existing data, skipping restore prompt');
         return;
       }
 
@@ -40,7 +40,6 @@ class StartupRestoreService {
       if (context.mounted) {
         await _showRestorePrompt(context);
       }
-
     } catch (e) {
       Logger.backupService('Error in startup restore check: $e');
     }
@@ -60,7 +59,8 @@ class StartupRestoreService {
 
   static Future<void> _markRestoreCheckTime() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_lastRestoreCheckKey, DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+        _lastRestoreCheckKey, DateTime.now().millisecondsSinceEpoch);
   }
 
   static Future<bool> _hasExistingMoodData() async {
@@ -105,59 +105,54 @@ class StartupRestoreService {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) =>
-          AlertDialog(
-            title: Row(
-              children: [
-                Icon(Icons.cloud_download, color: Theme
-                    .of(context)
-                    .primaryColor),
-                const SizedBox(width: 12),
-                const Expanded(child: Text('Restore Your Data?')),
-              ],
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.cloud_download, color: Theme.of(context).primaryColor),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Restore Your Data?')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'We found mood tracking data backed up to your cloud account.',
+              style: TextStyle(fontSize: 16),
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'We found mood tracking data backed up to your cloud account.',
-                  style: TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 12),
-                const Text('Would you like to restore:'),
-                const SizedBox(height: 8),
-                const Text('• Your mood history'),
-                const Text('• Your goals and progress'),
-                const Text('• Your notification settings'),
-                const SizedBox(height: 12),
-                Text(
-                  'This will not overwrite any existing data.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontStyle: FontStyle.italic,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 12),
+            const Text('Would you like to restore:'),
+            const SizedBox(height: 8),
+            const Text('• Your mood history'),
+            const Text('• Your goals and progress'),
+            const Text('• Your notification settings'),
+            const SizedBox(height: 12),
+            Text(
+              'This will not overwrite any existing data.',
+              style: TextStyle(
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
+                color: Colors.grey.shade600,
+              ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Not Now'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme
-                      .of(context)
-                      .primaryColor,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Restore Data'),
-              ),
-            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not Now'),
           ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Restore Data'),
+          ),
+        ],
+      ),
     );
 
     if (result == true) {
@@ -185,7 +180,8 @@ class StartupRestoreService {
 
     try {
       // Get the most recent backup
-      final mostRecentBackup = await RealCloudBackupService.getMostRecentBackup();
+      final mostRecentBackup =
+          await RealCloudBackupService.getMostRecentBackup();
 
       if (mostRecentBackup == null) {
         throw Exception('No backup found');
@@ -224,7 +220,6 @@ class StartupRestoreService {
           );
         }
       }
-
     } catch (e) {
       // Close loading dialog
       if (context.mounted) Navigator.of(context).pop();

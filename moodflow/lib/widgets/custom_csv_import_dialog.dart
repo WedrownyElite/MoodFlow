@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/import/custom_csv_importer.dart';
 
@@ -58,17 +58,20 @@ class _CustomCSVImportDialogState extends State<CustomCSVImportDialog> {
                   const SizedBox(height: 8),
                   Text(
                     'Custom importer for your specific CSV format:',
-                    style: TextStyle(fontWeight: FontWeight.w500, color: Colors.orange.shade800),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Colors.orange.shade800),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '• Column A: Dates (6/15/2025 format)\n'
-                        '• Column B: Morning Notes\n'
-                        '• Column C: Day Mood (0-10 ratings)\n'
-                        '• Column D: Mid-Day Notes\n'
-                        '• Column E: Night Mood (0-10 ratings)\n'
-                        '• Column F: Night Notes',
-                    style: TextStyle(fontSize: 13, color: Colors.orange.shade700),
+                    '• Column B: Morning Notes\n'
+                    '• Column C: Day Mood (0-10 ratings)\n'
+                    '• Column D: Mid-Day Notes\n'
+                    '• Column E: Night Mood (0-10 ratings)\n'
+                    '• Column F: Night Notes',
+                    style:
+                        TextStyle(fontSize: 13, color: Colors.orange.shade700),
                   ),
                 ],
               ),
@@ -81,9 +84,14 @@ class _CustomCSVImportDialogState extends State<CustomCSVImportDialog> {
               width: double.infinity,
               height: 120,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300, width: 2, style: BorderStyle.solid),
+                border: Border.all(
+                    color: Colors.grey.shade300,
+                    width: 2,
+                    style: BorderStyle.solid),
                 borderRadius: BorderRadius.circular(8),
-                color: _selectedFileName != null ? Colors.green.shade50 : Colors.grey.shade50,
+                color: _selectedFileName != null
+                    ? Colors.green.shade50
+                    : Colors.grey.shade50,
               ),
               child: Material(
                 color: Colors.transparent,
@@ -94,9 +102,13 @@ class _CustomCSVImportDialogState extends State<CustomCSVImportDialog> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        _selectedFileName != null ? Icons.check_circle : Icons.cloud_upload,
+                        _selectedFileName != null
+                            ? Icons.check_circle
+                            : Icons.cloud_upload,
                         size: 40,
-                        color: _selectedFileName != null ? Colors.green : Colors.grey.shade600,
+                        color: _selectedFileName != null
+                            ? Colors.green
+                            : Colors.grey.shade600,
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -105,8 +117,12 @@ class _CustomCSVImportDialogState extends State<CustomCSVImportDialog> {
                             : 'Click to select your CSV file',
                         style: TextStyle(
                           fontSize: 16,
-                          color: _selectedFileName != null ? Colors.green.shade800 : Colors.grey.shade700,
-                          fontWeight: _selectedFileName != null ? FontWeight.w500 : FontWeight.normal,
+                          color: _selectedFileName != null
+                              ? Colors.green.shade800
+                              : Colors.grey.shade700,
+                          fontWeight: _selectedFileName != null
+                              ? FontWeight.w500
+                              : FontWeight.normal,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -114,7 +130,8 @@ class _CustomCSVImportDialogState extends State<CustomCSVImportDialog> {
                         const SizedBox(height: 4),
                         Text(
                           'Supports .csv files',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade600),
                         ),
                       ],
                     ],
@@ -130,14 +147,17 @@ class _CustomCSVImportDialogState extends State<CustomCSVImportDialog> {
               children: [
                 Expanded(
                   child: TextButton(
-                    onPressed: _isImporting ? null : () => Navigator.of(context).pop(),
+                    onPressed:
+                        _isImporting ? null : () => Navigator.of(context).pop(),
                     child: const Text('Cancel'),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _selectedFilePath != null && !_isImporting ? _performImport : null,
+                    onPressed: _selectedFilePath != null && !_isImporting
+                        ? _performImport
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
@@ -145,10 +165,11 @@ class _CustomCSVImportDialogState extends State<CustomCSVImportDialog> {
                     ),
                     child: _isImporting
                         ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
                         : const Text('Import Data'),
                   ),
                 ),

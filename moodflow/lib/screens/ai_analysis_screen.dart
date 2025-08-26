@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/ai/mood_analysis_service.dart';
 import '../widgets/date_range_picker_dialog.dart';
@@ -10,7 +10,8 @@ class AIAnalysisScreen extends StatefulWidget {
   State<AIAnalysisScreen> createState() => _AIAnalysisScreenState();
 }
 
-class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProviderStateMixin {
+class _AIAnalysisScreenState extends State<AIAnalysisScreen>
+    with TickerProviderStateMixin {
   MoodAnalysisResult? _analysisResult;
   bool _isAnalyzing = false;
   bool _hasValidKey = false;
@@ -62,7 +63,10 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               const SizedBox(height: 8),
               const Text(
                 'https://platform.openai.com/api-keys',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue),
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -93,33 +97,39 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
           ),
           actions: [
             TextButton(
-              onPressed: isValidating ? null : () => Navigator.of(context).pop(false),
+              onPressed:
+                  isValidating ? null : () => Navigator.of(context).pop(false),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: isValidating ? null : () async {
-                if (controller.text.trim().isEmpty) return;
+              onPressed: isValidating
+                  ? null
+                  : () async {
+                      if (controller.text.trim().isEmpty) return;
 
-                setDialogState(() => isValidating = true);
+                      setDialogState(() => isValidating = true);
 
-                final isValid = await MoodAnalysisService.validateAndSaveApiKey(controller.text.trim());
+                      final isValid =
+                          await MoodAnalysisService.validateAndSaveApiKey(
+                              controller.text.trim());
 
-                // Check if the dialog is still mounted before using context
-                if (!context.mounted) return;
+                      // Check if the dialog is still mounted before using context
+                      if (!context.mounted) return;
 
-                if (isValid) {
-                  Navigator.of(context).pop(true);
-                } else {
-                  setDialogState(() => isValidating = false);
-                  // Show error in the same context (dialog context)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Invalid API key. Please check and try again.'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
+                      if (isValid) {
+                        Navigator.of(context).pop(true);
+                      } else {
+                        setDialogState(() => isValidating = false);
+                        // Show error in the same context (dialog context)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Invalid API key. Please check and try again.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
               child: const Text('Save'),
             ),
           ],
@@ -192,7 +202,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
 
     // Save successful analysis
     if (result.success) {
-      await MoodAnalysisService.saveAnalysisResult(result, _startDate, _endDate);
+      await MoodAnalysisService.saveAnalysisResult(
+          result, _startDate, _endDate);
       await _loadSavedAnalyses(); // Refresh the history
     }
   }
@@ -281,7 +292,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               'Daily mood ratings and notes',
               Icons.sentiment_satisfied,
               _includeMoodData,
-                  (value) => setState(() => _includeMoodData = value ?? true),
+              (value) => setState(() => _includeMoodData = value ?? true),
             ),
 
             _buildCompactCheckbox(
@@ -289,7 +300,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               'Weather conditions and temperature',
               Icons.wb_sunny,
               _includeWeatherData,
-                  (value) => setState(() => _includeWeatherData = value ?? false),
+              (value) => setState(() => _includeWeatherData = value ?? false),
             ),
 
             _buildCompactCheckbox(
@@ -297,7 +308,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               'Sleep quality, duration, and schedule',
               Icons.bedtime,
               _includeSleepData,
-                  (value) => setState(() => _includeSleepData = value ?? false),
+              (value) => setState(() => _includeSleepData = value ?? false),
             ),
 
             _buildCompactCheckbox(
@@ -305,7 +316,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               'Exercise levels and social activities',
               Icons.fitness_center,
               _includeActivityData,
-                  (value) => setState(() => _includeActivityData = value ?? false),
+              (value) => setState(() => _includeActivityData = value ?? false),
             ),
 
             _buildCompactCheckbox(
@@ -313,7 +324,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               'Work stress levels and patterns',
               Icons.work,
               _includeWorkStressData,
-                  (value) => setState(() => _includeWorkStressData = value ?? false),
+              (value) =>
+                  setState(() => _includeWorkStressData = value ?? false),
             ),
           ],
         ),
@@ -322,12 +334,12 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
   }
 
   Widget _buildCompactCheckbox(
-      String title,
-      String subtitle,
-      IconData icon,
-      bool value,
-      ValueChanged<bool?> onChanged,
-      ) {
+    String title,
+    String subtitle,
+    IconData icon,
+    bool value,
+    ValueChanged<bool?> onChanged,
+  ) {
     return InkWell(
       onTap: () => onChanged(!value),
       child: Padding(
@@ -342,7 +354,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                   Text(
                     subtitle,
@@ -409,9 +422,11 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
           children: [
             Icon(Icons.history, size: 64, color: Colors.grey),
             SizedBox(height: 16),
-            Text('No previous analyses', style: TextStyle(fontSize: 18, color: Colors.grey)),
+            Text('No previous analyses',
+                style: TextStyle(fontSize: 18, color: Colors.grey)),
             SizedBox(height: 8),
-            Text('Run an analysis to see your history here', style: TextStyle(color: Colors.grey)),
+            Text('Run an analysis to see your history here',
+                style: TextStyle(color: Colors.grey)),
           ],
         ),
       );
@@ -447,17 +462,23 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               children: [
                 // Insights section
                 if (analysis.result.insights.isNotEmpty) ...[
-                  const Text('Key Insights', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text('Key Insights',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  ...analysis.result.insights.map((insight) => _buildInsightCard(insight)),
+                  ...analysis.result.insights
+                      .map((insight) => _buildInsightCard(insight)),
                   const SizedBox(height: 16),
                 ],
 
                 // Recommendations section
                 if (analysis.result.recommendations.isNotEmpty) ...[
-                  const Text('Recommendations', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text('Recommendations',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  ...analysis.result.recommendations.map((rec) => _buildRecommendationCard(rec)),
+                  ...analysis.result.recommendations
+                      .map((rec) => _buildRecommendationCard(rec)),
                 ],
 
                 // Delete button
@@ -467,11 +488,14 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                   children: [
                     TextButton.icon(
                       onPressed: () async {
-                        await MoodAnalysisService.deleteSavedAnalysis(analysis.id);
+                        await MoodAnalysisService.deleteSavedAnalysis(
+                            analysis.id);
                         await _loadSavedAnalyses();
                       },
-                      icon: const Icon(Icons.delete, size: 16, color: Colors.red),
-                      label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                      icon:
+                          const Icon(Icons.delete, size: 16, color: Colors.red),
+                      label: const Text('Delete',
+                          style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),
@@ -494,7 +518,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
             color: Colors.orange.shade100,
             child: Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
+                Icon(Icons.warning_amber_rounded,
+                    color: Colors.orange.shade700, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -509,7 +534,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                 TextButton(
                   onPressed: _showDisclaimer,
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     minimumSize: Size.zero,
                   ),
                   child: Text(
@@ -534,7 +560,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                 Expanded(
                   child: Text(
                     'Date Range: ${DateFormat('MMM d').format(_startDate)} - ${DateFormat('MMM d, y').format(_endDate)}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                 ),
                 ElevatedButton.icon(
@@ -558,15 +585,17 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                 child: ElevatedButton.icon(
                   icon: _isAnalyzing
                       ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
                       : const Icon(Icons.psychology),
-                  label: Text(_isAnalyzing ? 'Analyzing...' : 'Analyze My Moods'),
+                  label:
+                      Text(_isAnalyzing ? 'Analyzing...' : 'Analyze My Moods'),
                   onPressed: _isAnalyzing ? null : _performAnalysis,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
@@ -705,7 +734,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            ..._analysisResult!.insights.map((insight) => _buildInsightCard(insight)),
+            ..._analysisResult!.insights
+                .map((insight) => _buildInsightCard(insight)),
             const SizedBox(height: 24),
           ],
 
@@ -716,7 +746,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            ..._analysisResult!.recommendations.map((rec) => _buildRecommendationCard(rec)),
+            ..._analysisResult!.recommendations
+                .map((rec) => _buildRecommendationCard(rec)),
           ],
 
           // Add bottom padding to prevent cutoff
@@ -823,11 +854,13 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: color.withValues(alpha: 0.3)),
+                          border:
+                              Border.all(color: color.withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           recommendation.priority.name.toUpperCase(),

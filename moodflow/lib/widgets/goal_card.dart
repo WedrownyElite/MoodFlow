@@ -42,7 +42,7 @@ class _GoalCardState extends State<GoalCard> {
 
     final now = DateTime.now();
     final startDate = widget.goal.createdDate;
-    
+
     switch (widget.goal.type) {
       case GoalType.averageMood:
         await _calculateAverageMoodProgress(startDate, now);
@@ -61,12 +61,14 @@ class _GoalCardState extends State<GoalCard> {
     setState(() => _isLoading = false);
   }
 
-  Future<void> _calculateAverageMoodProgress(DateTime startDate, DateTime endDate) async {
+  Future<void> _calculateAverageMoodProgress(
+      DateTime startDate, DateTime endDate) async {
     double totalMood = 0;
     int moodCount = 0;
 
     DateTime currentDate = startDate;
-    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+    while (currentDate.isBefore(endDate) ||
+        currentDate.isAtSameMomentAs(endDate)) {
       for (int segment = 0; segment < 3; segment++) {
         final moodData = await MoodDataService.loadMood(currentDate, segment);
         if (moodData != null && moodData['rating'] != null) {
@@ -79,7 +81,8 @@ class _GoalCardState extends State<GoalCard> {
 
     final currentAverage = moodCount > 0 ? totalMood / moodCount : 0;
     _progress = (currentAverage / widget.goal.targetValue).clamp(0.0, 1.0);
-    _progressText = 'Current: ${currentAverage.toStringAsFixed(1)}/${widget.goal.targetValue.toStringAsFixed(1)}';
+    _progressText =
+        'Current: ${currentAverage.toStringAsFixed(1)}/${widget.goal.targetValue.toStringAsFixed(1)}';
   }
 
   Future<void> _calculateConsecutiveDaysProgress() async {
@@ -109,12 +112,14 @@ class _GoalCardState extends State<GoalCard> {
     _progressText = '$consecutiveDays/${widget.goal.targetDays} days';
   }
 
-  Future<void> _calculateMinimumMoodProgress(DateTime startDate, DateTime endDate) async {
+  Future<void> _calculateMinimumMoodProgress(
+      DateTime startDate, DateTime endDate) async {
     int daysAboveMinimum = 0;
     int totalDays = 0;
 
     DateTime currentDate = startDate;
-    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+    while (currentDate.isBefore(endDate) ||
+        currentDate.isAtSameMomentAs(endDate)) {
       bool dayHasMood = false;
       bool dayAboveMinimum = true;
 
@@ -139,8 +144,10 @@ class _GoalCardState extends State<GoalCard> {
       currentDate = currentDate.add(const Duration(days: 1));
     }
 
-    _progress = totalDays > 0 ? (daysAboveMinimum / totalDays).clamp(0.0, 1.0) : 0.0;
-    _progressText = '$daysAboveMinimum/$totalDays days above ${widget.goal.targetValue.toStringAsFixed(1)}';
+    _progress =
+        totalDays > 0 ? (daysAboveMinimum / totalDays).clamp(0.0, 1.0) : 0.0;
+    _progressText =
+        '$daysAboveMinimum/$totalDays days above ${widget.goal.targetValue.toStringAsFixed(1)}';
   }
 
   Future<void> _calculateImprovementStreakProgress() async {
@@ -234,7 +241,8 @@ class _GoalCardState extends State<GoalCard> {
                 ),
                 if (widget.goal.isCompleted)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -284,17 +292,17 @@ class _GoalCardState extends State<GoalCard> {
                   ),
               ],
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Description
             Text(
               widget.goal.description,
               style: const TextStyle(fontSize: 14),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Progress
             if (_isLoading)
               const Center(child: CircularProgressIndicator())
@@ -331,7 +339,7 @@ class _GoalCardState extends State<GoalCard> {
                 ),
               ),
             ],
-            
+
             // Dates
             const SizedBox(height: 12),
             Row(

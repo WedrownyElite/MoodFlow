@@ -1,4 +1,4 @@
-﻿// lib/services/data/correlation_data_service.dart
+// lib/services/data/correlation_data_service.dart
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -68,55 +68,57 @@ class CorrelationData {
   });
 
   Map<String, dynamic> toJson() => {
-    'date': date.toIso8601String(),
-    'weather': weather?.name,
-    'temperature': temperature,
-    'temperatureUnit': temperatureUnit,
-    'weatherDescription': weatherDescription,
-    'sleepQuality': sleepQuality,
-    'sleepDuration': sleepDuration?.inMinutes,
-    'bedtime': bedtime?.toIso8601String(),
-    'wakeTime': wakeTime?.toIso8601String(),
-    'exerciseLevel': exerciseLevel?.name,
-    'socialActivity': socialActivity?.name,
-    'workStress': workStress,
-    'customTags': customTags,
-    'notes': notes,
-    'autoWeather': autoWeather,
-    'weatherData': weatherData,
-    'timestamp': DateTime.now().toIso8601String(),
-  };
+        'date': date.toIso8601String(),
+        'weather': weather?.name,
+        'temperature': temperature,
+        'temperatureUnit': temperatureUnit,
+        'weatherDescription': weatherDescription,
+        'sleepQuality': sleepQuality,
+        'sleepDuration': sleepDuration?.inMinutes,
+        'bedtime': bedtime?.toIso8601String(),
+        'wakeTime': wakeTime?.toIso8601String(),
+        'exerciseLevel': exerciseLevel?.name,
+        'socialActivity': socialActivity?.name,
+        'workStress': workStress,
+        'customTags': customTags,
+        'notes': notes,
+        'autoWeather': autoWeather,
+        'weatherData': weatherData,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
 
-  factory CorrelationData.fromJson(Map<String, dynamic> json) => CorrelationData(
-    date: DateTime.parse(json['date']),
-    weather: json['weather'] != null
-        ? WeatherCondition.values.firstWhere((e) => e.name == json['weather'])
-        : null,
-    temperature: json['temperature']?.toDouble(),
-    temperatureUnit: json['temperatureUnit'],
-    weatherDescription: json['weatherDescription'],
-    sleepQuality: json['sleepQuality']?.toDouble(),
-    sleepDuration: json['sleepDuration'] != null
-        ? Duration(minutes: json['sleepDuration'])
-        : null,
-    bedtime: json['bedtime'] != null
-        ? DateTime.parse(json['bedtime'])
-        : null,
-    wakeTime: json['wakeTime'] != null
-        ? DateTime.parse(json['wakeTime'])
-        : null,
-    exerciseLevel: json['exerciseLevel'] != null
-        ? ActivityLevel.values.firstWhere((e) => e.name == json['exerciseLevel'])
-        : null,
-    socialActivity: json['socialActivity'] != null
-        ? SocialActivity.values.firstWhere((e) => e.name == json['socialActivity'])
-        : null,
-    workStress: json['workStress'],
-    customTags: List<String>.from(json['customTags'] ?? []),
-    notes: json['notes'],
-    autoWeather: json['autoWeather'] ?? false,
-    weatherData: json['weatherData'],
-  );
+  factory CorrelationData.fromJson(Map<String, dynamic> json) =>
+      CorrelationData(
+        date: DateTime.parse(json['date']),
+        weather: json['weather'] != null
+            ? WeatherCondition.values
+                .firstWhere((e) => e.name == json['weather'])
+            : null,
+        temperature: json['temperature']?.toDouble(),
+        temperatureUnit: json['temperatureUnit'],
+        weatherDescription: json['weatherDescription'],
+        sleepQuality: json['sleepQuality']?.toDouble(),
+        sleepDuration: json['sleepDuration'] != null
+            ? Duration(minutes: json['sleepDuration'])
+            : null,
+        bedtime:
+            json['bedtime'] != null ? DateTime.parse(json['bedtime']) : null,
+        wakeTime:
+            json['wakeTime'] != null ? DateTime.parse(json['wakeTime']) : null,
+        exerciseLevel: json['exerciseLevel'] != null
+            ? ActivityLevel.values
+                .firstWhere((e) => e.name == json['exerciseLevel'])
+            : null,
+        socialActivity: json['socialActivity'] != null
+            ? SocialActivity.values
+                .firstWhere((e) => e.name == json['socialActivity'])
+            : null,
+        workStress: json['workStress'],
+        customTags: List<String>.from(json['customTags'] ?? []),
+        notes: json['notes'],
+        autoWeather: json['autoWeather'] ?? false,
+        weatherData: json['weatherData'],
+      );
 
   CorrelationData copyWith({
     DateTime? date,
@@ -135,24 +137,25 @@ class CorrelationData {
     String? notes,
     bool? autoWeather,
     Map<String, dynamic>? weatherData,
-  }) => CorrelationData(
-    date: date ?? this.date,
-    weather: weather ?? this.weather,
-    temperature: temperature ?? this.temperature,
-    temperatureUnit: temperatureUnit ?? this.temperatureUnit,
-    weatherDescription: weatherDescription ?? this.weatherDescription,
-    sleepQuality: sleepQuality ?? this.sleepQuality,
-    sleepDuration: sleepDuration ?? this.sleepDuration,
-    bedtime: bedtime ?? this.bedtime,
-    wakeTime: wakeTime ?? this.wakeTime,
-    exerciseLevel: exerciseLevel ?? this.exerciseLevel,
-    socialActivity: socialActivity ?? this.socialActivity,
-    workStress: workStress ?? this.workStress,
-    customTags: customTags ?? this.customTags,
-    notes: notes ?? this.notes,
-    autoWeather: autoWeather ?? this.autoWeather,
-    weatherData: weatherData ?? this.weatherData,
-  );
+  }) =>
+      CorrelationData(
+        date: date ?? this.date,
+        weather: weather ?? this.weather,
+        temperature: temperature ?? this.temperature,
+        temperatureUnit: temperatureUnit ?? this.temperatureUnit,
+        weatherDescription: weatherDescription ?? this.weatherDescription,
+        sleepQuality: sleepQuality ?? this.sleepQuality,
+        sleepDuration: sleepDuration ?? this.sleepDuration,
+        bedtime: bedtime ?? this.bedtime,
+        wakeTime: wakeTime ?? this.wakeTime,
+        exerciseLevel: exerciseLevel ?? this.exerciseLevel,
+        socialActivity: socialActivity ?? this.socialActivity,
+        workStress: workStress ?? this.workStress,
+        customTags: customTags ?? this.customTags,
+        notes: notes ?? this.notes,
+        autoWeather: autoWeather ?? this.autoWeather,
+        weatherData: weatherData ?? this.weatherData,
+      );
 }
 
 class WeatherResult {
@@ -187,13 +190,9 @@ class CorrelationInsight {
 
 class CorrelationDataService {
   static const String _keyPrefix = 'correlation_';
-  static const String _settingsKey = 'correlation_settings';
   static const String _weatherApiKeyKey = 'weather_api_key';
   static const String _locationPermissionKey = 'location_permission_granted';
   static const String _temperatureUnitKey = 'temperature_unit';
-
-  // OpenWeatherMap One Call 3.0 API
-  static const String _weatherApiUrl = 'https://api.openweathermap.org/data/3.0/onecall';
 
   /// Save user's weather API key
   static Future<void> setWeatherApiKey(String apiKey) async {
@@ -248,7 +247,8 @@ class CorrelationDataService {
       }
 
       if (permission == LocationPermission.deniedForever) {
-        Logger.correlationService('❌ Location permissions are permanently denied');
+        Logger.correlationService(
+            '❌ Location permissions are permanently denied');
         return null;
       }
 
@@ -289,7 +289,8 @@ class CorrelationDataService {
         'lat': latitude.toString(),
         'lon': longitude.toString(),
         'appid': apiKey!,
-        'units': await getTemperatureUnit() == 'celsius' ? 'metric' : 'imperial',
+        'units':
+            await getTemperatureUnit() == 'celsius' ? 'metric' : 'imperial',
         'lang': 'en',
       };
 
@@ -300,7 +301,8 @@ class CorrelationDataService {
         params['dt'] = timestamp.toString();
       } else if (daysDifference > 5) {
         // For dates older than 5 days, try the day_summary endpoint
-        final dateString = '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}';
+        final dateString =
+            '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}';
         url = 'https://api.openweathermap.org/data/3.0/onecall/day_summary';
         params['date'] = dateString;
       } else {
@@ -310,7 +312,8 @@ class CorrelationDataService {
       }
 
       final uri = Uri.parse(url).replace(queryParameters: params);
-      Logger.correlationService('🌤️ Fetching weather from: ${uri.toString().replaceAll(apiKey, 'HIDDEN_KEY')}');
+      Logger.correlationService(
+          '🌤️ Fetching weather from: ${uri.toString().replaceAll(apiKey, 'HIDDEN_KEY')}');
 
       final response = await http.get(uri).timeout(const Duration(seconds: 10));
 
@@ -347,15 +350,17 @@ class CorrelationDataService {
 
         final weatherInfo = weatherArray.first as Map<String, dynamic>;
         final rawTemp = (weatherData['temp'] as num?)?.toDouble() ??
-            (weatherData['temperature'] as num?)?.toDouble() ?? 15.0;
-        final unit = await getTemperatureUnit();
+            (weatherData['temperature'] as num?)?.toDouble() ??
+            15.0;
         final temperature = rawTemp;
         final description = weatherInfo['description'] as String;
         final weatherMain = (weatherInfo['main'] as String).toLowerCase();
 
-        final condition = _mapWeatherCondition(weatherMain, weatherInfo['id'] as int);
+        final condition =
+            _mapWeatherCondition(weatherMain, weatherInfo['id'] as int);
 
-        Logger.correlationService('✅ Weather fetched for ${forDate?.toString() ?? 'current'}: $description, ${temperature.toStringAsFixed(1)}°C');
+        Logger.correlationService(
+            '✅ Weather fetched for ${forDate?.toString() ?? 'current'}: $description, ${temperature.toStringAsFixed(1)}°C');
 
         return WeatherResult(
           condition: condition,
@@ -363,28 +368,29 @@ class CorrelationDataService {
           description: description,
           rawData: data,
         );
-
       } else if (response.statusCode == 401) {
-        Logger.correlationService('❌ Weather API authentication failed (401) - check API key');
+        Logger.correlationService(
+            '❌ Weather API authentication failed (401) - check API key');
         return null;
       } else {
-        Logger.correlationService('❌ Weather API error (${response.statusCode}): ${response.body}');
+        Logger.correlationService(
+            '❌ Weather API error (${response.statusCode}): ${response.body}');
         return null;
       }
-
     } catch (e) {
       Logger.correlationService('❌ Error fetching weather: $e');
       return null;
     }
   }
 
-  static double convertTemperature(double temp, String fromUnit, String toUnit) {
+  static double convertTemperature(
+      double temp, String fromUnit, String toUnit) {
     if (fromUnit == toUnit) return temp;
 
     if (fromUnit == 'celsius' && toUnit == 'fahrenheit') {
-      return (temp * 9/5) + 32;
+      return (temp * 9 / 5) + 32;
     } else if (fromUnit == 'fahrenheit' && toUnit == 'celsius') {
-      return (temp - 32) * 5/9;
+      return (temp - 32) * 5 / 9;
     }
 
     return temp;
@@ -434,20 +440,35 @@ class CorrelationDataService {
         return WeatherCondition.foggy;
       default:
       // Fallback based on condition ID ranges
-        if (id >= 200 && id < 300) return WeatherCondition.stormy; // Thunderstorm
-        if (id >= 300 && id < 400) return WeatherCondition.rainy;  // Drizzle
-        if (id >= 500 && id < 600) return WeatherCondition.rainy;  // Rain
-        if (id >= 600 && id < 700) return WeatherCondition.snowy;  // Snow
-        if (id >= 700 && id < 800) return WeatherCondition.foggy;  // Atmosphere
-        if (id == 800) return WeatherCondition.sunny;              // Clear
-        if (id > 800) return WeatherCondition.cloudy;              // Clouds
+        if (id >= 200 && id < 300) {
+          return WeatherCondition.stormy; // Thunderstorm
+        }
+        if (id >= 300 && id < 400) {
+          return WeatherCondition.rainy; // Drizzle
+        }
+        if (id >= 500 && id < 600) {
+          return WeatherCondition.rainy; // Rain
+        }
+        if (id >= 600 && id < 700) {
+          return WeatherCondition.snowy; // Snow
+        }
+        if (id >= 700 && id < 800) {
+          return WeatherCondition.foggy; // Atmosphere
+        }
+        if (id == 800) {
+          return WeatherCondition.sunny; // Clear
+        }
+        if (id > 800) {
+          return WeatherCondition.cloudy; // Clouds
+        }
 
         return WeatherCondition.cloudy; // Default fallback
     }
   }
 
   /// Save correlation data for a specific date
-  static Future<bool> saveCorrelationData(DateTime date, CorrelationData data) async {
+  static Future<bool> saveCorrelationData(
+      DateTime date, CorrelationData data) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = _getKeyForDate(date);
@@ -455,7 +476,8 @@ class CorrelationDataService {
 
       final success = await prefs.setString(key, jsonData);
       if (success) {
-        Logger.correlationService('✅ Correlation data saved for ${_formatDate(date)}');
+        Logger.correlationService(
+            '✅ Correlation data saved for ${_formatDate(date)}');
         return true;
       }
       return false;
@@ -498,7 +520,8 @@ class CorrelationDataService {
     final moodData = <DateTime, double>{};
 
     DateTime currentDate = startDate;
-    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+    while (currentDate.isBefore(endDate) ||
+        currentDate.isAtSameMomentAs(endDate)) {
       // Load correlation data
       final correlation = await loadCorrelationData(currentDate);
       if (correlation != null) {
@@ -529,13 +552,15 @@ class CorrelationDataService {
     }
 
     // Analyze weather correlations
-    insights.addAll(await _analyzeWeatherCorrelations(correlationData, moodData));
+    insights
+        .addAll(await _analyzeWeatherCorrelations(correlationData, moodData));
 
     // Analyze sleep correlations
     insights.addAll(await _analyzeSleepCorrelations(correlationData, moodData));
 
     // Analyze exercise correlations
-    insights.addAll(await _analyzeExerciseCorrelations(correlationData, moodData));
+    insights
+        .addAll(await _analyzeExerciseCorrelations(correlationData, moodData));
 
     // Sort by strength and return top insights
     insights.sort((a, b) => b.strength.compareTo(a.strength));
@@ -546,9 +571,9 @@ class CorrelationDataService {
   // ... (keeping the same analysis methods from your original code)
 
   static Future<List<CorrelationInsight>> _analyzeWeatherCorrelations(
-      List<CorrelationData> correlationData,
-      Map<DateTime, double> moodData,
-      ) async {
+    List<CorrelationData> correlationData,
+    Map<DateTime, double> moodData,
+  ) async {
     final insights = <CorrelationInsight>[];
     final weatherMoods = <WeatherCondition, List<double>>{};
     final temperatureMoods = <double>[];
@@ -577,7 +602,8 @@ class CorrelationDataService {
       final weatherAverages = <WeatherCondition, double>{};
       for (final entry in weatherMoods.entries) {
         if (entry.value.length >= 3) {
-          weatherAverages[entry.key] = entry.value.reduce((a, b) => a + b) / entry.value.length;
+          weatherAverages[entry.key] =
+              entry.value.reduce((a, b) => a + b) / entry.value.length;
         }
       }
 
@@ -592,7 +618,8 @@ class CorrelationDataService {
         if (difference >= 1.0) {
           insights.add(CorrelationInsight(
             title: 'Weather affects your mood',
-            description: 'You feel ${difference.toStringAsFixed(1)} points better on ${_getWeatherName(best.key)} days (${best.value.toStringAsFixed(1)}) vs ${_getWeatherName(worst.key)} days (${worst.value.toStringAsFixed(1)})',
+            description:
+                'You feel ${difference.toStringAsFixed(1)} points better on ${_getWeatherName(best.key)} days (${best.value.toStringAsFixed(1)}) vs ${_getWeatherName(worst.key)} days (${worst.value.toStringAsFixed(1)})',
             strength: (difference / 9.0).clamp(0.0, 1.0),
             category: 'weather',
             data: {
@@ -610,7 +637,9 @@ class CorrelationDataService {
       final correlation = _calculateCorrelation(temperatureMoods, moodValues);
       if (correlation.abs() >= 0.3) {
         insights.add(CorrelationInsight(
-          title: correlation > 0 ? 'Warmer weather boosts your mood' : 'Cooler weather affects your mood',
+          title: correlation > 0
+              ? 'Warmer weather boosts your mood'
+              : 'Cooler weather affects your mood',
           description: correlation > 0
               ? 'Your mood tends to improve with warmer temperatures'
               : 'Your mood seems to be affected by cooler temperatures',
@@ -626,16 +655,17 @@ class CorrelationDataService {
 
   // Analyze Sleep Correlation
   static Future<List<CorrelationInsight>> _analyzeSleepCorrelations(
-      List<CorrelationData> correlationData,
-      Map<DateTime, double> moodData,
-      ) async {
+    List<CorrelationData> correlationData,
+    Map<DateTime, double> moodData,
+  ) async {
     final insights = <CorrelationInsight>[];
     final sleepMoods = <double>[];
     final moodValues = <double>[];
 
     // Collect sleep quality and corresponding mood data
     for (final correlation in correlationData) {
-      if (correlation.sleepQuality != null && moodData.containsKey(correlation.date)) {
+      if (correlation.sleepQuality != null &&
+          moodData.containsKey(correlation.date)) {
         sleepMoods.add(correlation.sleepQuality!);
         moodValues.add(moodData[correlation.date]!);
       }
@@ -645,8 +675,11 @@ class CorrelationDataService {
       final correlation = _calculateCorrelation(sleepMoods, moodValues);
       if (correlation.abs() >= 0.4) {
         insights.add(CorrelationInsight(
-          title: correlation > 0 ? 'Better sleep improves your mood' : 'Poor sleep affects your mood',
-          description: 'Sleep quality ${correlation > 0 ? 'positively' : 'negatively'} correlates with your mood (${(correlation * 100).round()}% correlation)',
+          title: correlation > 0
+              ? 'Better sleep improves your mood'
+              : 'Poor sleep affects your mood',
+          description:
+              'Sleep quality ${correlation > 0 ? 'positively' : 'negatively'} correlates with your mood (${(correlation * 100).round()}% correlation)',
           strength: correlation.abs(),
           category: 'sleep',
           data: {'sleepCorrelation': correlation},
@@ -659,17 +692,20 @@ class CorrelationDataService {
 
   // Analyze Exercise Correlations
   static Future<List<CorrelationInsight>> _analyzeExerciseCorrelations(
-      List<CorrelationData> correlationData,
-      Map<DateTime, double> moodData,
-      ) async {
+    List<CorrelationData> correlationData,
+    Map<DateTime, double> moodData,
+  ) async {
     final insights = <CorrelationInsight>[];
     final exerciseMoods = <ActivityLevel, List<double>>{};
 
     // Group moods by exercise level
     for (final correlation in correlationData) {
-      if (correlation.exerciseLevel != null && moodData.containsKey(correlation.date)) {
+      if (correlation.exerciseLevel != null &&
+          moodData.containsKey(correlation.date)) {
         final mood = moodData[correlation.date]!;
-        exerciseMoods.putIfAbsent(correlation.exerciseLevel!, () => []).add(mood);
+        exerciseMoods
+            .putIfAbsent(correlation.exerciseLevel!, () => [])
+            .add(mood);
       }
     }
 
@@ -677,7 +713,8 @@ class CorrelationDataService {
       final averages = <ActivityLevel, double>{};
       for (final entry in exerciseMoods.entries) {
         if (entry.value.length >= 3) {
-          averages[entry.key] = entry.value.reduce((a, b) => a + b) / entry.value.length;
+          averages[entry.key] =
+              entry.value.reduce((a, b) => a + b) / entry.value.length;
         }
       }
 
@@ -692,7 +729,8 @@ class CorrelationDataService {
         if (difference >= 1.0) {
           insights.add(CorrelationInsight(
             title: 'Exercise level affects your mood',
-            description: 'You feel ${difference.toStringAsFixed(1)} points better on ${_getActivityName(best.key)} days vs ${_getActivityName(worst.key)} days',
+            description:
+                'You feel ${difference.toStringAsFixed(1)} points better on ${_getActivityName(best.key)} days vs ${_getActivityName(worst.key)} days',
             strength: (difference / 9.0).clamp(0.0, 1.0),
             category: 'exercise',
             data: {
@@ -710,10 +748,14 @@ class CorrelationDataService {
 
   static String _getActivityName(ActivityLevel level) {
     switch (level) {
-      case ActivityLevel.none: return 'no exercise';
-      case ActivityLevel.light: return 'light activity';
-      case ActivityLevel.moderate: return 'moderate exercise';
-      case ActivityLevel.intense: return 'intense workout';
+      case ActivityLevel.none:
+        return 'no exercise';
+      case ActivityLevel.light:
+        return 'light activity';
+      case ActivityLevel.moderate:
+        return 'moderate exercise';
+      case ActivityLevel.intense:
+        return 'intense workout';
     }
   }
 
@@ -746,12 +788,18 @@ class CorrelationDataService {
 
   static String _getWeatherName(WeatherCondition condition) {
     switch (condition) {
-      case WeatherCondition.sunny: return 'sunny';
-      case WeatherCondition.cloudy: return 'cloudy';
-      case WeatherCondition.rainy: return 'rainy';
-      case WeatherCondition.stormy: return 'stormy';
-      case WeatherCondition.snowy: return 'snowy';
-      case WeatherCondition.foggy: return 'foggy';
+      case WeatherCondition.sunny:
+        return 'sunny';
+      case WeatherCondition.cloudy:
+        return 'cloudy';
+      case WeatherCondition.rainy:
+        return 'rainy';
+      case WeatherCondition.stormy:
+        return 'stormy';
+      case WeatherCondition.snowy:
+        return 'snowy';
+      case WeatherCondition.foggy:
+        return 'foggy';
     }
   }
 

@@ -32,7 +32,7 @@ class _EditMoodDialogState extends State<EditMoodDialog> {
     _rating = widget.initialRating;
     _noteController = TextEditingController(text: widget.initialNote);
     _noteFocusNode = FocusNode();
-    
+
     _noteFocusNode.addListener(() {
       setState(() {
         _isTyping = _noteFocusNode.hasFocus;
@@ -50,23 +50,34 @@ class _EditMoodDialogState extends State<EditMoodDialog> {
   String _getMoodEmoji(double rating) {
     final roundedRating = rating.round();
     switch (roundedRating) {
-      case 1: return '😭';
-      case 2: return '😢';
-      case 3: return '😔';
-      case 4: return '😕';
-      case 5: return '😐';
-      case 6: return '🙂';
-      case 7: return '😊';
-      case 8: return '😄';
-      case 9: return '😁';
-      case 10: return '🤩';
-      default: return '😐';
+      case 1:
+        return '😭';
+      case 2:
+        return '😢';
+      case 3:
+        return '😔';
+      case 4:
+        return '😕';
+      case 5:
+        return '😐';
+      case 6:
+        return '🙂';
+      case 7:
+        return '😊';
+      case 8:
+        return '😄';
+      case 9:
+        return '😁';
+      case 10:
+        return '🤩';
+      default:
+        return '😐';
     }
   }
 
   Color _getMoodColor(double rating) {
     final intensity = (rating - 1) / 9; // Normalize to 0-1
-    
+
     if (intensity < 0.3) {
       return Colors.red.shade600;
     } else if (intensity < 0.7) {
@@ -80,7 +91,7 @@ class _EditMoodDialogState extends State<EditMoodDialog> {
   Widget build(BuildContext context) {
     final isToday = DateTime.now().difference(widget.date).inDays == 0;
     final isYesterday = DateTime.now().difference(widget.date).inDays == 1;
-    
+
     String dateText;
     if (isToday) {
       dateText = 'Today';
@@ -131,9 +142,9 @@ class _EditMoodDialogState extends State<EditMoodDialog> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Current mood display with scaling animation
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
@@ -162,9 +173,9 @@ class _EditMoodDialogState extends State<EditMoodDialog> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Mood slider
               const Text(
                 'How were you feeling?',
@@ -204,9 +215,9 @@ class _EditMoodDialogState extends State<EditMoodDialog> {
                   },
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Note editor
               const Text(
                 'Notes',
@@ -235,9 +246,9 @@ class _EditMoodDialogState extends State<EditMoodDialog> {
                   style: const TextStyle(fontSize: 14),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Action buttons
               Row(
                 children: [

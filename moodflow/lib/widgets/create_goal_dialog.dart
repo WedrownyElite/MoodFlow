@@ -25,20 +25,26 @@ class _CreateGoalDialogState extends State<CreateGoalDialog> {
   void _updateFieldsForGoalType() {
     switch (_selectedType) {
       case GoalType.averageMood:
-        _titleController.text = 'Maintain ${_targetValue.toStringAsFixed(1)}+ Average Mood';
-        _descriptionController.text = 'Keep your overall mood rating above ${_targetValue.toStringAsFixed(1)} on average';
+        _titleController.text =
+            'Maintain ${_targetValue.toStringAsFixed(1)}+ Average Mood';
+        _descriptionController.text =
+            'Keep your overall mood rating above ${_targetValue.toStringAsFixed(1)} on average';
         break;
       case GoalType.consecutiveDays:
         _titleController.text = 'Log Mood for $_targetDays Days Straight';
-        _descriptionController.text = 'Track your mood consistently for $_targetDays consecutive days';
+        _descriptionController.text =
+            'Track your mood consistently for $_targetDays consecutive days';
         break;
       case GoalType.minimumMood:
-        _titleController.text = 'No Days Below ${_targetValue.toStringAsFixed(1)}';
-        _descriptionController.text = 'Maintain a minimum mood level of ${_targetValue.toStringAsFixed(1)} every day';
+        _titleController.text =
+            'No Days Below ${_targetValue.toStringAsFixed(1)}';
+        _descriptionController.text =
+            'Maintain a minimum mood level of ${_targetValue.toStringAsFixed(1)} every day';
         break;
       case GoalType.improvementStreak:
         _titleController.text = 'Improve Mood for $_targetDays Days';
-        _descriptionController.text = 'Have each day be better than the previous for $_targetDays days';
+        _descriptionController.text =
+            'Have each day be better than the previous for $_targetDays days';
         break;
     }
   }
@@ -70,7 +76,8 @@ class _CreateGoalDialogState extends State<CreateGoalDialog> {
   }
 
   Widget _buildValueSlider() {
-    if (_selectedType == GoalType.consecutiveDays || _selectedType == GoalType.improvementStreak) {
+    if (_selectedType == GoalType.consecutiveDays ||
+        _selectedType == GoalType.improvementStreak) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -171,19 +178,24 @@ class _CreateGoalDialogState extends State<CreateGoalDialog> {
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 16),
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         border: Border.all(
                           color: isSelected
                               ? Theme.of(context).primaryColor
                               : (Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade300),
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade300),
                           width: isSelected ? 2 : 1,
                         ),
                         borderRadius: BorderRadius.circular(8),
-                        color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : null,
+                        color: isSelected
+                            ? Theme.of(context)
+                                .primaryColor
+                                .withValues(alpha: 0.1)
+                            : null,
                       ),
                       child: Row(
                         children: [
@@ -195,23 +207,24 @@ class _CreateGoalDialogState extends State<CreateGoalDialog> {
                               border: Border.all(
                                 color: isSelected
                                     ? Theme.of(context).primaryColor
-                                    : (Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade300
-                                    : Colors.grey),
+                                    : (Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.grey.shade300
+                                        : Colors.grey),
                                 width: 2,
                               ),
                             ),
                             child: isSelected
                                 ? Center(
-                              child: Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Theme.of(context).primaryColor,
-                                ),
-                              ),
-                            )
+                                    child: Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                    ),
+                                  )
                                 : null,
                           ),
                           const SizedBox(width: 12),
@@ -223,7 +236,9 @@ class _CreateGoalDialogState extends State<CreateGoalDialog> {
                                   _getGoalTypeTitle(type),
                                   style: TextStyle(
                                     fontSize: 16,
-                                    fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w500
+                                        : FontWeight.normal,
                                   ),
                                 ),
                                 Text(
@@ -298,17 +313,19 @@ class _CreateGoalDialogState extends State<CreateGoalDialog> {
                       onPressed: _titleController.text.trim().isEmpty
                           ? null
                           : () {
-                        final goal = MoodGoal(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          title: _titleController.text.trim(),
-                          description: _descriptionController.text.trim(),
-                          type: _selectedType,
-                          targetValue: _targetValue,
-                          targetDays: _targetDays,
-                          createdDate: DateTime.now(),
-                        );
-                        Navigator.of(context).pop(goal);
-                      },
+                              final goal = MoodGoal(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .toString(),
+                                title: _titleController.text.trim(),
+                                description: _descriptionController.text.trim(),
+                                type: _selectedType,
+                                targetValue: _targetValue,
+                                targetDays: _targetDays,
+                                createdDate: DateTime.now(),
+                              );
+                              Navigator.of(context).pop(goal);
+                            },
                       child: const Text('Create Goal'),
                     ),
                   ),

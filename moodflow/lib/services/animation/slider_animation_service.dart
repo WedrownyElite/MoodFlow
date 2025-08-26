@@ -9,7 +9,8 @@ class SliderAnimationService {
 
   SliderAnimationService({
     required TickerProvider vsync,
-    Duration duration = const Duration(milliseconds: 300), // FIXED: Reduced from 600ms to 300ms
+    Duration duration =
+        const Duration(milliseconds: 300), // FIXED: Reduced from 600ms to 300ms
     double initialValue = 5.0,
   }) {
     _currentValue = initialValue;
@@ -27,7 +28,8 @@ class SliderAnimationService {
 
     // FIXED: Clear animation flag as soon as animation completes
     _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
+      if (status == AnimationStatus.completed ||
+          status == AnimationStatus.dismissed) {
         _isAnimating = false;
       }
     });
@@ -44,7 +46,9 @@ class SliderAnimationService {
 
   /// Animate slider to a new value
   Future<void> animateToValue(double newValue, {bool immediate = false}) async {
-    if (immediate || newValue == _currentValue || (newValue - _currentValue).abs() < 0.1) {
+    if (immediate ||
+        newValue == _currentValue ||
+        (newValue - _currentValue).abs() < 0.1) {
       // FIXED: If the difference is tiny, don't animate
       _currentValue = newValue;
       _targetValue = newValue;
@@ -63,7 +67,8 @@ class SliderAnimationService {
     }
 
     _isAnimating = true;
-    _currentValue = _sliderAnimation.value; // Start from current animated position
+    _currentValue =
+        _sliderAnimation.value; // Start from current animated position
     _targetValue = newValue;
 
     _sliderAnimation = Tween<double>(

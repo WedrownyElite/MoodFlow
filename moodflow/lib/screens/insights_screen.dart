@@ -1,4 +1,4 @@
-﻿// lib/screens/insights_screen.dart
+// lib/screens/insights_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/insights/smart_insights_service.dart';
@@ -11,7 +11,8 @@ class InsightsScreen extends StatefulWidget {
   State<InsightsScreen> createState() => _InsightsScreenState();
 }
 
-class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStateMixin {
+class _InsightsScreenState extends State<InsightsScreen>
+    with TickerProviderStateMixin {
   late TabController _tabController;
   List<SmartInsight> _insights = [];
   List<CorrelationInsight> _correlations = [];
@@ -65,7 +66,8 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
     setState(() => _isGenerating = true);
 
     try {
-      final insights = await SmartInsightsService.generateInsights(forceRefresh: true);
+      final insights =
+          await SmartInsightsService.generateInsights(forceRefresh: true);
       setState(() {
         _insights = insights;
         _isGenerating = false;
@@ -100,13 +102,13 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
           IconButton(
             icon: _isGenerating
                 ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : const Icon(Icons.refresh),
             onPressed: _isGenerating ? null : _generateNewInsights,
             tooltip: 'Generate new insights',
@@ -236,18 +238,17 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with icon and priority
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _getInsightColor(insight.type).withValues(alpha: 0.1),
+                      color: color.withValues(alpha: 0.1), // Use the variable
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      _getInsightIcon(insight.type),
-                      color: _getInsightColor(insight.type),
+                      icon, // Use the variable
+                      color: color, // Use the variable
                       size: 20,
                     ),
                   ),
@@ -290,12 +291,16 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
                     TextButton(
                       onPressed: () => _handleInsightAction(insight),
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
                         minimumSize: Size.zero,
                         // More explicit color handling
-                        foregroundColor: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.lightBlue.shade300  // Light blue for dark mode
-                            : Theme.of(context).primaryColor,  // Primary color for light mode
+                        foregroundColor: Theme.of(context).brightness ==
+                                Brightness.dark
+                            ? Colors
+                                .lightBlue.shade300 // Light blue for dark mode
+                            : Theme.of(context)
+                                .primaryColor, // Primary color for light mode
                       ),
                       child: Text(
                         insight.actionText!,
@@ -304,8 +309,10 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
                           fontWeight: FontWeight.w600,
                           // xplicit text color override
                           color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.lightBlue.shade300  // Light blue for dark mode
-                              : Theme.of(context).primaryColor,  // Primary color for light mode
+                              ? Colors.lightBlue
+                                  .shade300 // Light blue for dark mode
+                              : Theme.of(context)
+                                  .primaryColor, // Primary color for light mode
                         ),
                       ),
                     ),
@@ -365,7 +372,8 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
                   foregroundColor: Colors.white,
                   // Add border for dark mode visibility
                   side: Theme.of(context).brightness == Brightness.dark
-                      ? BorderSide(color: Colors.white.withValues(alpha: 0.3), width: 1)
+                      ? BorderSide(
+                          color: Colors.white.withValues(alpha: 0.3), width: 1)
                       : null,
                 ),
               ),
@@ -400,7 +408,8 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _getCategoryColor(correlation.category).withValues(alpha: 0.1),
+                    color: _getCategoryColor(correlation.category)
+                        .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -571,10 +580,10 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
             ),
             const SizedBox(height: 12),
             ...summary.highlights.map((highlight) => _buildSummaryItem(
-              highlight,
-              Icons.star,
-              Colors.green,
-            )),
+                  highlight,
+                  Icons.star,
+                  Colors.green,
+                )),
             const SizedBox(height: 16),
           ],
 
@@ -586,10 +595,10 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
             ),
             const SizedBox(height: 12),
             ...summary.concerns.map((concern) => _buildSummaryItem(
-              concern,
-              Icons.warning,
-              Colors.orange,
-            )),
+                  concern,
+                  Icons.warning,
+                  Colors.orange,
+                )),
             const SizedBox(height: 16),
           ],
 
@@ -600,11 +609,12 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            ...summary.recommendations.map((recommendation) => _buildSummaryItem(
-              recommendation,
-              Icons.lightbulb,
-              Colors.blue,
-            )),
+            ...summary.recommendations
+                .map((recommendation) => _buildSummaryItem(
+                      recommendation,
+                      Icons.lightbulb,
+                      Colors.blue,
+                    )),
           ],
         ],
       ),
@@ -738,37 +748,6 @@ class _InsightsScreenState extends State<InsightsScreen> with TickerProviderStat
         ),
       ),
     );
-  }
-
-  // Helper methods
-  Color _getInsightColor(InsightType type) {
-    switch (type) {
-      case InsightType.achievement:
-        return Colors.green;
-      case InsightType.celebration:
-        return Colors.purple;
-      case InsightType.concern:
-        return Colors.red;
-      case InsightType.pattern:
-        return Colors.blue;
-      case InsightType.suggestion:
-        return Colors.orange;
-    }
-  }
-
-  IconData _getInsightIcon(InsightType type) {
-    switch (type) {
-      case InsightType.achievement:
-        return Icons.emoji_events;
-      case InsightType.celebration:
-        return Icons.celebration;
-      case InsightType.concern:
-        return Icons.warning;
-      case InsightType.pattern:
-        return Icons.insights;
-      case InsightType.suggestion:
-        return Icons.lightbulb;
-    }
   }
 
   Color _getCategoryColor(String category) {

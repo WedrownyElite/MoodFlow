@@ -1,5 +1,6 @@
-﻿import 'package:flutter/material.dart';
-import '../services/notifications/enhanced_notification_service.dart' as notifications;
+import 'package:flutter/material.dart';
+import '../services/notifications/enhanced_notification_service.dart'
+    as notifications;
 
 class NotificationSettingsWidget extends StatefulWidget {
   final bool isExpanded;
@@ -12,10 +13,12 @@ class NotificationSettingsWidget extends StatefulWidget {
   });
 
   @override
-  State<NotificationSettingsWidget> createState() => _NotificationSettingsWidgetState();
+  State<NotificationSettingsWidget> createState() =>
+      _NotificationSettingsWidgetState();
 }
 
-class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget> {
+class _NotificationSettingsWidgetState
+    extends State<NotificationSettingsWidget> {
   notifications.NotificationSettings? _notificationSettings;
   bool _isLoading = true;
 
@@ -26,68 +29,83 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
   }
 
   Future<void> _loadNotificationSettings() async {
-    final settings = await notifications.EnhancedNotificationService.loadSettings();
+    final settings =
+        await notifications.EnhancedNotificationService.loadSettings();
     setState(() {
       _notificationSettings = settings;
       _isLoading = false;
     });
   }
 
-  Future<void> _updateNotificationSettings(notifications.NotificationSettings settings) async {
+  Future<void> _updateNotificationSettings(
+      notifications.NotificationSettings settings) async {
     await notifications.EnhancedNotificationService.saveSettings(settings);
     setState(() {
       _notificationSettings = settings;
     });
   }
 
-  Future<void> _selectEndOfDayTime(notifications.NotificationSettings settings) async {
+  Future<void> _selectEndOfDayTime(
+      notifications.NotificationSettings settings) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(hour: settings.endOfDayTime.hour, minute: settings.endOfDayTime.minute),
+      initialTime: TimeOfDay(
+          hour: settings.endOfDayTime.hour,
+          minute: settings.endOfDayTime.minute),
       helpText: 'Select end-of-day reminder time',
     );
 
     if (picked != null) {
-      final newTime = notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
+      final newTime =
+          notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
       _updateNotificationSettings(settings.copyWith(endOfDayTime: newTime));
     }
   }
 
-  Future<void> _selectMorningTime(notifications.NotificationSettings settings) async {
+  Future<void> _selectMorningTime(
+      notifications.NotificationSettings settings) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(hour: settings.morningTime.hour, minute: settings.morningTime.minute),
+      initialTime: TimeOfDay(
+          hour: settings.morningTime.hour, minute: settings.morningTime.minute),
       helpText: 'Select morning reminder time',
     );
 
     if (picked != null) {
-      final newTime = notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
+      final newTime =
+          notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
       _updateNotificationSettings(settings.copyWith(morningTime: newTime));
     }
   }
 
-  Future<void> _selectMiddayTime(notifications.NotificationSettings settings) async {
+  Future<void> _selectMiddayTime(
+      notifications.NotificationSettings settings) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(hour: settings.middayTime.hour, minute: settings.middayTime.minute),
+      initialTime: TimeOfDay(
+          hour: settings.middayTime.hour, minute: settings.middayTime.minute),
       helpText: 'Select midday reminder time',
     );
 
     if (picked != null) {
-      final newTime = notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
+      final newTime =
+          notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
       _updateNotificationSettings(settings.copyWith(middayTime: newTime));
     }
   }
 
-  Future<void> _selectEveningTime(notifications.NotificationSettings settings) async {
+  Future<void> _selectEveningTime(
+      notifications.NotificationSettings settings) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(hour: settings.eveningTime.hour, minute: settings.eveningTime.minute),
+      initialTime: TimeOfDay(
+          hour: settings.eveningTime.hour, minute: settings.eveningTime.minute),
       helpText: 'Select evening reminder time',
     );
 
     if (picked != null) {
-      final newTime = notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
+      final newTime =
+          notifications.TimeOfDay(hour: picked.hour, minute: picked.minute);
       _updateNotificationSettings(settings.copyWith(eveningTime: newTime));
     }
   }
@@ -135,7 +153,9 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
                   ? 'Reminders and updates enabled'
                   : 'All notifications disabled',
               style: TextStyle(
-                color: settings.enabled ? Colors.green.shade600 : Colors.grey.shade600,
+                color: settings.enabled
+                    ? Colors.green.shade600
+                    : Colors.grey.shade600,
               ),
             ),
             trailing: Row(
@@ -145,12 +165,15 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
                 Switch(
                   value: settings.enabled,
                   onChanged: (value) {
-                    _updateNotificationSettings(settings.copyWith(enabled: value));
+                    _updateNotificationSettings(
+                        settings.copyWith(enabled: value));
                   },
                 ),
                 // Expand/collapse button
                 IconButton(
-                  icon: Icon(widget.isExpanded ? Icons.expand_less : Icons.expand_more),
+                  icon: Icon(widget.isExpanded
+                      ? Icons.expand_less
+                      : Icons.expand_more),
                   onPressed: widget.onToggleExpanded,
                 ),
               ],
@@ -169,10 +192,12 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
                   _buildSubsectionHeader('Mood Log Access'),
                   SwitchListTile(
                     title: const Text('Access reminders'),
-                    subtitle: const Text('When new mood logging becomes available'),
+                    subtitle:
+                        const Text('When new mood logging becomes available'),
                     value: settings.accessReminders,
                     onChanged: (value) {
-                      _updateNotificationSettings(settings.copyWith(accessReminders: value));
+                      _updateNotificationSettings(
+                          settings.copyWith(accessReminders: value));
                     },
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -184,10 +209,12 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
                         children: [
                           SwitchListTile(
                             title: Text('Morning (${settings.morningTime})'),
-                            subtitle: const Text('When morning mood logging becomes available'),
+                            subtitle: const Text(
+                                'When morning mood logging becomes available'),
                             value: settings.morningAccessReminder,
                             onChanged: (value) {
-                              _updateNotificationSettings(settings.copyWith(morningAccessReminder: value));
+                              _updateNotificationSettings(settings.copyWith(
+                                  morningAccessReminder: value));
                             },
                             contentPadding: EdgeInsets.zero,
                             dense: true,
@@ -203,10 +230,12 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
                             ),
                           SwitchListTile(
                             title: Text('Midday (${settings.middayTime})'),
-                            subtitle: const Text('When midday mood logging becomes available'),
+                            subtitle: const Text(
+                                'When midday mood logging becomes available'),
                             value: settings.middayAccessReminder,
                             onChanged: (value) {
-                              _updateNotificationSettings(settings.copyWith(middayAccessReminder: value));
+                              _updateNotificationSettings(settings.copyWith(
+                                  middayAccessReminder: value));
                             },
                             contentPadding: EdgeInsets.zero,
                             dense: true,
@@ -222,10 +251,12 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
                             ),
                           SwitchListTile(
                             title: Text('Evening (${settings.eveningTime})'),
-                            subtitle: const Text('When evening mood logging becomes available'),
+                            subtitle: const Text(
+                                'When evening mood logging becomes available'),
                             value: settings.eveningAccessReminder,
                             onChanged: (value) {
-                              _updateNotificationSettings(settings.copyWith(eveningAccessReminder: value));
+                              _updateNotificationSettings(settings.copyWith(
+                                  eveningAccessReminder: value));
                             },
                             contentPadding: EdgeInsets.zero,
                             dense: true,
@@ -250,10 +281,12 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
                   _buildSubsectionHeader('End of Day'),
                   SwitchListTile(
                     title: const Text('End-of-day reminder'),
-                    subtitle: Text('Remind me at ${settings.endOfDayTime} if I haven\'t logged moods'),
+                    subtitle: Text(
+                        'Remind me at ${settings.endOfDayTime} if I haven\'t logged moods'),
                     value: settings.endOfDayReminder,
                     onChanged: (value) {
-                      _updateNotificationSettings(settings.copyWith(endOfDayReminder: value));
+                      _updateNotificationSettings(
+                          settings.copyWith(endOfDayReminder: value));
                     },
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -276,7 +309,8 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
                     subtitle: const Text('Updates about your mood goals'),
                     value: settings.goalReminders,
                     onChanged: (value) {
-                      _updateNotificationSettings(settings.copyWith(goalReminders: value));
+                      _updateNotificationSettings(
+                          settings.copyWith(goalReminders: value));
                     },
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -288,20 +322,24 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
                         children: [
                           SwitchListTile(
                             title: const Text('Progress updates'),
-                            subtitle: const Text('Regular updates on goal progress'),
+                            subtitle:
+                                const Text('Regular updates on goal progress'),
                             value: settings.goalProgress,
                             onChanged: (value) {
-                              _updateNotificationSettings(settings.copyWith(goalProgress: value));
+                              _updateNotificationSettings(
+                                  settings.copyWith(goalProgress: value));
                             },
                             contentPadding: EdgeInsets.zero,
                             dense: true,
                           ),
                           SwitchListTile(
                             title: const Text('Encouragement'),
-                            subtitle: const Text('Motivational messages for your goals'),
+                            subtitle: const Text(
+                                'Motivational messages for your goals'),
                             value: settings.goalEncouragement,
                             onChanged: (value) {
-                              _updateNotificationSettings(settings.copyWith(goalEncouragement: value));
+                              _updateNotificationSettings(
+                                  settings.copyWith(goalEncouragement: value));
                             },
                             contentPadding: EdgeInsets.zero,
                             dense: true,
@@ -317,20 +355,24 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
                   _buildSubsectionHeader('Smart Features'),
                   SwitchListTile(
                     title: const Text('Correlation insights'),
-                    subtitle: const Text('Notifications about mood patterns and correlations'),
+                    subtitle: const Text(
+                        'Notifications about mood patterns and correlations'),
                     value: settings.correlationNotifications,
                     onChanged: (value) {
-                      _updateNotificationSettings(settings.copyWith(correlationNotifications: value));
+                      _updateNotificationSettings(
+                          settings.copyWith(correlationNotifications: value));
                     },
                     contentPadding: EdgeInsets.zero,
                   ),
 
                   SwitchListTile(
                     title: const Text('Smart insights'),
-                    subtitle: const Text('AI-powered recommendations and observations'),
+                    subtitle: const Text(
+                        'AI-powered recommendations and observations'),
                     value: settings.smartInsightNotifications,
                     onChanged: (value) {
-                      _updateNotificationSettings(settings.copyWith(smartInsightNotifications: value));
+                      _updateNotificationSettings(
+                          settings.copyWith(smartInsightNotifications: value));
                     },
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -341,10 +383,12 @@ class _NotificationSettingsWidgetState extends State<NotificationSettingsWidget>
                   _buildSubsectionHeader('Celebrations'),
                   SwitchListTile(
                     title: const Text('Streak celebrations'),
-                    subtitle: const Text('Celebrate when you maintain logging streaks'),
+                    subtitle: const Text(
+                        'Celebrate when you maintain logging streaks'),
                     value: settings.streakCelebrations,
                     onChanged: (value) {
-                      _updateNotificationSettings(settings.copyWith(streakCelebrations: value));
+                      _updateNotificationSettings(
+                          settings.copyWith(streakCelebrations: value));
                     },
                     contentPadding: EdgeInsets.zero,
                   ),

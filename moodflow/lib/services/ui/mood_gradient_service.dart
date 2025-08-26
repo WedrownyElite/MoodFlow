@@ -14,10 +14,12 @@ class MoodGradientService {
       case 0: // Morning - always accessible from midnight
         return true;
       case 1: // Midday - accessible after user's midday time
-        final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
+        final middayMinutes =
+            settings.middayTime.hour * 60 + settings.middayTime.minute;
         return currentMinutes >= middayMinutes;
       case 2: // Evening - accessible after user's evening time
-        final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
+        final eveningMinutes =
+            settings.eveningTime.hour * 60 + settings.eveningTime.minute;
         return currentMinutes >= eveningMinutes;
       default:
         return false;
@@ -25,7 +27,8 @@ class MoodGradientService {
   }
 
   /// Compute average mood from accessible segments and generate gradient
-  static Future<LinearGradient> computeGradientForMood(double currentMood, int currentSegment) async {
+  static Future<LinearGradient> computeGradientForMood(
+      double currentMood, int currentSegment) async {
     final now = DateTime.now();
     final List<double> moods = [];
 
@@ -63,13 +66,14 @@ class MoodGradientService {
     t = t.clamp(0.0, 1.0);
 
     // Define the color progression points (more muted colors)
-    final veryDark = const Color(0xFF2C1810);    // Very dark brown for lowest moods
-    final darkRed = const Color(0xFF8B4513);     // Dark reddish-brown
-    final orange = Colors.orange.shade700;       // Orange
-    final yellow = Colors.yellow.shade600;       // Yellow
-    final lightGreen = Colors.green.shade400;    // Light green
-    final green = Colors.green.shade600;         // Regular green
-    final darkGreen = Colors.green.shade800;     // Dark green
+    final veryDark =
+        const Color(0xFF2C1810); // Very dark brown for lowest moods
+    final darkRed = const Color(0xFF8B4513); // Dark reddish-brown
+    final orange = Colors.orange.shade700; // Orange
+    final yellow = Colors.yellow.shade600; // Yellow
+    final lightGreen = Colors.green.shade400; // Light green
+    final green = Colors.green.shade600; // Regular green
+    final darkGreen = Colors.green.shade800; // Dark green
 
     // Always create a gradient with two distinct colors
     Color startColor;
@@ -96,7 +100,8 @@ class MoodGradientService {
       final progress = (t - 0.8) / 0.2;
       startColor = Color.lerp(lightGreen, green, progress)!;
       // For the end color, blend green with a hint of dark green/yellow
-      final hintColor = Color.lerp(darkGreen, yellow, 0.3)!; // 30% yellow, 70% dark green
+      final hintColor =
+          Color.lerp(darkGreen, yellow, 0.3)!; // 30% yellow, 70% dark green
       endColor = Color.lerp(green, hintColor, progress * 0.4)!; // Subtle hint
     }
 
@@ -111,20 +116,22 @@ class MoodGradientService {
   static LinearGradient fallbackGradient(bool isDarkMode) {
     return isDarkMode
         ? const LinearGradient(
-      colors: [Color(0xFF121212), Color(0xFF1E1E1E)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    )
+            colors: [Color(0xFF121212), Color(0xFF1E1E1E)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
         : const LinearGradient(
-      colors: [Color(0xFF2196F3), Color(0xFF90CAF9)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
+            colors: [Color(0xFF2196F3), Color(0xFF90CAF9)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
   }
 }
 
 class LinearGradientTween extends Tween<LinearGradient> {
-  LinearGradientTween({required LinearGradient begin, required LinearGradient end}) : super(begin: begin, end: end);
+  LinearGradientTween(
+      {required LinearGradient begin, required LinearGradient end})
+      : super(begin: begin, end: end);
 
   @override
   LinearGradient lerp(double t) {
@@ -134,10 +141,13 @@ class LinearGradientTween extends Tween<LinearGradient> {
     List<Color> lerpColors() {
       final beginColors = begin.colors;
       final endColors = end.colors;
-      final maxLength = beginColors.length > endColors.length ? beginColors.length : endColors.length;
+      final maxLength = beginColors.length > endColors.length
+          ? beginColors.length
+          : endColors.length;
 
       return List.generate(maxLength, (i) {
-        final beginColor = i < beginColors.length ? beginColors[i] : beginColors.last;
+        final beginColor =
+            i < beginColors.length ? beginColors[i] : beginColors.last;
         final endColor = i < endColors.length ? endColors[i] : endColors.last;
         return Color.lerp(beginColor, endColor, t) ?? beginColor;
       });
@@ -147,10 +157,13 @@ class LinearGradientTween extends Tween<LinearGradient> {
       if (begin.stops == null || end.stops == null) return null;
       final beginStops = begin.stops!;
       final endStops = end.stops!;
-      final maxLength = beginStops.length > endStops.length ? beginStops.length : endStops.length;
+      final maxLength = beginStops.length > endStops.length
+          ? beginStops.length
+          : endStops.length;
 
       return List.generate(maxLength, (i) {
-        final beginStop = i < beginStops.length ? beginStops[i] : beginStops.last;
+        final beginStop =
+            i < beginStops.length ? beginStops[i] : beginStops.last;
         final endStop = i < endStops.length ? endStops[i] : endStops.last;
         return lerpDouble(beginStop, endStop, t) ?? beginStop;
       });

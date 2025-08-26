@@ -62,7 +62,8 @@ class GoogleDriveService {
 
     try {
       final authHeaders = await _currentUser!.authHeaders;
-      final accessToken = authHeaders['Authorization']?.replaceFirst('Bearer ', '');
+      final accessToken =
+          authHeaders['Authorization']?.replaceFirst('Bearer ', '');
 
       if (accessToken == null) {
         debugPrint('No access token available');
@@ -135,11 +136,13 @@ class GoogleDriveService {
       final bytes = utf8.encode(jsonString);
 
       // Create file metadata
-      final fileName = 'moodflow_backup_${DateTime.now().millisecondsSinceEpoch}.json';
+      final fileName =
+          'moodflow_backup_${DateTime.now().millisecondsSinceEpoch}.json';
       final fileMetadata = drive.File()
         ..name = fileName
         ..parents = [folderId]
-        ..description = 'MoodFlow backup created on ${DateTime.now().toIso8601String()}';
+        ..description =
+            'MoodFlow backup created on ${DateTime.now().toIso8601String()}';
 
       // Upload file
       final media = drive.Media(Stream.fromIterable([bytes]), bytes.length);
@@ -155,7 +158,8 @@ class GoogleDriveService {
 
       return BackupResult(
         true,
-        message: 'Backup uploaded successfully to Google Drive (${_formatFileSize(bytes.length)})',
+        message:
+            'Backup uploaded successfully to Google Drive (${_formatFileSize(bytes.length)})',
       );
     } catch (e) {
       return BackupResult(false, error: 'Upload failed: ${e.toString()}');
@@ -186,15 +190,18 @@ class GoogleDriveService {
 
       client.close();
 
-      return query.files?.map((file) => DriveBackupFile(
-        id: file.id ?? 'unknown',
-        name: file.name ?? 'Unknown Backup',
-        createdTime: file.createdTime ?? DateTime.now(),
-        size: file.size?.toString(),
-        description: file.description,
-      )).toList() ?? [];
+      return query.files
+              ?.map((file) => DriveBackupFile(
+                    id: file.id ?? 'unknown',
+                    name: file.name ?? 'Unknown Backup',
+                    createdTime: file.createdTime ?? DateTime.now(),
+                    size: file.size?.toString(),
+                    description: file.description,
+                  ))
+              .toList() ??
+          [];
     } catch (e) {
-      debugPrint('Error listing backups: $e'); 
+      debugPrint('Error listing backups: $e');
       return [];
     }
   }
@@ -210,10 +217,8 @@ class GoogleDriveService {
       final driveApi = drive.DriveApi(client);
 
       // Download file
-      final media = await driveApi.files.get(
-          fileId,
-          downloadOptions: drive.DownloadOptions.fullMedia
-      );
+      final media = await driveApi.files
+          .get(fileId, downloadOptions: drive.DownloadOptions.fullMedia);
 
       if (media is! drive.Media) {
         client.close();
@@ -242,7 +247,8 @@ class GoogleDriveService {
               'Imported ${importResult.importedMoods} moods and ${importResult.importedGoals} goals.',
         );
       } else {
-        return BackupResult(false, error: importResult.error ?? 'Import failed');
+        return BackupResult(false,
+            error: importResult.error ?? 'Import failed');
       }
     } catch (e) {
       return BackupResult(false, error: 'Download failed: ${e.toString()}');

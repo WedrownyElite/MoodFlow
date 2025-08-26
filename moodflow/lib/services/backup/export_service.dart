@@ -10,7 +10,6 @@ import '../data/backup_models.dart';
 import '../backup/backup_service.dart';
 import '../data/mood_data_service.dart';
 import '../ai/mood_analysis_service.dart';
-import '../data/mood_data_service.dart';
 
 class ExportService {
   /// Export mood data to CSV format
@@ -23,14 +22,16 @@ class ExportService {
     // Filter data by date range if provided
     var moodEntries = exportData.moodEntries;
     if (startDate != null) {
-      moodEntries = moodEntries.where((entry) =>
-          entry.date.isAfter(startDate.subtract(const Duration(days: 1)))
-      ).toList();
+      moodEntries = moodEntries
+          .where((entry) =>
+              entry.date.isAfter(startDate.subtract(const Duration(days: 1))))
+          .toList();
     }
     if (endDate != null) {
-      moodEntries = moodEntries.where((entry) =>
-          entry.date.isBefore(endDate.add(const Duration(days: 1)))
-      ).toList();
+      moodEntries = moodEntries
+          .where((entry) =>
+              entry.date.isBefore(endDate.add(const Duration(days: 1))))
+          .toList();
     }
 
     // Sort by date and segment
@@ -72,7 +73,8 @@ class ExportService {
 
     // Save to file
     final directory = await getApplicationDocumentsDirectory();
-    final fileName = 'moodflow_export_${DateTime.now().millisecondsSinceEpoch}.csv';
+    final fileName =
+        'moodflow_export_${DateTime.now().millisecondsSinceEpoch}.csv';
     final file = File('${directory.path}/$fileName');
     await file.writeAsString(csvString);
 
@@ -104,20 +106,24 @@ class ExportService {
     var correlationEntries = exportData.correlationEntries;
 
     if (startDate != null) {
-      moodEntries = moodEntries.where((entry) =>
-          entry.date.isAfter(startDate.subtract(const Duration(days: 1)))
-      ).toList();
-      correlationEntries = correlationEntries.where((entry) =>
-          entry.date.isAfter(startDate.subtract(const Duration(days: 1)))
-      ).toList();
+      moodEntries = moodEntries
+          .where((entry) =>
+              entry.date.isAfter(startDate.subtract(const Duration(days: 1))))
+          .toList();
+      correlationEntries = correlationEntries
+          .where((entry) =>
+              entry.date.isAfter(startDate.subtract(const Duration(days: 1))))
+          .toList();
     }
     if (endDate != null) {
-      moodEntries = moodEntries.where((entry) =>
-          entry.date.isBefore(endDate.add(const Duration(days: 1)))
-      ).toList();
-      correlationEntries = correlationEntries.where((entry) =>
-          entry.date.isBefore(endDate.add(const Duration(days: 1)))
-      ).toList();
+      moodEntries = moodEntries
+          .where((entry) =>
+              entry.date.isBefore(endDate.add(const Duration(days: 1))))
+          .toList();
+      correlationEntries = correlationEntries
+          .where((entry) =>
+              entry.date.isBefore(endDate.add(const Duration(days: 1))))
+          .toList();
     }
 
     // Create CSV rows
@@ -129,10 +135,12 @@ class ExportService {
       headers.addAll(['Time Segment', 'Mood Rating', 'Notes', 'Logged At']);
     }
     if (includeWeather) {
-      headers.addAll(['Weather Condition', 'Temperature', 'Weather Description']);
+      headers
+          .addAll(['Weather Condition', 'Temperature', 'Weather Description']);
     }
     if (includeSleep) {
-      headers.addAll(['Sleep Quality', 'Bedtime', 'Wake Time', 'Sleep Duration']);
+      headers
+          .addAll(['Sleep Quality', 'Bedtime', 'Wake Time', 'Sleep Duration']);
     }
     if (includeActivity) {
       headers.addAll(['Exercise Level', 'Social Activity']);
@@ -177,9 +185,15 @@ class ExportService {
         if (includeSleep) {
           row.addAll([
             correlation?.sleepQuality?.toString() ?? '',
-            correlation?.bedtime != null ? DateFormat('HH:mm').format(correlation!.bedtime!) : '',
-            correlation?.wakeTime != null ? DateFormat('HH:mm').format(correlation!.wakeTime!) : '',
-            correlation?.sleepDurationMinutes != null ? '${correlation!.sleepDurationMinutes! ~/ 60}h ${correlation.sleepDurationMinutes! % 60}m' : '',
+            correlation?.bedtime != null
+                ? DateFormat('HH:mm').format(correlation!.bedtime!)
+                : '',
+            correlation?.wakeTime != null
+                ? DateFormat('HH:mm').format(correlation!.wakeTime!)
+                : '',
+            correlation?.sleepDurationMinutes != null
+                ? '${correlation!.sleepDurationMinutes! ~/ 60}h ${correlation.sleepDurationMinutes! % 60}m'
+                : '',
           ]);
         }
         if (includeActivity) {
@@ -205,7 +219,8 @@ class ExportService {
 
     // Save to file
     final directory = await getApplicationDocumentsDirectory();
-    final fileName = 'moodflow_export_${DateTime.now().millisecondsSinceEpoch}.csv';
+    final fileName =
+        'moodflow_export_${DateTime.now().millisecondsSinceEpoch}.csv';
     final file = File('${directory.path}/$fileName');
     await file.writeAsString(csvString);
 
@@ -238,20 +253,24 @@ class ExportService {
     var correlationEntries = exportData.correlationEntries;
 
     if (startDate != null) {
-      moodEntries = moodEntries.where((entry) =>
-          entry.date.isAfter(startDate.subtract(const Duration(days: 1)))
-      ).toList();
-      correlationEntries = correlationEntries.where((entry) =>
-          entry.date.isAfter(startDate.subtract(const Duration(days: 1)))
-      ).toList();
+      moodEntries = moodEntries
+          .where((entry) =>
+              entry.date.isAfter(startDate.subtract(const Duration(days: 1))))
+          .toList();
+      correlationEntries = correlationEntries
+          .where((entry) =>
+              entry.date.isAfter(startDate.subtract(const Duration(days: 1))))
+          .toList();
     }
     if (endDate != null) {
-      moodEntries = moodEntries.where((entry) =>
-          entry.date.isBefore(endDate.add(const Duration(days: 1)))
-      ).toList();
-      correlationEntries = correlationEntries.where((entry) =>
-          entry.date.isBefore(endDate.add(const Duration(days: 1)))
-      ).toList();
+      moodEntries = moodEntries
+          .where((entry) =>
+              entry.date.isBefore(endDate.add(const Duration(days: 1))))
+          .toList();
+      correlationEntries = correlationEntries
+          .where((entry) =>
+              entry.date.isBefore(endDate.add(const Duration(days: 1))))
+          .toList();
     }
 
     // Create combined data structure
@@ -302,7 +321,8 @@ class ExportService {
                 style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700),
               ),
               pw.SizedBox(height: 30),
-              if (includeMoods && moodEntries.isNotEmpty) _buildSummarySection(moodEntries),
+              if (includeMoods && moodEntries.isNotEmpty)
+                _buildSummarySection(moodEntries),
             ],
           );
         },
@@ -311,15 +331,8 @@ class ExportService {
 
     // Add combined data table if we have any data
     if (combinedData.isNotEmpty) {
-      _addCombinedDataPages(
-          pdf,
-          combinedData,
-          includeMoods,
-          includeWeather,
-          includeSleep,
-          includeActivity,
-          includeCorrelations
-      );
+      _addCombinedDataPages(pdf, combinedData, includeMoods, includeWeather,
+          includeSleep, includeActivity, includeCorrelations);
     }
 
     // Add goals section if available
@@ -329,7 +342,8 @@ class ExportService {
 
     // Save PDF
     final directory = await getApplicationDocumentsDirectory();
-    final fileName = 'moodflow_professional_report_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final fileName =
+        'moodflow_professional_report_${DateTime.now().millisecondsSinceEpoch}.pdf';
     final file = File('${directory.path}/$fileName');
     await file.writeAsBytes(await pdf.save());
 
@@ -357,7 +371,8 @@ class ExportService {
 
       // Save to file
       final directory = await getApplicationDocumentsDirectory();
-      final fileName = 'moodflow_ai_analyses_${DateTime.now().millisecondsSinceEpoch}.json';
+      final fileName =
+          'moodflow_ai_analyses_${DateTime.now().millisecondsSinceEpoch}.json';
       final file = File('${directory.path}/$fileName');
       await file.writeAsString(jsonString);
 
@@ -367,7 +382,8 @@ class ExportService {
     }
   }
 
-  static String _getIncludedDataDescription(bool moods, bool weather, bool sleep, bool activity, bool correlations) {
+  static String _getIncludedDataDescription(
+      bool moods, bool weather, bool sleep, bool activity, bool correlations) {
     final included = <String>[];
     if (moods) included.add('Moods');
     if (weather) included.add('Weather');
@@ -375,70 +391,6 @@ class ExportService {
     if (activity) included.add('Activity');
     if (correlations) included.add('All Correlations');
     return included.join(', ');
-  }
-
-  static void _addCorrelationDataPages(pw.Document pdf, List<CorrelationEntryExport> entries, bool includeWeather, bool includeSleep, bool includeActivity, bool includeCorrelations) {
-    const int entriesPerPage = 20;
-
-    for (int startIndex = 0; startIndex < entries.length; startIndex += entriesPerPage) {
-      final endIndex = (startIndex + entriesPerPage < entries.length)
-          ? startIndex + entriesPerPage
-          : entries.length;
-
-      final pageEntries = entries.sublist(startIndex, endIndex);
-
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  'Daily Factors Data (${startIndex + 1} - $endIndex of ${entries.length})',
-                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                ),
-                pw.SizedBox(height: 15),
-                ...pageEntries.map((entry) => _buildCorrelationEntryWidget(entry, includeWeather, includeSleep, includeActivity, includeCorrelations)),
-              ],
-            );
-          },
-        ),
-      );
-    }
-  }
-
-  static pw.Widget _buildCorrelationEntryWidget(CorrelationEntryExport entry, bool includeWeather, bool includeSleep, bool includeActivity, bool includeCorrelations) {
-    return pw.Container(
-      margin: const pw.EdgeInsets.only(bottom: 12),
-      padding: const pw.EdgeInsets.all(8),
-      decoration: pw.BoxDecoration(
-        border: pw.Border.all(color: PdfColors.grey300),
-        borderRadius: pw.BorderRadius.circular(4),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            DateFormat('EEEE, MMM d, yyyy').format(entry.date),
-            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 4),
-          if (includeWeather && (entry.weather != null || entry.temperature != null)) ...[
-            pw.Text('Weather: ${entry.weather ?? 'N/A'}${entry.temperature != null ? ', ${entry.temperature}°' : ''}', style: pw.TextStyle(fontSize: 10)),
-          ],
-          if (includeSleep && entry.sleepQuality != null) ...[
-            pw.Text('Sleep Quality: ${entry.sleepQuality}/10', style: pw.TextStyle(fontSize: 10)),
-          ],
-          if (includeActivity && entry.exerciseLevel != null) ...[
-            pw.Text('Exercise: ${entry.exerciseLevel}', style: pw.TextStyle(fontSize: 10)),
-          ],
-          if (includeCorrelations && entry.workStress != null) ...[
-            pw.Text('Work Stress: ${entry.workStress}/10', style: pw.TextStyle(fontSize: 10)),
-          ],
-        ],
-      ),
-    );
   }
 
   /// Export mood data to PDF format
@@ -452,14 +404,16 @@ class ExportService {
     // Filter data by date range if provided
     var moodEntries = exportData.moodEntries;
     if (startDate != null) {
-      moodEntries = moodEntries.where((entry) =>
-          entry.date.isAfter(startDate.subtract(const Duration(days: 1)))
-      ).toList();
+      moodEntries = moodEntries
+          .where((entry) =>
+              entry.date.isAfter(startDate.subtract(const Duration(days: 1))))
+          .toList();
     }
     if (endDate != null) {
-      moodEntries = moodEntries.where((entry) =>
-          entry.date.isBefore(endDate.add(const Duration(days: 1)))
-      ).toList();
+      moodEntries = moodEntries
+          .where((entry) =>
+              entry.date.isBefore(endDate.add(const Duration(days: 1))))
+          .toList();
     }
 
     // Sort by date and segment
@@ -527,7 +481,8 @@ class ExportService {
 
     // Save PDF
     final directory = await getApplicationDocumentsDirectory();
-    final fileName = 'moodflow_export_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final fileName =
+        'moodflow_export_${DateTime.now().millisecondsSinceEpoch}.pdf';
     final file = File('${directory.path}/$fileName');
     await file.writeAsBytes(await pdf.save());
 
@@ -581,7 +536,8 @@ class ExportService {
 
     // Calculate statistics
     final totalRatings = entries.map((e) => e.rating).toList();
-    final averageRating = totalRatings.reduce((a, b) => a + b) / totalRatings.length;
+    final averageRating =
+        totalRatings.reduce((a, b) => a + b) / totalRatings.length;
 
     final segmentCounts = <int, int>{0: 0, 1: 0, 2: 0};
     final segmentAverages = <int, double>{0: 0, 1: 0, 2: 0};
@@ -589,7 +545,8 @@ class ExportService {
 
     for (final entry in entries) {
       segmentCounts[entry.segment] = (segmentCounts[entry.segment] ?? 0) + 1;
-      segmentTotals[entry.segment] = (segmentTotals[entry.segment] ?? 0) + entry.rating;
+      segmentTotals[entry.segment] =
+          (segmentTotals[entry.segment] ?? 0) + entry.rating;
     }
 
     for (int i = 0; i < 3; i++) {
@@ -598,7 +555,10 @@ class ExportService {
       }
     }
 
-    final uniqueDays = entries.map((e) => DateFormat('yyyy-MM-dd').format(e.date)).toSet().length;
+    final uniqueDays = entries
+        .map((e) => DateFormat('yyyy-MM-dd').format(e.date))
+        .toSet()
+        .length;
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -614,32 +574,60 @@ class ExportService {
             pw.TableRow(children: [
               pw.Padding(
                 padding: const pw.EdgeInsets.all(8),
-                child: pw.Text('Metric', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                child: pw.Text('Metric',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
               ),
               pw.Padding(
                 padding: const pw.EdgeInsets.all(8),
-                child: pw.Text('Value', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                child: pw.Text('Value',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
               ),
             ]),
             pw.TableRow(children: [
-              pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Overall Average Mood')),
-              pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(averageRating.toStringAsFixed(1))),
+              pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('Overall Average Mood')),
+              pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text(averageRating.toStringAsFixed(1))),
             ]),
             pw.TableRow(children: [
-              pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Days with Data')),
-              pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('$uniqueDays')),
+              pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('Days with Data')),
+              pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('$uniqueDays')),
             ]),
             pw.TableRow(children: [
-              pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Morning Average')),
-              pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(segmentCounts[0]! > 0 ? segmentAverages[0]!.toStringAsFixed(1) : 'N/A')),
+              pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('Morning Average')),
+              pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text(segmentCounts[0]! > 0
+                      ? segmentAverages[0]!.toStringAsFixed(1)
+                      : 'N/A')),
             ]),
             pw.TableRow(children: [
-              pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Midday Average')),
-              pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(segmentCounts[1]! > 0 ? segmentAverages[1]!.toStringAsFixed(1) : 'N/A')),
+              pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('Midday Average')),
+              pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text(segmentCounts[1]! > 0
+                      ? segmentAverages[1]!.toStringAsFixed(1)
+                      : 'N/A')),
             ]),
             pw.TableRow(children: [
-              pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Evening Average')),
-              pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(segmentCounts[2]! > 0 ? segmentAverages[2]!.toStringAsFixed(1) : 'N/A')),
+              pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('Evening Average')),
+              pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text(segmentCounts[2]! > 0
+                      ? segmentAverages[2]!.toStringAsFixed(1)
+                      : 'N/A')),
             ]),
           ],
         ),
@@ -649,11 +637,11 @@ class ExportService {
 
   /// Create combined data structure merging moods and correlations by day
   static List<CombinedDayData> _createCombinedDataStructure(
-      List<MoodEntryExport> moodEntries,
-      List<CorrelationEntryExport> correlationEntries,
-      DateTime startDate,
-      DateTime endDate,
-      ) {
+    List<MoodEntryExport> moodEntries,
+    List<CorrelationEntryExport> correlationEntries,
+    DateTime startDate,
+    DateTime endDate,
+  ) {
     final combinedData = <CombinedDayData>[];
 
     // Group mood entries by date
@@ -695,13 +683,15 @@ class ExportService {
       final dayMoods = moodsByDate[dateKey];
       final dayCorrelation = correlationsByDate[dateKey];
 
-      final hasData = (dayMoods != null && dayMoods.isNotEmpty) || dayCorrelation != null;
+      final hasData =
+          (dayMoods != null && dayMoods.isNotEmpty) || dayCorrelation != null;
 
       if (hasData) {
         // If we were tracking missed days, close that range
         if (missedRangeStart != null) {
           final missedRangeEnd = currentDate.subtract(const Duration(days: 1));
-          combinedData.add(CombinedDayData.missedRange(missedRangeStart, missedRangeEnd));
+          combinedData.add(
+              CombinedDayData.missedRange(missedRangeStart, missedRangeEnd));
           missedRangeStart = null;
         }
 
@@ -723,7 +713,8 @@ class ExportService {
     // Close any remaining missed range
     if (missedRangeStart != null) {
       final missedRangeEnd = currentDate.subtract(const Duration(days: 1));
-      combinedData.add(CombinedDayData.missedRange(missedRangeStart, missedRangeEnd));
+      combinedData
+          .add(CombinedDayData.missedRange(missedRangeStart, missedRangeEnd));
     }
 
     return combinedData;
@@ -731,17 +722,20 @@ class ExportService {
 
   /// Add combined data pages to PDF
   static void _addCombinedDataPages(
-      pw.Document pdf,
-      List<CombinedDayData> combinedData,
-      bool includeMoods,
-      bool includeWeather,
-      bool includeSleep,
-      bool includeActivity,
-      bool includeCorrelations,
-      ) {
-    const int entriesPerPage = 15; // Fewer entries per page for better readability
+    pw.Document pdf,
+    List<CombinedDayData> combinedData,
+    bool includeMoods,
+    bool includeWeather,
+    bool includeSleep,
+    bool includeActivity,
+    bool includeCorrelations,
+  ) {
+    const int entriesPerPage =
+        15; // Fewer entries per page for better readability
 
-    for (int startIndex = 0; startIndex < combinedData.length; startIndex += entriesPerPage) {
+    for (int startIndex = 0;
+        startIndex < combinedData.length;
+        startIndex += entriesPerPage) {
       final endIndex = (startIndex + entriesPerPage < combinedData.length)
           ? startIndex + entriesPerPage
           : combinedData.length;
@@ -767,11 +761,14 @@ class ExportService {
                 pw.SizedBox(height: 15),
                 pw.Expanded(
                   child: pw.Table(
-                    border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
-                    columnWidths: _getColumnWidths(includeMoods, includeWeather, includeSleep, includeActivity, includeCorrelations),
+                    border: pw.TableBorder.all(
+                        color: PdfColors.grey400, width: 0.5),
+                    columnWidths: _getColumnWidths(includeMoods, includeWeather,
+                        includeSleep, includeActivity, includeCorrelations),
                     children: [
                       // Header row
-                      _buildTableHeader(includeMoods, includeWeather, includeSleep, includeActivity, includeCorrelations),
+                      _buildTableHeader(includeMoods, includeWeather,
+                          includeSleep, includeActivity, includeCorrelations),
                       // Data rows
                       ...pageEntries.expand((entry) => _buildDataRows(
                           entry,
@@ -779,8 +776,7 @@ class ExportService {
                           includeWeather,
                           includeSleep,
                           includeActivity,
-                          includeCorrelations
-                      )),
+                          includeCorrelations)),
                     ],
                   ),
                 ),
@@ -793,13 +789,8 @@ class ExportService {
   }
 
   /// Build table header
-  static pw.TableRow _buildTableHeader(
-      bool includeMoods,
-      bool includeWeather,
-      bool includeSleep,
-      bool includeActivity,
-      bool includeCorrelations
-      ) {
+  static pw.TableRow _buildTableHeader(bool includeMoods, bool includeWeather,
+      bool includeSleep, bool includeActivity, bool includeCorrelations) {
     final headers = <pw.Widget>[
       _buildHeaderCell('Date'),
     ];
@@ -858,21 +849,27 @@ class ExportService {
 
   /// Build data rows for a day (can be multiple rows if multiple mood segments)
   static List<pw.TableRow> _buildDataRows(
-      CombinedDayData dayData,
-      bool includeMoods,
-      bool includeWeather,
-      bool includeSleep,
-      bool includeActivity,
-      bool includeCorrelations,
-      ) {
+    CombinedDayData dayData,
+    bool includeMoods,
+    bool includeWeather,
+    bool includeSleep,
+    bool includeActivity,
+    bool includeCorrelations,
+  ) {
     if (dayData.isMissed) {
       // Single row for missed days range
-      return [_buildMissedDayRow(dayData, includeMoods, includeWeather, includeSleep, includeActivity, includeCorrelations)];
+      return [
+        _buildMissedDayRow(dayData, includeMoods, includeWeather, includeSleep,
+            includeActivity, includeCorrelations)
+      ];
     }
 
     if (!includeMoods || dayData.moods.isEmpty) {
       // Single row with just correlation data
-      return [_buildSingleDataRow(dayData, null, includeMoods, includeWeather, includeSleep, includeActivity, includeCorrelations)];
+      return [
+        _buildSingleDataRow(dayData, null, includeMoods, includeWeather,
+            includeSleep, includeActivity, includeCorrelations)
+      ];
     }
 
     // Multiple rows for each mood segment
@@ -902,13 +899,13 @@ class ExportService {
 
   /// Build missed day row
   static pw.TableRow _buildMissedDayRow(
-      CombinedDayData dayData,
-      bool includeMoods,
-      bool includeWeather,
-      bool includeSleep,
-      bool includeActivity,
-      bool includeCorrelations,
-      ) {
+    CombinedDayData dayData,
+    bool includeMoods,
+    bool includeWeather,
+    bool includeSleep,
+    bool includeActivity,
+    bool includeCorrelations,
+  ) {
     final cells = <pw.Widget>[];
 
     // Date cell
@@ -928,7 +925,8 @@ class ExportService {
     );
 
     // Fill remaining cells with "No data" indicator
-    final totalCells = _getTotalColumnCount(includeMoods, includeWeather, includeSleep, includeActivity, includeCorrelations);
+    final totalCells = _getTotalColumnCount(includeMoods, includeWeather,
+        includeSleep, includeActivity, includeCorrelations);
     for (int i = 1; i < totalCells; i++) {
       cells.add(
         pw.Container(
@@ -951,16 +949,16 @@ class ExportService {
 
   /// Build single data row
   static pw.TableRow _buildSingleDataRow(
-      CombinedDayData dayData,
-      MoodEntryExport? mood,
-      bool includeMoods,
-      bool includeWeather,
-      bool includeSleep,
-      bool includeActivity,
-      bool includeCorrelations, {
-        bool showDateAndCorrelation = true,
-        int rowIndex = 0,
-      }) {
+    CombinedDayData dayData,
+    MoodEntryExport? mood,
+    bool includeMoods,
+    bool includeWeather,
+    bool includeSleep,
+    bool includeActivity,
+    bool includeCorrelations, {
+    bool showDateAndCorrelation = true,
+    int rowIndex = 0,
+  }) {
     final cells = <pw.Widget>[];
 
     // Alternating row colors with segment-specific colors
@@ -968,19 +966,24 @@ class ExportService {
     if (mood != null) {
       switch (mood.segment) {
         case 0: // Morning
-          backgroundColor = rowIndex % 2 == 0 ? PdfColors.orange50 : PdfColors.orange100;
+          backgroundColor =
+              rowIndex % 2 == 0 ? PdfColors.orange50 : PdfColors.orange100;
           break;
         case 1: // Midday
-          backgroundColor = rowIndex % 2 == 0 ? PdfColors.blue50 : PdfColors.blue100;
+          backgroundColor =
+              rowIndex % 2 == 0 ? PdfColors.blue50 : PdfColors.blue100;
           break;
         case 2: // Evening
-          backgroundColor = rowIndex % 2 == 0 ? PdfColors.purple50 : PdfColors.purple100;
+          backgroundColor =
+              rowIndex % 2 == 0 ? PdfColors.purple50 : PdfColors.purple100;
           break;
         default:
-          backgroundColor = rowIndex % 2 == 0 ? PdfColors.grey50 : PdfColors.grey100;
+          backgroundColor =
+              rowIndex % 2 == 0 ? PdfColors.grey50 : PdfColors.grey100;
       }
     } else {
-      backgroundColor = rowIndex % 2 == 0 ? PdfColors.grey50 : PdfColors.grey100;
+      backgroundColor =
+          rowIndex % 2 == 0 ? PdfColors.grey50 : PdfColors.grey100;
     }
 
     // Date cell
@@ -988,10 +991,14 @@ class ExportService {
       pw.Container(
         padding: const pw.EdgeInsets.all(6),
         child: pw.Text(
-          showDateAndCorrelation ? DateFormat('MMM d, yyyy').format(dayData.date) : '',
+          showDateAndCorrelation
+              ? DateFormat('MMM d, yyyy').format(dayData.date)
+              : '',
           style: pw.TextStyle(
             fontSize: 9,
-            fontWeight: showDateAndCorrelation ? pw.FontWeight.bold : pw.FontWeight.normal,
+            fontWeight: showDateAndCorrelation
+                ? pw.FontWeight.bold
+                : pw.FontWeight.normal,
           ),
         ),
       ),
@@ -1018,7 +1025,8 @@ class ExportService {
             style: pw.TextStyle(
               fontSize: 9,
               fontWeight: pw.FontWeight.bold,
-              color: mood != null ? _getMoodColor(mood.rating) : PdfColors.grey500,
+              color:
+                  mood != null ? _getMoodColor(mood.rating) : PdfColors.grey500,
             ),
             textAlign: pw.TextAlign.center,
           ),
@@ -1030,7 +1038,9 @@ class ExportService {
         pw.Container(
           padding: const pw.EdgeInsets.all(6),
           child: pw.Text(
-            mood?.note.isNotEmpty == true ? mood!.note.replaceAll('\n', ' ').replaceAll('\r', '') : '—',
+            mood?.note.isNotEmpty == true
+                ? mood!.note.replaceAll('\n', ' ').replaceAll('\r', '')
+                : '—',
             style: pw.TextStyle(fontSize: 8),
             maxLines: null, // Allow unlimited lines
             softWrap: true,
@@ -1149,12 +1159,12 @@ class ExportService {
 
   /// Get column widths for table
   static Map<int, pw.TableColumnWidth> _getColumnWidths(
-      bool includeMoods,
-      bool includeWeather,
-      bool includeSleep,
-      bool includeActivity,
-      bool includeCorrelations,
-      ) {
+    bool includeMoods,
+    bool includeWeather,
+    bool includeSleep,
+    bool includeActivity,
+    bool includeCorrelations,
+  ) {
     final widths = <int, pw.TableColumnWidth>{
       0: const pw.FixedColumnWidth(80), // Date
     };
@@ -1164,7 +1174,7 @@ class ExportService {
     if (includeMoods) {
       widths[columnIndex++] = const pw.FixedColumnWidth(50); // Time
       widths[columnIndex++] = const pw.FixedColumnWidth(40); // Mood
-      widths[columnIndex++] = const pw.FlexColumnWidth(3);  // Notes
+      widths[columnIndex++] = const pw.FlexColumnWidth(3); // Notes
     }
 
     if (includeWeather) {
@@ -1190,12 +1200,12 @@ class ExportService {
 
   /// Get total column count
   static int _getTotalColumnCount(
-      bool includeMoods,
-      bool includeWeather,
-      bool includeSleep,
-      bool includeActivity,
-      bool includeCorrelations,
-      ) {
+    bool includeMoods,
+    bool includeWeather,
+    bool includeSleep,
+    bool includeActivity,
+    bool includeCorrelations,
+  ) {
     int count = 1; // Date column
 
     if (includeMoods) count += 3; // Time, Mood, Notes
@@ -1208,10 +1218,13 @@ class ExportService {
   }
 
   /// Add mood entries pages to PDF
-  static void _addMoodEntriesPages(pw.Document pdf, List<MoodEntryExport> entries) {
+  static void _addMoodEntriesPages(
+      pw.Document pdf, List<MoodEntryExport> entries) {
     const int entriesPerPage = 25;
 
-    for (int startIndex = 0; startIndex < entries.length; startIndex += entriesPerPage) {
+    for (int startIndex = 0;
+        startIndex < entries.length;
+        startIndex += entriesPerPage) {
       final endIndex = (startIndex + entriesPerPage < entries.length)
           ? startIndex + entriesPerPage
           : entries.length;
@@ -1227,17 +1240,18 @@ class ExportService {
               children: [
                 pw.Text(
                   'Mood Entries (${startIndex + 1} - $endIndex of ${entries.length})',
-                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                  style: pw.TextStyle(
+                      fontSize: 16, fontWeight: pw.FontWeight.bold),
                 ),
                 pw.SizedBox(height: 15),
                 pw.Table(
                   border: pw.TableBorder.all(),
                   columnWidths: {
-                    0: const pw.FixedColumnWidth(80),  // Date
-                    1: const pw.FixedColumnWidth(60),  // Segment
-                    2: const pw.FixedColumnWidth(40),  // Rating
-                    3: const pw.FlexColumnWidth(2),    // Notes
-                    4: const pw.FixedColumnWidth(80),  // Logged At
+                    0: const pw.FixedColumnWidth(80), // Date
+                    1: const pw.FixedColumnWidth(60), // Segment
+                    2: const pw.FixedColumnWidth(40), // Rating
+                    3: const pw.FlexColumnWidth(2), // Notes
+                    4: const pw.FixedColumnWidth(80), // Logged At
                   },
                   children: [
                     // Header row
@@ -1253,14 +1267,17 @@ class ExportService {
                     ),
                     // Data rows
                     ...pageEntries.map((entry) => pw.TableRow(
-                      children: [
-                        _buildTableCell(DateFormat('MM/dd/yy').format(entry.date)),
-                        _buildTableCell(MoodDataService.timeSegments[entry.segment]),
-                        _buildTableCell(entry.rating.toStringAsFixed(1)),
-                        _buildTableCell(_truncateText(entry.note, 50)),
-                        _buildTableCell(DateFormat('MM/dd HH:mm').format(entry.loggedAt)),
-                      ],
-                    )),
+                          children: [
+                            _buildTableCell(
+                                DateFormat('MM/dd/yy').format(entry.date)),
+                            _buildTableCell(
+                                MoodDataService.timeSegments[entry.segment]),
+                            _buildTableCell(entry.rating.toStringAsFixed(1)),
+                            _buildTableCell(_truncateText(entry.note, 50)),
+                            _buildTableCell(DateFormat('MM/dd HH:mm')
+                                .format(entry.loggedAt)),
+                          ],
+                        )),
                   ],
                 ),
               ],
@@ -1282,43 +1299,49 @@ class ExportService {
             children: [
               pw.Text(
                 'Mood Goals',
-                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                style:
+                    pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
               ),
               pw.SizedBox(height: 15),
               ...goals.map((goal) => pw.Container(
-                margin: const pw.EdgeInsets.only(bottom: 15),
-                padding: const pw.EdgeInsets.all(10),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(),
-                  borderRadius: pw.BorderRadius.circular(5),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      goal.title,
-                      style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+                    margin: const pw.EdgeInsets.only(bottom: 15),
+                    padding: const pw.EdgeInsets.all(10),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(),
+                      borderRadius: pw.BorderRadius.circular(5),
                     ),
-                    pw.SizedBox(height: 5),
-                    pw.Text(goal.description, style: pw.TextStyle(fontSize: 12)),
-                    pw.SizedBox(height: 5),
-                    pw.Row(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('Created: ${DateFormat('MM/dd/yyyy').format(goal.createdDate)}',
-                            style: pw.TextStyle(fontSize: 10)),
-                        pw.SizedBox(width: 20),
-                        pw.Text('Status: ${goal.isCompleted ? "Completed" : "Active"}',
-                            style: pw.TextStyle(fontSize: 10)),
-                        if (goal.completedDate != null) ...[
-                          pw.SizedBox(width: 20),
-                          pw.Text('Completed: ${DateFormat('MM/dd/yyyy').format(goal.completedDate!)}',
-                              style: pw.TextStyle(fontSize: 10)),
-                        ],
+                        pw.Text(
+                          goal.title,
+                          style: pw.TextStyle(
+                              fontSize: 14, fontWeight: pw.FontWeight.bold),
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Text(goal.description,
+                            style: pw.TextStyle(fontSize: 12)),
+                        pw.SizedBox(height: 5),
+                        pw.Row(
+                          children: [
+                            pw.Text(
+                                'Created: ${DateFormat('MM/dd/yyyy').format(goal.createdDate)}',
+                                style: pw.TextStyle(fontSize: 10)),
+                            pw.SizedBox(width: 20),
+                            pw.Text(
+                                'Status: ${goal.isCompleted ? "Completed" : "Active"}',
+                                style: pw.TextStyle(fontSize: 10)),
+                            if (goal.completedDate != null) ...[
+                              pw.SizedBox(width: 20),
+                              pw.Text(
+                                  'Completed: ${DateFormat('MM/dd/yyyy').format(goal.completedDate!)}',
+                                  style: pw.TextStyle(fontSize: 10)),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              )),
+                  )),
             ],
           );
         },
@@ -1371,7 +1394,8 @@ class CombinedDayData {
     if (daysDiff == 0) {
       rangeText = 'Missed: ${DateFormat('MMM d').format(startDate)}';
     } else {
-      rangeText = 'Missed: ${DateFormat('MMM d').format(startDate)} - ${DateFormat('MMM d').format(endDate)} (${daysDiff + 1} days)';
+      rangeText =
+          'Missed: ${DateFormat('MMM d').format(startDate)} - ${DateFormat('MMM d').format(endDate)} (${daysDiff + 1} days)';
     }
 
     return CombinedDayData(

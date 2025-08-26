@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../services/ai/mood_analysis_service.dart';
 import '../backup/cloud_backup_service.dart';
 import '../utils/logger.dart';
 
@@ -78,12 +77,14 @@ class MoodDataService {
   static DateTime? _lastCacheClean;
 
   /// Load mood with caching
-  static Future<Map<String, dynamic>?> loadMoodCached(DateTime date, int segmentIndex) async {
+  static Future<Map<String, dynamic>?> loadMoodCached(
+      DateTime date, int segmentIndex) async {
     final key = getKeyForDateSegment(date, segmentIndex);
 
     // Clean cache every 5 minutes
     final now = DateTime.now();
-    if (_lastCacheClean == null || now.difference(_lastCacheClean!).inMinutes > 5) {
+    if (_lastCacheClean == null ||
+        now.difference(_lastCacheClean!).inMinutes > 5) {
       _moodCache.clear();
       _lastCacheClean = now;
     }
@@ -113,7 +114,8 @@ class MoodDataService {
   }
 
   /// Loads saved mood (rating + note + timestamp) for given date and segment
-  static Future<Map<String, dynamic>?> loadMood(DateTime date, int segmentIndex) async {
+  static Future<Map<String, dynamic>?> loadMood(
+      DateTime date, int segmentIndex) async {
     try {
       final key = getKeyForDateSegment(date, segmentIndex);
       final prefs = await _getPrefs();
@@ -139,7 +141,8 @@ class MoodDataService {
   }
 
   /// Saves mood (rating + note + timestamp) for given date and segment
-  static Future<bool> saveMood(DateTime date, int segmentIndex, double rating, String note) async {
+  static Future<bool> saveMood(
+      DateTime date, int segmentIndex, double rating, String note) async {
     try {
       final prefs = await _getPrefs();
       final key = getKeyForDateSegment(date, segmentIndex);
@@ -176,7 +179,8 @@ class MoodDataService {
 
           return true;
         } else {
-          Logger.dataService('❌ Verification failed: Data was not persisted correctly');
+          Logger.dataService(
+              '❌ Verification failed: Data was not persisted correctly');
           return false;
         }
       }
@@ -219,9 +223,11 @@ class MoodDataService {
         if (isEnabled && isAvailable) {
           final success = await RealCloudBackupService.performAutomaticBackup();
           if (success) {
-            Logger.dataService('✅ Automatic cloud backup completed after mood save');
+            Logger.dataService(
+                '✅ Automatic cloud backup completed after mood save');
           } else {
-            Logger.dataService('⚠️ Automatic cloud backup failed after mood save');
+            Logger.dataService(
+                '⚠️ Automatic cloud backup failed after mood save');
           }
         }
       } catch (e) {
@@ -231,7 +237,8 @@ class MoodDataService {
   }
 
   /// Helper method to load mood data directly from prefs without reload
-  static Future<Map<String, dynamic>?> _loadMoodDirect(SharedPreferences prefs, String key) async {
+  static Future<Map<String, dynamic>?> _loadMoodDirect(
+      SharedPreferences prefs, String key) async {
     try {
       final jsonString = prefs.getString(key);
       if (jsonString == null) return null;
@@ -242,17 +249,20 @@ class MoodDataService {
   }
 
   /// Check if a mood entry was logged on the actual day (within grace period)
-  static Future<bool> wasMoodLoggedOnTime(DateTime moodDate, int segmentIndex) async {
+  static Future<bool> wasMoodLoggedOnTime(
+      DateTime moodDate, int segmentIndex) async {
     final moodData = await loadMood(moodDate, segmentIndex);
     if (moodData == null || moodData['timestamp'] == null) return false;
 
     try {
       final loggedAt = DateTime.parse(moodData['timestamp']);
-      final moodDayStart = DateTime(moodDate.year, moodDate.month, moodDate.day);
+      final moodDayStart =
+          DateTime(moodDate.year, moodDate.month, moodDate.day);
       final moodDayEnd = moodDayStart.add(const Duration(days: 1));
       final gracePeriodEnd = moodDayEnd.add(const Duration(hours: 6));
 
-      return loggedAt.isAfter(moodDayStart) && loggedAt.isBefore(gracePeriodEnd);
+      return loggedAt.isAfter(moodDayStart) &&
+          loggedAt.isBefore(gracePeriodEnd);
     } catch (_) {
       return false;
     }
@@ -299,7 +309,8 @@ class MoodDataService {
     try {
       final result = await RealCloudBackupService.performManualBackup();
       if (result.success) {
-        Logger.dataService('✅ Force cloud backup successful: ${result.message}');
+        Logger.dataService(
+            '✅ Force cloud backup successful: ${result.message}');
         return true;
       } else {
         Logger.dataService('❌ Force cloud backup failed: ${result.error}');

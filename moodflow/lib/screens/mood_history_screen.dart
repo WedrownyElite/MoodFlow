@@ -49,11 +49,14 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
     DateTime currentDate = endDate.subtract(Duration(days: skip));
     int loaded = 0;
 
-    while (currentDate.isAfter(startDate.subtract(const Duration(days: 1))) && loaded < _pageSize) {
+    while (currentDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
+        loaded < _pageSize) {
       final segments = <SegmentMoodData>[];
       bool hasAnyMood = false;
 
-      for (int segment = 0; segment < MoodDataService.timeSegments.length; segment++) {
+      for (int segment = 0;
+          segment < MoodDataService.timeSegments.length;
+          segment++) {
         final moodData = await MoodDataService.loadMood(currentDate, segment);
         if (moodData != null && moodData['rating'] != null) {
           segments.add(SegmentMoodData(
@@ -98,16 +101,18 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => DayDetailSheet(
         dayData: dayData,
-        onSegmentEdit: (segment, rating, note) => _editSegment(dayData.date, segment, rating, note),
+        onSegmentEdit: (segment, rating, note) =>
+            _editSegment(dayData.date, segment, rating, note),
         onSegmentDelete: (segment) => _deleteSegment(dayData.date, segment),
       ),
     );
-    
+
     // Refresh after modal closes
     _loadMoodHistory();
   }
 
-  Future<void> _editSegment(DateTime date, int segment, double currentRating, String currentNote) async {
+  Future<void> _editSegment(DateTime date, int segment, double currentRating,
+      String currentNote) async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => EditMoodDialog(
@@ -156,9 +161,9 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
       final prefs = await SharedPreferences.getInstance();
       final key = MoodDataService.getKeyForDateSegment(date, segment);
       await prefs.remove(key);
-      
+
       _loadMoodHistory();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Mood entry deleted')),
@@ -186,7 +191,7 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
       lastDate: DateTime.now(),
       helpText: 'Select date to log mood',
     );
-    
+
     if (selectedDate != null) {
       _showManualMoodEntry(selectedDate);
     }
@@ -195,18 +200,19 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
   Future<void> _showManualMoodEntry(DateTime date) async {
     // Create empty day data for the selected date
     final dayData = DayMoodData(date: date, segments: []);
-    
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => DayDetailSheet(
         dayData: dayData,
-        onSegmentEdit: (segment, rating, note) => _editSegment(date, segment, rating, note),
+        onSegmentEdit: (segment, rating, note) =>
+            _editSegment(date, segment, rating, note),
         onSegmentDelete: (segment) => _deleteSegment(date, segment),
       ),
     );
-    
+
     // Refresh after modal closes
     _loadMoodHistory();
   }
@@ -254,42 +260,45 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
               ],
             ),
           ),
-          
+
           // Day cards list
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _dayMoodData.isEmpty
                     ? _buildEmptyState()
-                : NotificationListener<ScrollNotification>(
-                  onNotification: (ScrollNotification scrollInfo) {
-                    if (!_isLoading && _hasMoreData &&
-                        scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
-                      _loadMoodHistory(loadMore: true); 
-                    }
-                    return false;
-                  },
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _dayMoodData.length + (_hasMoreData ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == _dayMoodData.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-    
-                      final dayData = _dayMoodData[index];
-                      return DayMoodCard(
-                        dayData: dayData,
-                        onTap: () => _showDayDetail(dayData),
-                      );
-                    },
-                  ),
-                ),
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (ScrollNotification scrollInfo) {
+                          if (!_isLoading &&
+                              _hasMoreData &&
+                              scrollInfo.metrics.pixels ==
+                                  scrollInfo.metrics.maxScrollExtent) {
+                            _loadMoodHistory(loadMore: true);
+                          }
+                          return false;
+                        },
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount:
+                              _dayMoodData.length + (_hasMoreData ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == _dayMoodData.length) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+
+                            final dayData = _dayMoodData[index];
+                            return DayMoodCard(
+                              dayData: dayData,
+                              onTap: () => _showDayDetail(dayData),
+                            );
+                          },
+                        ),
+                      ),
           ),
         ],
       ),
@@ -351,17 +360,28 @@ class DayMoodCard extends StatelessWidget {
   String _getMoodEmoji(double rating) {
     final roundedRating = rating.round();
     switch (roundedRating) {
-      case 1: return '😭';
-      case 2: return '😢';
-      case 3: return '😔';
-      case 4: return '😕';
-      case 5: return '😐';
-      case 6: return '🙂';
-      case 7: return '😊';
-      case 8: return '😄';
-      case 9: return '😁';
-      case 10: return '🤩';
-      default: return '😐';
+      case 1:
+        return '😭';
+      case 2:
+        return '😢';
+      case 3:
+        return '😔';
+      case 4:
+        return '😕';
+      case 5:
+        return '😐';
+      case 6:
+        return '🙂';
+      case 7:
+        return '😊';
+      case 8:
+        return '😄';
+      case 9:
+        return '😁';
+      case 10:
+        return '🤩';
+      default:
+        return '😐';
     }
   }
 
@@ -379,7 +399,8 @@ class DayMoodCard extends StatelessWidget {
 
   double _getDayAverage() {
     if (dayData.segments.isEmpty) return 5.0;
-    final total = dayData.segments.fold(0.0, (sum, segment) => sum + segment.rating);
+    final total =
+        dayData.segments.fold(0.0, (sum, segment) => sum + segment.rating);
     return total / dayData.segments.length;
   }
 
@@ -405,14 +426,16 @@ class DayMoodCard extends StatelessWidget {
     // Get appropriate text colors from the theme
     final primaryTextColor = theme.textTheme.bodyLarge?.color ??
         (isDarkMode ? Colors.white : Colors.black87);
-    final secondaryTextColor = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
-        (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600);
+    final secondaryTextColor =
+        theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
+            (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600);
 
     // For "Today", use a more visible primary color or enhanced text color
     final todayTextColor = isToday
         ? (isDarkMode
-        ? theme.colorScheme.primary.withValues(alpha: 0.9) // Use colorScheme primary in dark mode
-        : theme.primaryColor) // Use regular primary in light mode
+            ? theme.colorScheme.primary
+                .withValues(alpha: 0.9) // Use colorScheme primary in dark mode
+            : theme.primaryColor) // Use regular primary in light mode
         : primaryTextColor;
 
     return Card(
@@ -440,7 +463,8 @@ class DayMoodCard extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: _getMoodColor(dayAverage).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -481,8 +505,9 @@ class DayMoodCard extends StatelessWidget {
                       child: _SegmentIndicator(
                         segmentName: MoodDataService.timeSegments[i],
                         segmentData: dayData.segments.firstWhere(
-                              (s) => s.segment == i,
-                          orElse: () => SegmentMoodData(segment: i, rating: 0, note: ''),
+                          (s) => s.segment == i,
+                          orElse: () =>
+                              SegmentMoodData(segment: i, rating: 0, note: ''),
                         ),
                         hasData: dayData.segments.any((s) => s.segment == i),
                       ),
@@ -534,23 +559,34 @@ class _SegmentIndicator extends StatelessWidget {
   String _getMoodEmoji(double rating) {
     final roundedRating = rating.round();
     switch (roundedRating) {
-      case 1: return '😭';
-      case 2: return '😢';
-      case 3: return '😔';
-      case 4: return '😕';
-      case 5: return '😐';
-      case 6: return '🙂';
-      case 7: return '😊';
-      case 8: return '😄';
-      case 9: return '😁';
-      case 10: return '🤩';
-      default: return '😐';
+      case 1:
+        return '😭';
+      case 2:
+        return '😢';
+      case 3:
+        return '😔';
+      case 4:
+        return '😕';
+      case 5:
+        return '😐';
+      case 6:
+        return '🙂';
+      case 7:
+        return '😊';
+      case 8:
+        return '😄';
+      case 9:
+        return '😁';
+      case 10:
+        return '🤩';
+      default:
+        return '😐';
     }
   }
 
   Color _getMoodColor(double rating) {
     final intensity = (rating - 1) / 9;
-    
+
     if (intensity < 0.3) {
       return Colors.red.shade600;
     } else if (intensity < 0.7) {
@@ -565,12 +601,12 @@ class _SegmentIndicator extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
-        color: hasData 
+        color: hasData
             ? _getMoodColor(segmentData.rating).withValues(alpha: 0.1)
             : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: hasData 
+          color: hasData
               ? _getMoodColor(segmentData.rating).withValues(alpha: 0.3)
               : Colors.grey.shade300,
         ),
@@ -582,7 +618,9 @@ class _SegmentIndicator extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: hasData ? _getMoodColor(segmentData.rating) : Colors.grey.shade600,
+              color: hasData
+                  ? _getMoodColor(segmentData.rating)
+                  : Colors.grey.shade600,
             ),
           ),
           const SizedBox(height: 4),
@@ -667,7 +705,8 @@ class _DayDetailSheetState extends State<DayDetailSheet> {
     });
   }
 
-  Future<void> _handleSegmentEdit(int segment, double rating, String note) async {
+  Future<void> _handleSegmentEdit(
+      int segment, double rating, String note) async {
     await widget.onSegmentEdit(segment, rating, note);
     // Refresh the data after editing
     await _refreshDayData();
@@ -682,17 +721,28 @@ class _DayDetailSheetState extends State<DayDetailSheet> {
   String _getMoodEmoji(double rating) {
     final roundedRating = rating.round();
     switch (roundedRating) {
-      case 1: return '😭';
-      case 2: return '😢';
-      case 3: return '😔';
-      case 4: return '😕';
-      case 5: return '😐';
-      case 6: return '🙂';
-      case 7: return '😊';
-      case 8: return '😄';
-      case 9: return '😁';
-      case 10: return '🤩';
-      default: return '😐';
+      case 1:
+        return '😭';
+      case 2:
+        return '😢';
+      case 3:
+        return '😔';
+      case 4:
+        return '😕';
+      case 5:
+        return '😐';
+      case 6:
+        return '🙂';
+      case 7:
+        return '😊';
+      case 8:
+        return '😄';
+      case 9:
+        return '😁';
+      case 10:
+        return '🤩';
+      default:
+        return '😐';
     }
   }
 
@@ -711,7 +761,8 @@ class _DayDetailSheetState extends State<DayDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final isToday = DateTime.now().difference(_currentDayData.date).inDays == 0;
-    final isYesterday = DateTime.now().difference(_currentDayData.date).inDays == 1;
+    final isYesterday =
+        DateTime.now().difference(_currentDayData.date).inDays == 1;
 
     String dateText;
     if (isToday) {
@@ -774,110 +825,119 @@ class _DayDetailSheetState extends State<DayDetailSheet> {
               itemCount: 3,
               itemBuilder: (context, index) {
                 final segmentData = _currentDayData.segments.firstWhere(
-                      (s) => s.segment == index,
-                  orElse: () => SegmentMoodData(segment: index, rating: 0, note: ''),
+                  (s) => s.segment == index,
+                  orElse: () =>
+                      SegmentMoodData(segment: index, rating: 0, note: ''),
                 );
-                final hasData = _currentDayData.segments.any((s) => s.segment == index);
+                final hasData =
+                    _currentDayData.segments.any((s) => s.segment == index);
 
                 return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                   decoration: BoxDecoration(
                     border: Border.all(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? Colors.grey.shade600
-                            : Colors.grey.shade200
-                    ),
+                            : Colors.grey.shade200),
                     borderRadius: BorderRadius.circular(12),
                     color: Theme.of(context).brightness == Brightness.dark
                         ? Colors.grey.shade800.withValues(alpha: 0.3)
                         : Colors.transparent,
                   ),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     title: Text(
                       MoodDataService.timeSegments[index],
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     subtitle: hasData
                         ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              _getMoodEmoji(segmentData.rating),
-                              style: const TextStyle(fontSize: 20),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              segmentData.rating.toStringAsFixed(1),
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: _getMoodColor(segmentData.rating),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Text(
+                                    _getMoodEmoji(segmentData.rating),
+                                    style: const TextStyle(fontSize: 20),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    segmentData.rating.toStringAsFixed(1),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: _getMoodColor(segmentData.rating),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
-                        if (segmentData.note.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            segmentData.note.length > 50
-                                ? '${segmentData.note.substring(0, 50)}...'
-                                : segmentData.note,
+                              if (segmentData.note.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  segmentData.note.length > 50
+                                      ? '${segmentData.note.substring(0, 50)}...'
+                                      : segmentData.note,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          )
+                        : Text(
+                            'No mood logged',
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.color
+                                  ?.withValues(alpha: 0.6),
                             ),
                           ),
-                        ],
-                      ],
-                    )
-                        : Text(
-                      'No mood logged',
-                      style: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                      ),
-                    ),
                     trailing: hasData
                         ? PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          _handleSegmentEdit(index, segmentData.rating, segmentData.note);
-                        } else if (value == 'delete') {
-                          _handleSegmentDelete(index);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, size: 18),
-                              SizedBox(width: 8),
-                              Text('Edit'),
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _handleSegmentEdit(index, segmentData.rating,
+                                    segmentData.note);
+                              } else if (value == 'delete') {
+                                _handleSegmentDelete(index);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Edit'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete,
+                                        size: 18, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Delete',
+                                        style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
                             ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, size: 18, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    )
+                          )
                         : const Icon(Icons.chevron_right, color: Colors.grey),
                     onTap: () => _handleSegmentEdit(
                         index,
                         hasData ? segmentData.rating : 5.0,
-                        hasData ? segmentData.note : ''
-                    ),
+                        hasData ? segmentData.note : ''),
                   ),
                 );
               },

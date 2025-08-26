@@ -23,9 +23,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   Future<void> _loadGoals() async {
     setState(() => _isLoading = true);
-    
+
     final goals = await MoodAnalyticsService.loadGoals();
-    
+
     setState(() {
       _goals = goals;
       _isLoading = false;
@@ -69,7 +69,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
       final updatedGoals = _goals.where((g) => g.id != goal.id).toList();
       await MoodAnalyticsService.saveGoals(updatedGoals);
       _loadGoals();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Goal deleted')),
@@ -91,7 +91,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
       isCompleted: true,
     );
 
-    final updatedGoals = _goals.map((g) => g.id == goal.id ? completedGoal : g).toList();
+    final updatedGoals =
+        _goals.map((g) => g.id == goal.id ? completedGoal : g).toList();
     await MoodAnalyticsService.saveGoals(updatedGoals);
     _loadGoals();
 
@@ -142,10 +143,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         ),
                         const SizedBox(height: 16),
                         ...activeGoals.map((goal) => GoalCard(
-                          goal: goal,
-                          onComplete: () => _markGoalComplete(goal),
-                          onDelete: () => _deleteGoal(goal),
-                        )),
+                              goal: goal,
+                              onComplete: () => _markGoalComplete(goal),
+                              onDelete: () => _deleteGoal(goal),
+                            )),
                         const SizedBox(height: 32),
                       ],
 
@@ -160,9 +161,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         ),
                         const SizedBox(height: 16),
                         ...completedGoals.map((goal) => GoalCard(
-                          goal: goal,
-                          onDelete: () => _deleteGoal(goal),
-                        )),
+                              goal: goal,
+                              onDelete: () => _deleteGoal(goal),
+                            )),
                       ],
                     ],
                   ),
