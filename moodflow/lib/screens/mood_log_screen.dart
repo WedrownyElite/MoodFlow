@@ -348,6 +348,24 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     return 0;
   }
 
+  bool _hasPreviousAccessibleSegment() {
+    for (int i = currentSegment - 1; i >= 0; i--) {
+      if (_accessibilityCache[i] == true) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _hasNextAccessibleSegment() {
+    for (int i = currentSegment + 1; i < timeSegments.length; i++) {
+      if (_accessibilityCache[i] == true) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   Widget _buildMoodPage(int index) {
     final canEdit = index == currentSegment && (_accessibilityCache[index] ?? false);
 
@@ -608,7 +626,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          if (currentSegment > _getFirstAccessibleSegment())
+                          if (_hasPreviousAccessibleSegment())
                             IconButton(
                               icon: const Icon(Icons.arrow_left, color: Colors.white, size: 32),
                               onPressed: _blurService.isTransitioning ? null : () {
@@ -626,7 +644,7 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
                             timeSegments[currentSegment],
                             style: const TextStyle(fontSize: 20, color: Colors.white),
                           ),
-                          if (currentSegment < _getLastAccessibleSegment())
+                          if (_hasNextAccessibleSegment())
                             IconButton(
                               icon: const Icon(Icons.arrow_right, color: Colors.white, size: 32),
                               onPressed: _blurService.isTransitioning ? null : () {

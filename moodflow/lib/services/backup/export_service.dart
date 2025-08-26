@@ -169,9 +169,9 @@ class ExportService {
 
         if (includeWeather) {
           row.addAll([
-            correlation?.weather ?? '',
-            correlation?.temperature?.toString() ?? '',
-            correlation?.weatherDescription ?? '',
+            correlation?.weather ?? ' ',
+            correlation?.temperature?.toString() ?? ' ',
+            correlation?.weatherDescription ?? ' ',
           ]);
         }
         if (includeSleep) {
@@ -672,7 +672,22 @@ class ExportService {
     }
 
     // Iterate through all days in range
-    DateTime currentDate = startDate;
+    DateTime? firstDataDate;
+    DateTime scanDate = startDate;
+    while (scanDate.isBefore(endDate.add(const Duration(days: 1)))) {
+      final dateKey = DateFormat('yyyy-MM-dd').format(scanDate);
+      final dayMoods = moodsByDate[dateKey];
+      final dayCorrelation = correlationsByDate[dateKey];
+
+      if ((dayMoods != null && dayMoods.isNotEmpty) || dayCorrelation != null) {
+        firstDataDate = scanDate;
+        break;
+      }
+      scanDate = scanDate.add(const Duration(days: 1));
+    }
+
+    // Use actual first data date or start date if no data found
+    DateTime currentDate = firstDataDate ?? startDate;
     DateTime? missedRangeStart;
 
     while (currentDate.isBefore(endDate.add(const Duration(days: 1)))) {
@@ -1015,8 +1030,10 @@ class ExportService {
         pw.Container(
           padding: const pw.EdgeInsets.all(6),
           child: pw.Text(
-            mood?.note.isNotEmpty == true ? _truncateText(mood!.note, 30) : '—',
+            mood?.note.isNotEmpty == true ? mood!.note.replaceAll('\n', ' ').replaceAll('\r', '') : '—',
             style: pw.TextStyle(fontSize: 8),
+            maxLines: null, // Allow unlimited lines
+            softWrap: true,
           ),
         ),
       );
@@ -1042,8 +1059,14 @@ class ExportService {
       ]);
     } else if (includeWeather) {
       cells.addAll([
-        pw.Container(padding: const pw.EdgeInsets.all(6)),
-        pw.Container(padding: const pw.EdgeInsets.all(6)),
+        pw.Container(
+          padding: const pw.EdgeInsets.all(6),
+          child: pw.Text(' ', style: pw.TextStyle(fontSize: 9)),
+        ),
+        pw.Container(
+          padding: const pw.EdgeInsets.all(6),
+          child: pw.Text(' ', style: pw.TextStyle(fontSize: 9)),
+        ),
       ]);
     }
 
@@ -1070,8 +1093,14 @@ class ExportService {
       ]);
     } else if (includeSleep) {
       cells.addAll([
-        pw.Container(padding: const pw.EdgeInsets.all(6)),
-        pw.Container(padding: const pw.EdgeInsets.all(6)),
+        pw.Container(
+          padding: const pw.EdgeInsets.all(6),
+          child: pw.Text(' ', style: pw.TextStyle(fontSize: 9)),
+        ),
+        pw.Container(
+          padding: const pw.EdgeInsets.all(6),
+          child: pw.Text(' ', style: pw.TextStyle(fontSize: 9)),
+        ),
       ]);
     }
 
@@ -1135,7 +1164,7 @@ class ExportService {
     if (includeMoods) {
       widths[columnIndex++] = const pw.FixedColumnWidth(50); // Time
       widths[columnIndex++] = const pw.FixedColumnWidth(40); // Mood
-      widths[columnIndex++] = const pw.FlexColumnWidth(2);  // Notes
+      widths[columnIndex++] = const pw.FlexColumnWidth(3);  // Notes
     }
 
     if (includeWeather) {
