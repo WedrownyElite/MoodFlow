@@ -63,26 +63,27 @@ class _MoodLogScreenState extends State<MoodLogScreen> with TickerProviderStateM
     _initializeCorrectSegment();
   }
 
-  void _initializeCorrectSegment() {
+  void _initializeCorrectSegment() async {
     if (widget.initialSegment != null) {
       currentSegment = widget.initialSegment!;
     } else {
-      currentSegment = _getHighestAccessibleSegmentSync();
+      currentSegment = await _getHighestAccessibleSegmentAsync();
     }
 
     _initializeServicesSync();
     _initializeAsync();
   }
 
-  int _getHighestAccessibleSegmentSync() {
+  Future<int> _getHighestAccessibleSegmentAsync() async {
+    final settings = await EnhancedNotificationService.loadSettings();
     final now = DateTime.now();
     final currentMinutes = now.hour * 60 + now.minute;
 
-    const defaultMiddayMinutes = 13 * 60; // 1 PM
-    const defaultEveningMinutes = 19 * 60; // 7 PM
+    final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
+    final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
 
-    if (currentMinutes >= defaultEveningMinutes) return 2; // Evening
-    if (currentMinutes >= defaultMiddayMinutes) return 1;  // Midday
+    if (currentMinutes >= eveningMinutes) return 2; // Evening
+    if (currentMinutes >= middayMinutes) return 1;  // Midday
     return 0; // Morning
   }
 
