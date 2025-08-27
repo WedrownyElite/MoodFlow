@@ -2,8 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/insights/smart_insights_service.dart';
-import '../services/data/correlation_data_service.dart';
-import '../services/data/mood_data_service.dart';
 
 class EnhancedInsightsScreen extends StatefulWidget {
   const EnhancedInsightsScreen({super.key});
@@ -16,7 +14,6 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
   List<SmartInsight> _insights = [];
-  List<CorrelationInsight> _correlations = [];
   WeeklySummary? _weeklySummary;
   bool _isLoading = false;
   bool _isGenerating = false;
@@ -41,15 +38,11 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
       // Load existing insights
       final insights = await SmartInsightsService.loadInsights();
 
-      // Load correlation insights
-      final correlations = await CorrelationDataService.generateInsights();
-
       // Generate weekly summary
       final weeklySummary = await SmartInsightsService.generateWeeklySummary();
 
       setState(() {
         _insights = insights;
-        _correlations = correlations;
         _weeklySummary = weeklySummary;
         _isLoading = false;
       });
@@ -224,7 +217,11 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_correlations.isEmpty) {
+    final patternInsights = _insights.where(
+            (insight) => insight.type == InsightType.pattern
+    ).toList();
+
+    if (patternInsights.isEmpty) {
       return _buildEmptyState(
         icon: Icons.analytics_outlined,
         title: 'No patterns found yet',
@@ -236,10 +233,10 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _correlations.length,
+      itemCount: patternInsights.length,
       itemBuilder: (context, index) {
-        final correlation = _correlations[index];
-        return _buildCorrelationCard(correlation);
+        final insight = patternInsights[index];
+        return _buildEnhancedInsightCard(insight);
       },
     );
   }
@@ -469,6 +466,11 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
   }
 
   Widget _buildTomorrowForecastCard() {
+    final tomorrowInsights = _insights.where(
+            (insight) => insight.type == InsightType.prediction &&
+            insight.title.contains('Tomorrow')
+    ).toList();
+
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -532,7 +534,7 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
 
             const SizedBox(height: 16),
 
-            // Mock forecast - in real implementation, this would use predictive insights
+            // Forecast content
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -553,27 +555,30 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
                         ),
                       ),
                       const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          '7.2/10 Expected',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange,
+                      if (tomorrowInsights.isNotEmpty && tomorrowInsights.first.data.containsKey('predictedMood'))
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getMoodColor(tomorrowInsights.first.data['predictedMood'] ?? 7.0).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${(tomorrowInsights.first.data['predictedMood'] ?? 7.0).toStringAsFixed(1)}/10 Expected',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _getMoodColor(tomorrowInsights.first.data['predictedMood'] ?? 7.0),
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Tuesday typically rates 7.2 for you. Perfect day to tackle that challenging project you\'ve been postponing!',
-                    style: TextStyle(height: 1.4),
+                  Text(
+                    tomorrowInsights.isNotEmpty
+                        ? tomorrowInsights.first.description
+                        : 'Based on your patterns, tomorrow looks like a good day to focus on your wellbeing!',
+                    style: const TextStyle(height: 1.4),
                   ),
                 ],
               ),
@@ -613,7 +618,7 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
-                'Based on your patterns: Wednesday tends to be your challenging day (avg 5.8), while Friday is your strongest (avg 7.9). Plan accordingly!',
+                'Based on your patterns: Plan challenging tasks for mornings and save relaxing activities for evenings.',
                 style: TextStyle(fontSize: 14, height: 1.4),
               ),
             ),
@@ -624,6 +629,10 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
   }
 
   Widget _buildEarlyWarningCard() {
+    final warningInsights = _insights.where(
+            (insight) => insight.type == InsightType.concern
+    ).toList();
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -650,9 +659,11 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
               ],
             ),
             const SizedBox(height: 12),
-            const Text(
-              'We\'ll monitor your patterns and alert you before potential mood dips. Stay one step ahead!',
-              style: TextStyle(fontSize: 14, height: 1.4),
+            Text(
+              warningInsights.isNotEmpty
+                  ? warningInsights.first.description
+                  : 'We\'ll monitor your patterns and alert you before potential mood dips. Stay one step ahead!',
+              style: const TextStyle(fontSize: 14, height: 1.4),
             ),
           ],
         ),
@@ -698,93 +709,6 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
     );
   }
 
-  Widget _buildCorrelationCard(CorrelationInsight correlation) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with category icon
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _getCategoryColor(correlation.category).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    _getCategoryIcon(correlation.category),
-                    color: _getCategoryColor(correlation.category),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    correlation.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                _buildStrengthIndicator(correlation.strength),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Description
-            Text(
-              correlation.description,
-              style: const TextStyle(fontSize: 14, height: 1.4),
-            ),
-
-            // Strength bar
-            const SizedBox(height: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Correlation strength',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    Text(
-                      '${(correlation.strength * 100).round()}%',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: _getCategoryColor(correlation.category),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                LinearProgressIndicator(
-                  value: correlation.strength,
-                  backgroundColor: Colors.grey.shade300,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    _getCategoryColor(correlation.category),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildWeeklySummaryContent(WeeklySummary summary) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -792,9 +716,9 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          Text(
+          const Text(
             'Weekly Summary',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -1019,39 +943,6 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
     );
   }
 
-  Widget _buildStrengthIndicator(double strength) {
-    Color color;
-    String text;
-
-    if (strength >= 0.7) {
-      color = Colors.green;
-      text = 'STRONG';
-    } else if (strength >= 0.4) {
-      color = Colors.orange;
-      text = 'MODERATE';
-    } else {
-      color = Colors.grey;
-      text = 'WEAK';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
-      ),
-    );
-  }
-
   Widget _buildSummaryStatCard({
     required String title,
     required String value,
@@ -1117,36 +1008,6 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
     );
   }
 
-  Color _getCategoryColor(String category) {
-    switch (category.toLowerCase()) {
-      case 'weather':
-        return Colors.orange;
-      case 'sleep':
-        return Colors.indigo;
-      case 'exercise':
-        return Colors.green;
-      case 'social':
-        return Colors.pink;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getCategoryIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'weather':
-        return Icons.wb_sunny;
-      case 'sleep':
-        return Icons.bedtime;
-      case 'exercise':
-        return Icons.fitness_center;
-      case 'social':
-        return Icons.people;
-      default:
-        return Icons.category;
-    }
-  }
-
   Color _getMoodColor(double mood) {
     if (mood == 0) return Colors.grey;
     final intensity = (mood - 1) / 9;
@@ -1198,11 +1059,6 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
   }
 
   void _handleInsightTap(SmartInsight insight) {
-    // Mark as read if not already
-    if (!insight.isRead) {
-      // TODO: Implement marking as read in the service
-    }
-
     // Show detailed view with expanded action steps
     showModalBottomSheet(
       context: context,
@@ -1484,13 +1340,5 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
         ],
       ),
     );
-  }
-}
-
-// Extension for string capitalization
-extension StringExtension on String {
-  String capitalize() {
-    if (isEmpty) return this;
-    return this[0].toUpperCase() + substring(1);
   }
 }
