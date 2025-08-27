@@ -1,16 +1,16 @@
-// lib/screens/enhanced_insights_screen.dart
+// lib/screens/insights_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/insights/smart_insights_service.dart';
 
-class EnhancedInsightsScreen extends StatefulWidget {
-  const EnhancedInsightsScreen({super.key});
+class InsightsScreen extends StatefulWidget {
+  const InsightsScreen({super.key});
 
   @override
-  State<EnhancedInsightsScreen> createState() => _EnhancedInsightsScreenState();
+  State<InsightsScreen> createState() => _InsightsScreenState();
 }
 
-class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
+class _InsightsScreenState extends State<InsightsScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
   List<SmartInsight> _insights = [];
@@ -160,7 +160,7 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
         itemCount: actionableInsights.length,
         itemBuilder: (context, index) {
           final insight = actionableInsights[index];
-          return _buildEnhancedInsightCard(insight);
+          return _buildInsightCard(insight);
         },
       ),
     );
@@ -194,7 +194,7 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
             const SizedBox(height: 12),
             ...predictiveInsights.map((insight) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _buildEnhancedInsightCard(insight),
+              child: _buildInsightCard(insight),
             )),
           ],
 
@@ -236,7 +236,7 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
       itemCount: patternInsights.length,
       itemBuilder: (context, index) {
         final insight = patternInsights[index];
-        return _buildEnhancedInsightCard(insight);
+        return _buildInsightCard(insight);
       },
     );
   }
@@ -255,7 +255,7 @@ class _EnhancedInsightsScreenState extends State<EnhancedInsightsScreen>
     return _buildWeeklySummaryContent(_weeklySummary!);
   }
 
-  Widget _buildEnhancedInsightCard(SmartInsight insight) {
+  Widget _buildInsightCard(SmartInsight insight) {
     Color primaryColor;
     IconData primaryIcon;
 

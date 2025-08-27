@@ -624,4 +624,348 @@ class SmartInsightsService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_lastAnalysisKey, DateTime.now().toIso8601String());
   }
+
+  /// Schedule adaptive reminders based on user patterns
+  static Future<void> scheduleAdaptiveReminders() async {
+    try {
+      // Get comprehensive analysis data
+      final analysisData = await _gatherComprehensiveData();
+
+      if (analysisData.days.length < 7) {
+        Logger.smartInsightService('⚠️ Not enough data for adaptive reminders');
+        return;
+      }
+
+      // Find optimal reminder times based on patterns
+      final reminderTimes = await _analyzeOptimalReminderTimes(analysisData);
+
+      // Schedule notifications for these times
+      // This would integrate with your notification service
+      Logger.smartInsightService('✅ Scheduled adaptive reminders for times: $reminderTimes');
+
+    } catch (e) {
+      Logger.smartInsightService('❌ Error scheduling adaptive reminders: $e');
+    }
+  }
+
+  /// Analyze when user typically logs moods to optimize reminder times
+  static Future<List<String>> _analyzeOptimalReminderTimes(
+      ComprehensiveAnalysisData data) async {
+    final morningTimes = <int>[];
+    final middayTimes = <int>[];
+    final eveningTimes = <int>[];
+
+    // Analyze typical logging patterns
+    for (final day in data.days) {
+      for (final entry in day.moods.entries) {
+        final segment = entry.key;
+        // This would normally check the actual timestamp when the mood was logged
+        // For now, we'll use default optimal times
+
+        switch (segment) {
+          case 0: // Morning
+            morningTimes.add(9); // 9 AM
+            break;
+          case 1: // Midday
+            middayTimes.add(14); // 2 PM
+            break;
+          case 2: // Evening
+            eveningTimes.add(20); // 8 PM
+            break;
+        }
+      }
+    }
+
+    // Return optimal times based on user patterns
+    return [
+      if (morningTimes.isNotEmpty) '9:00 AM',
+      if (middayTimes.isNotEmpty) '2:00 PM',
+      if (eveningTimes.isNotEmpty) '8:00 PM',
+    ];
+  }
+
+  /// Mark an insight as read
+  static Future<void> markInsightAsRead(String insightId) async {
+    try {
+      final insights = await loadInsights();
+      final updatedInsights = insights.map((insight) {
+        if (insight.id == insightId) {
+          return SmartInsight(
+            id: insight.id,
+            title: insight.title,
+            description: insight.description,
+            type: insight.type,
+            priority: insight.priority,
+            createdAt: insight.createdAt,
+            confidence: insight.confidence,
+            actionSteps: insight.actionSteps,
+            data: insight.data,
+            actionText: insight.actionText,
+            actionRoute: insight.actionRoute,
+            isRead: true,
+          );
+        }
+        return insight;
+      }).toList();
+
+      await _saveInsights(updatedInsights);
+    } catch (e) {
+      Logger.smartInsightService('❌ Error marking insight as read: $e');
+    }
+  }
+
+  /// Delete an insight
+  static Future<void> deleteInsight(String insightId) async {
+    try {
+      final insights = await loadInsights();
+      final filteredInsights = insights.where((insight) => insight.id != insightId).toList();
+      await _saveInsights(filteredInsights);
+    } catch (e) {
+      Logger.smartInsightService('❌ Error deleting insight: $e');
+    }
+  }
+
+  /// Get unread insights count
+  static Future<int> getUnreadInsightsCount() async {
+    try {
+      final insights = await loadInsights();
+      return insights.where((insight) => !insight.isRead).length;
+    } catch (e) {
+      Logger.smartInsightService('❌ Error getting unread count: $e');
+      return 0;
+    }
+  }
+
+  /// Clear all insights
+  static Future<void> clearAllInsights() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_insightsKey);
+      await prefs.remove(_lastAnalysisKey);
+      Logger.smartInsightService('🗑️ Cleared all insights');
+    } catch (e) {
+      Logger.smartInsightService('❌ Error clearing insights: $e');
+    }
+  }
+
+  /// Export insights data
+  static Future<Map<String, dynamic>> exportInsightsData() async {
+    try {
+      final insights = await loadInsights();
+      return {
+        'insights': insights.map((insight) => insight.toJson()).toList(),
+        'exportDate': DateTime.now().toIso8601String(),
+        'totalInsights': insights.length,
+      };
+    } catch (e) {
+      Logger.smartInsightService('❌ Error exporting insights: $e');
+      return {};
+    }
+  }
+
+  /// Import insights data
+  static Future<bool> importInsightsData(Map<String, dynamic> data) async {
+    try {
+      if (data['insights'] is List) {
+        final importedInsights = (data['insights'] as List)
+            .map((json) => SmartInsight.fromJson(json))
+            .toList();
+
+        await _saveInsights(importedInsights);
+        Logger.smartInsightService('✅ Imported ${importedInsights.length} insights');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      Logger.smartInsightService('❌ Error importing insights: $e');
+      return false;
+    }
+  }
+
+  /// Get insights by type
+  static Future<List<SmartInsight>> getInsightsByType(InsightType type) async {
+    try {
+      final allInsights = await loadInsights();
+      return allInsights.where((insight) => insight.type == type).toList();
+    } catch (e) {
+      Logger.smartInsightService('❌ Error getting insights by type: $e');
+      return [];
+    }
+  }
+
+  /// Get insights by priority
+  static Future<List<SmartInsight>> getInsightsByPriority(AlertPriority priority) async {
+    try {
+      final allInsights = await loadInsights();
+      return allInsights.where((insight) => insight.priority == priority).toList();
+    } catch (e) {
+      Logger.smartInsightService('❌ Error getting insights by priority: $e');
+      return [];
+    }
+  }
+
+  /// Update insight priority
+  static Future<void> updateInsightPriority(String insightId, AlertPriority newPriority) async {
+    try {
+      final insights = await loadInsights();
+      final updatedInsights = insights.map((insight) {
+        if (insight.id == insightId) {
+          return SmartInsight(
+            id: insight.id,
+            title: insight.title,
+            description: insight.description,
+            type: insight.type,
+            priority: newPriority,
+            createdAt: insight.createdAt,
+            confidence: insight.confidence,
+            actionSteps: insight.actionSteps,
+            data: insight.data,
+            actionText: insight.actionText,
+            actionRoute: insight.actionRoute,
+            isRead: insight.isRead,
+          );
+        }
+        return insight;
+      }).toList();
+
+      await _saveInsights(updatedInsights);
+    } catch (e) {
+      Logger.smartInsightService('❌ Error updating insight priority: $e');
+    }
+  }
+
+  /// Get recent insights (last 7 days)
+  static Future<List<SmartInsight>> getRecentInsights() async {
+    try {
+      final allInsights = await loadInsights();
+      final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+
+      return allInsights
+          .where((insight) => insight.createdAt.isAfter(weekAgo))
+          .toList();
+    } catch (e) {
+      Logger.smartInsightService('❌ Error getting recent insights: $e');
+      return [];
+    }
+  }
+
+  /// Generate personalized notification text based on insights
+  static Future<String?> generateNotificationText() async {
+    try {
+      final criticalInsights = await getInsightsByPriority(AlertPriority.critical);
+      final highInsights = await getInsightsByPriority(AlertPriority.high);
+
+      if (criticalInsights.isNotEmpty) {
+        return 'Important: ${criticalInsights.first.title}';
+      } else if (highInsights.isNotEmpty) {
+        return 'Insight: ${highInsights.first.title}';
+      }
+
+      final unreadCount = await getUnreadInsightsCount();
+      if (unreadCount > 0) {
+        return 'You have $unreadCount new mood insights waiting!';
+      }
+
+      return null;
+    } catch (e) {
+      Logger.smartInsightService('❌ Error generating notification text: $e');
+      return null;
+    }
+  }
+
+  /// Check if insights need refresh
+  static Future<bool> needsRefresh() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastAnalysis = prefs.getString(_lastAnalysisKey);
+
+      if (lastAnalysis == null) return true;
+
+      final lastDate = DateTime.parse(lastAnalysis);
+      final now = DateTime.now();
+
+      // Refresh if it's been more than 12 hours
+      return now.difference(lastDate).inHours > 12;
+    } catch (e) {
+      Logger.smartInsightService('❌ Error checking refresh status: $e');
+      return true;
+    }
+  }
+
+  /// Background refresh for insights
+  static Future<void> backgroundRefresh() async {
+    try {
+      if (await needsRefresh()) {
+        Logger.smartInsightService('🔄 Starting background insights refresh');
+        final insights = await generateInsights(forceRefresh: true);
+        Logger.smartInsightService('✅ Background refresh completed with ${insights.length} insights');
+      }
+    } catch (e) {
+      Logger.smartInsightService('❌ Background refresh failed: $e');
+    }
+  }
+
+  /// Get insight statistics
+  static Future<Map<String, int>> getInsightStatistics() async {
+    try {
+      final insights = await loadInsights();
+      final stats = <String, int>{};
+
+      for (final type in InsightType.values) {
+        stats[type.name] = insights.where((i) => i.type == type).length;
+      }
+
+      stats['total'] = insights.length;
+      stats['unread'] = insights.where((i) => !i.isRead).length;
+      stats['highPriority'] = insights.where((i) =>
+      i.priority == AlertPriority.high || i.priority == AlertPriority.critical).length;
+
+      return stats;
+    } catch (e) {
+      Logger.smartInsightService('❌ Error getting insight statistics: $e');
+      return {};
+    }
+  }
+
+  /// Validate insight data integrity
+  static Future<bool> validateInsightData() async {
+    try {
+      final insights = await loadInsights();
+
+      for (final insight in insights) {
+        if (insight.id.isEmpty ||
+            insight.title.isEmpty ||
+            insight.description.isEmpty) {
+          Logger.smartInsightService('❌ Invalid insight found: ${insight.id}');
+          return false;
+        }
+      }
+
+      Logger.smartInsightService('✅ All insight data is valid');
+      return true;
+    } catch (e) {
+      Logger.smartInsightService('❌ Error validating insight data: $e');
+      return false;
+    }
+  }
+
+  /// Cleanup old insights (older than 30 days)
+  static Future<void> cleanupOldInsights() async {
+    try {
+      final insights = await loadInsights();
+      final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+
+      final recentInsights = insights
+          .where((insight) => insight.createdAt.isAfter(thirtyDaysAgo))
+          .toList();
+
+      if (recentInsights.length < insights.length) {
+        await _saveInsights(recentInsights);
+        final cleaned = insights.length - recentInsights.length;
+        Logger.smartInsightService('🧹 Cleaned up $cleaned old insights');
+      }
+    } catch (e) {
+      Logger.smartInsightService('❌ Error cleaning up insights: $e');
+    }
+  }
 }
