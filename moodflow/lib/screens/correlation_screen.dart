@@ -1,6 +1,8 @@
 // lib/screens/correlation_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
+import 'dart:async';
 import '../services/data/correlation_data_service.dart';
 import '../widgets/weather_api_setup_dialog.dart';
 
@@ -21,6 +23,7 @@ class CorrelationScreen extends StatefulWidget {
 class _CorrelationScreenState extends State<CorrelationScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  late TextEditingController _temperatureController;
   DateTime _selectedDate = DateTime.now();
   CorrelationData? _currentData;
   bool _isLoading = false;
@@ -33,6 +36,7 @@ class _CorrelationScreenState extends State<CorrelationScreen>
   void initState() {
     super.initState();
     _selectedDate = widget.initialDate ?? DateTime.now();
+    _temperatureController = TextEditingController();
 
     // Use the initial tab index if provided, otherwise default to 0
     final initialTab = widget.initialTabIndex ?? 0;
@@ -48,8 +52,20 @@ class _CorrelationScreenState extends State<CorrelationScreen>
 
   @override
   void dispose() {
+    _temperatureController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _updateTemperatureController() {
+    final newText = _currentData?.temperature != null
+        ? _currentData!.temperature!.toStringAsFixed(1)
+        : '';
+
+    // Only update if the text is different to avoid cursor jumping
+    if (_temperatureController.text != newText) {
+      _temperatureController.text = newText;
+    }
   }
 
   Future<void> _checkAutoWeatherEnabled() async {
@@ -76,13 +92,15 @@ class _CorrelationScreenState extends State<CorrelationScreen>
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
-    final data =
-        await CorrelationDataService.loadCorrelationData(_selectedDate);
+    final data = await CorrelationDataService.loadCorrelationData(_selectedDate);
 
     setState(() {
       _currentData = data ?? CorrelationData(date: _selectedDate);
       _isLoading = false;
     });
+
+    // Update the temperature controller
+    _updateTemperatureController();
   }
 
   Future<void> _saveData() async {
@@ -392,14 +410,12 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.wb_sunny,
-                          size: 20, color: Colors.orange),
+                      const Icon(Icons.wb_sunny, size: 20, color: Colors.orange),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
-                          'Auto-fetch weather',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w500, fontSize: 16),
+                          'Weather Data',
+                          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                         ),
                       ),
                       if (_isFetchingWeather)
@@ -408,15 +424,21 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
+                      else if (_autoWeatherEnabled)
+                        ElevatedButton.icon(
+                          onPressed: _fetchWeatherAutomatically,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Auto-fetch'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).primaryColor,
+                            foregroundColor: Colors.white,
+                          ),
+                        )
                       else
                         ElevatedButton.icon(
-                          onPressed: _autoWeatherEnabled
-                              ? _fetchWeatherAutomatically
-                              : _setupWeatherApi,
-                          icon: Icon(_autoWeatherEnabled
-                              ? Icons.refresh
-                              : Icons.settings),
-                          label: Text(_autoWeatherEnabled ? 'Fetch' : 'Setup'),
+                          onPressed: _setupWeatherApi,
+                          icon: const Icon(Icons.settings),
+                          label: const Text('Setup API'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).primaryColor,
                             foregroundColor: Colors.white,
@@ -427,32 +449,120 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                   const SizedBox(height: 8),
                   Text(
                     _autoWeatherEnabled
-                        ? 'Automatically get weather data for this date using your location'
-                        : 'Set up OpenWeatherMap API to automatically fetch weather data',
+                        ? 'Auto-fetch weather data or enter manually'
+                        : 'Set up OpenWeatherMap API for auto-fetch, or enter temperature manually',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey.shade600,
                     ),
                   ),
-                  if (_currentData?.temperature != null) ...[
+
+                  // Temperature input section - always visible
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Icon(Icons.thermostat, color: Colors.blue.shade600, size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Temperature:',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _temperatureController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                          ],
+                          decoration: InputDecoration(
+                            suffixText: _temperatureUnit == 'celsius' ? '°C' : '°F',
+                            border: const OutlineInputBorder(),
+                            hintText: 'Enter temperature',
+                            isDense: true,
+                          ),
+                          onChanged: (value) {
+                            // Use a timer to debounce rapid changes
+                            Timer(const Duration(milliseconds: 300), () {
+                              if (value.isNotEmpty) {
+                                final temp = double.tryParse(value);
+                                if (temp != null) {
+                                  _updateData(_currentData!.copyWith(
+                                    temperature: temp,
+                                    temperatureUnit: _temperatureUnit,
+                                    autoWeather: false,
+                                  ));
+                                }
+                              } else {
+                                _updateData(_currentData!.copyWith(
+                                  temperature: null,
+                                  temperatureUnit: null,
+                                  autoWeather: false,
+                                ));
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Status indicator
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _currentData?.autoWeather == true
+                              ? Colors.green.shade100
+                              : _currentData?.temperature != null
+                              ? Colors.blue.shade100
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _currentData?.autoWeather == true
+                              ? 'Auto'
+                              : _currentData?.temperature != null
+                              ? 'Manual'
+                              : 'Empty',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: _currentData?.autoWeather == true
+                                ? Colors.green.shade700
+                                : _currentData?.temperature != null
+                                ? Colors.blue.shade700
+                                : Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Weather description section (only show if exists)
+                  if (_currentData?.weatherDescription != null) ...[
                     const SizedBox(height: 12),
                     Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
+                        color: Colors.green.shade50,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.shade200),
+                        border: Border.all(color: Colors.green.shade200),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.thermostat,
-                              color: Colors.blue.shade600, size: 20),
+                          Icon(Icons.cloud, color: Colors.green.shade600, size: 16),
                           const SizedBox(width: 8),
-                          Text(
-                            'Temperature: ${_formatTemperature(_currentData!.temperature!)}',
-                            style: TextStyle(
-                              color: Colors.blue.shade700,
-                              fontWeight: FontWeight.w500,
+                          Expanded(
+                            child: Text(
+                              'Weather: ${_currentData!.weatherDescription}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ],
