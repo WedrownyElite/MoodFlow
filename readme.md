@@ -40,7 +40,7 @@ You can download the latest version of MoodFlow here:
 - **Statistics Dashboard** - Comprehensive insights including streaks, averages, and patterns
 - **Dark/Light Mode** - Adaptive themes with custom gradient backgrounds
 
-### AI Analysis ✨ *(New)*
+### AI Analysis ✨
 - AI-Powered Insights - Leverage OpenAI to receive intelligent summaries and mood analysis
 - Custom API Key - Add your own OpenAI key for private usage
 - Future Updates:
@@ -49,6 +49,14 @@ You can download the latest version of MoodFlow here:
 - Production Plan:
     - Option to use your own API key
     - Or pay to use MoodFlow’s managed app key
+ 
+### Correlations and Insights 🔎 *(New)*
+- **Weather Integration** - Auto-fetch weather data with OpenWeatherMap API
+- **Sleep Tracking** - Monitor sleep quality, duration, and schedule
+- **Activity Monitoring** - Track exercise levels and social activities
+- **Lifestyle Factors** - Log work stress, custom tags, and notes
+- **Smart Analytics** - Discover correlations between daily factors and mood
+- **Pattern Recognition** - Weekly trends, time-of-day patterns, and insights dashboard
 
 ### User Experience
 - **Blur Transitions** - Smooth, professional navigation animations
@@ -230,7 +238,7 @@ For support and questions:
 
 ### Upcoming Features
 - [X] Data export/import functionality
-- [ ] Mood correlation with weather/activities
+- [X] Mood correlation with weather/activities
 - [X] Advanced AI statistical analysis
 - [ ] Widget support for home screen
 - [X] Backup and sync options
