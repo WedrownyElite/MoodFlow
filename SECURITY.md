@@ -15,7 +15,7 @@ Older versions may receive fixes at our discretion, but only the most recent rel
 We take security seriously and appreciate your help in keeping MoodFlow safe for all users.
 
 - **Please do not publicly disclose vulnerabilities** until we have confirmed and patched the issue.  
-- To report a vulnerability, email: **`[oddologyinc@gmail.com]`**  
+- To report a vulnerability, email: **`oddologyinc@gmail.com`**  
 - Include as much detail as possible:
   - Steps to reproduce the vulnerability  
   - Affected platform (e.g., Android 13, device model)  
