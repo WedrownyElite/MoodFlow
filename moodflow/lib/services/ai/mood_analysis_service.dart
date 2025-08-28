@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../data/mood_data_service.dart';
 import '../data/correlation_data_service.dart';
-import '../insights/smart_insights_service.dart';
+import '../insights/smart_insights_service.dart'  as smartinsights;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MoodAnalysisService {
@@ -497,7 +497,7 @@ class MoodAnalysisService {
       if (!aiResult.success) return aiResult;
 
       // Enhance with local pattern detection
-      final smartInsights = await SmartInsightsService.generateInsights(forceRefresh: true);
+      final smartInsights = await smartinsights.SmartInsightsService.generateInsights(forceRefresh: true);
 
       // Convert SmartInsights to MoodInsights and MoodRecommendations
       final enhancedInsights = <MoodInsight>[];
@@ -507,14 +507,14 @@ class MoodAnalysisService {
         enhancedInsights.add(MoodInsight(
           title: insight.title,
           description: insight.description,
-          type: insight.type == InsightType.pattern ? InsightType.positive : InsightType.neutral,
+          type: insight.type == smartinsights.InsightType.pattern ? InsightType.positive : InsightType.neutral,
         ));
 
         if (insight.actionSteps != null && insight.actionSteps!.isNotEmpty) {
           enhancedRecommendations.add(MoodRecommendation(
             title: 'Action Plan: ${insight.title}',
             description: insight.actionSteps!.join(' • '),
-            priority: insight.priority == AlertPriority.high
+            priority: insight.priority == smartinsights.AlertPriority.high
                 ? RecommendationPriority.high
                 : RecommendationPriority.medium,
           ));
