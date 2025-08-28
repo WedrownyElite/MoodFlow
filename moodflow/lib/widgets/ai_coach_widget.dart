@@ -1,5 +1,4 @@
-﻿// lib/widgets/ai_coach_widget.dart
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/ai/mood_coach_service.dart';
 
@@ -16,6 +15,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
   List<CoachMessage> _messages = [];
   bool _isTyping = false;
   bool _isEnabled = false;
+  bool _disclaimerAccepted = false;
 
   @override
   void initState() {
@@ -32,21 +32,33 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
 
   Future<void> _initializeCoach() async {
     final isEnabled = await MoodCoachService.isCoachEnabled();
-    final welcomeMessage = await MoodCoachService.getWelcomeMessage();
+    final disclaimerAccepted = await MoodCoachService.isDisclaimerAccepted();
 
     setState(() {
       _isEnabled = isEnabled;
-      if (welcomeMessage != null) {
-        _messages.add(welcomeMessage);
-      }
+      _disclaimerAccepted = disclaimerAccepted;
     });
+
+    if (isEnabled) {
+      final welcomeMessage = await MoodCoachService.getWelcomeMessage();
+      if (welcomeMessage != null && mounted) {
+        setState(() {
+          _messages.add(welcomeMessage);
+        });
+      }
+    }
   }
 
   Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+    if (text
+        .trim()
+        .isEmpty) return;
 
     final userMessage = CoachMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: DateTime
+          .now()
+          .millisecondsSinceEpoch
+          .toString(),
       text: text,
       isUser: true,
       timestamp: DateTime.now(),
@@ -63,23 +75,29 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
     try {
       final response = await MoodCoachService.processUserMessage(text);
 
-      setState(() {
-        _messages.add(response);
-        _isTyping = false;
-      });
+      if (mounted) {
+        setState(() {
+          _messages.add(response);
+          _isTyping = false;
+        });
+      }
 
       _scrollToBottom();
     } catch (e) {
-      setState(() {
-        _isTyping = false;
-        _messages.add(CoachMessage(
-          id: 'error_${DateTime.now().millisecondsSinceEpoch}',
-          text: 'I\'m having trouble connecting right now. Please try again in a moment.',
-          isUser: false,
-          timestamp: DateTime.now(),
-          isError: true,
-        ));
-      });
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _messages.add(CoachMessage(
+            id: 'error_${DateTime
+                .now()
+                .millisecondsSinceEpoch}',
+            text: 'I\'m having trouble connecting right now. Please try again in a moment.',
+            isUser: false,
+            timestamp: DateTime.now(),
+            isError: true,
+          ));
+        });
+      }
     }
   }
 
@@ -97,7 +115,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isEnabled) {
+    if (!_isEnabled || !_disclaimerAccepted) {
       return _buildSetupCard();
     }
 
@@ -106,7 +124,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        height: 400,
+        height: 500, // Increased height for better chat experience
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
@@ -172,7 +190,8 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 12),
               ),
             ),
           ],
@@ -220,7 +239,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                   ),
                 ),
                 Text(
-                  'Here to help with insights and support',
+                  'AI-powered insights, not professional advice',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey,
@@ -258,6 +277,38 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
               ],
             ),
           ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'clear') {
+                _clearConversation();
+              } else if (value == 'disable') {
+                _disableCoach();
+              }
+            },
+            itemBuilder: (context) =>
+            [
+              const PopupMenuItem(
+                value: 'clear',
+                child: Row(
+                  children: [
+                    Icon(Icons.clear_all, size: 16),
+                    SizedBox(width: 8),
+                    Text('Clear Chat'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'disable',
+                child: Row(
+                  children: [
+                    Icon(Icons.close, size: 16, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Disable Coach'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -286,7 +337,8 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment
+            .start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
@@ -295,7 +347,8 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
               height: 32,
               margin: const EdgeInsets.only(right: 8, top: 4),
               decoration: BoxDecoration(
-                color: isError ? Colors.red.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
+                color: isError ? Colors.red.withValues(alpha: 0.1) : Colors.blue
+                    .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
@@ -332,34 +385,38 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                   Text(
                     message.text,
                     style: TextStyle(
-                      color: isUser ? Colors.white : isError ? Colors.red.shade700 : Colors.black87,
+                      color: isUser ? Colors.white : isError ? Colors.red
+                          .shade700 : Colors.black87,
                       height: 1.4,
                     ),
                   ),
-                  if (message.suggestions != null && message.suggestions!.isNotEmpty) ...[
+                  if (message.suggestions != null &&
+                      message.suggestions!.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    ...message.suggestions!.map((suggestion) => Container(
-                      margin: const EdgeInsets.only(bottom: 4),
-                      child: InkWell(
-                        onTap: () => _sendMessage(suggestion),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.blue.shade200),
-                          ),
-                          child: Text(
-                            suggestion,
-                            style: TextStyle(
-                              color: Colors.blue.shade700,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                    ...message.suggestions!.map((suggestion) =>
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          child: InkWell(
+                            onTap: () => _sendMessage(suggestion),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.blue.shade200),
+                              ),
+                              child: Text(
+                                suggestion,
+                                style: TextStyle(
+                                  color: Colors.blue.shade700,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    )),
+                        )),
                   ],
                   const SizedBox(height: 4),
                   Text(
@@ -479,15 +536,16 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
       child: Column(
         children: [
           // Quick suggestions
-          if (_messages.isEmpty || _messages.last.isUser) ...[
+          if (_messages.isEmpty ||
+              (_messages.isNotEmpty && _messages.last.isUser)) ...[
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildQuickSuggestion('I\'m feeling off but can\'t pinpoint why'),
-                  _buildQuickSuggestion('What patterns do you see in my mood?'),
-                  _buildQuickSuggestion('How can I improve my mood today?'),
-                  _buildQuickSuggestion('I had a great day, what made it special?'),
+                  _buildQuickSuggestion('What patterns do you see?'),
+                  _buildQuickSuggestion('How can I improve today?'),
+                  _buildQuickSuggestion('I\'m feeling off lately'),
+                  _buildQuickSuggestion('Great day - what made it special?'),
                 ],
               ),
             ),
@@ -569,49 +627,131 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
   Future<void> _setupAiCoach() async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.psychology, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('Setup AI Mood Coach'),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Your AI Mood Coach can help you:',
-              style: TextStyle(fontWeight: FontWeight.w500),
+      barrierDismissible: false,
+      builder: (context) =>
+          AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                    Icons.warning_amber_rounded, color: Colors.orange.shade600),
+                const SizedBox(width: 8),
+                const Text('AI Coach Disclaimer'),
+              ],
             ),
-            SizedBox(height: 8),
-            Text('• Analyze your mood patterns and correlations'),
-            Text('• Provide personalized recommendations'),
-            Text('• Answer questions about your mental wellbeing'),
-            Text('• Offer support during challenging times'),
-            SizedBox(height: 12),
-            Text(
-              'The coach uses your mood data to provide insights while keeping your information private and secure.',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '⚠️ IMPORTANT DISCLAIMER',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange.shade800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'This AI Coach is NOT a licensed therapist, psychologist, or medical professional. It provides general wellness insights based on your mood tracking data.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.orange.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'What the AI Coach CAN do:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('• Analyze your mood patterns and trends'),
+                  const Text('• Provide general wellness suggestions'),
+                  const Text('• Help you reflect on your mood tracking data'),
+                  const Text(
+                      '• Offer conversation about your wellbeing journey'),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'What it CANNOT do:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('• Diagnose mental health conditions'),
+                  const Text('• Replace professional mental health treatment'),
+                  const Text(
+                      '• Provide crisis intervention or emergency support'),
+                  const Text('• Offer medical or clinical advice'),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '🚨 IF YOU ARE IN CRISIS:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red.shade800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Please contact emergency services (911), Crisis Text Line (text HOME to 741741), or National Suicide Prevention Lifeline (988).',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.red.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'By enabling the AI Coach, you acknowledge that:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                      '• You understand this is AI-generated content, not professional advice'),
+                  const Text(
+                      '• You will seek professional help for serious mental health concerns'),
+                  const Text(
+                      '• You use this tool as a supplement to, not replacement for, proper care'),
+                ],
+              ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Maybe Later'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('I Understand & Enable'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Enable Coach'),
-          ),
-        ],
-      ),
     );
 
     if (result == true) {
@@ -621,119 +761,83 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('AI Mood Coach enabled! Start chatting below.'),
+            content: Text(
+                'AI Mood Coach enabled! Remember: AI insights, not professional advice.'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
           ),
         );
       }
     }
   }
-}
 
-// Supporting service for the AI Coach
-class MoodCoachService {
-  static const String _enabledKey = 'ai_coach_enabled';
-  static const String _conversationHistoryKey = 'coach_conversation_history';
-
-  static Future<bool> isCoachEnabled() async {
-    // In a real implementation, this would check if AI services are configured
-    return false; // Disabled by default until properly configured
-  }
-
-  static Future<void> enableCoach() async {
-    // Enable the coach service
-  }
-
-  static Future<CoachMessage?> getWelcomeMessage() async {
-    return CoachMessage(
-      id: 'welcome_${DateTime.now().millisecondsSinceEpoch}',
-      text: 'Hello! I\'m your AI Mood Coach. I\'ve been analyzing your mood patterns and I\'m here to help you understand what affects your wellbeing. What would you like to explore today?',
-      isUser: false,
-      timestamp: DateTime.now(),
-      suggestions: [
-        'What patterns do you see in my mood?',
-        'How can I improve my mood today?',
-        'What affects my mood the most?',
-      ],
+  Future<void> _clearConversation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) =>
+          AlertDialog(
+            title: const Text('Clear Conversation'),
+            content: const Text(
+                'This will delete all chat history with your AI Coach. Continue?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Clear All'),
+              ),
+            ],
+          ),
     );
+
+    if (confirmed == true) {
+      await MoodCoachService.clearConversationHistory();
+      setState(() {
+        _messages.clear();
+      });
+
+      // Add welcome message back
+      final welcomeMessage = await MoodCoachService.getWelcomeMessage();
+      if (welcomeMessage != null && mounted) {
+        setState(() {
+          _messages.add(welcomeMessage);
+        });
+      }
+    }
   }
 
-  static Future<CoachMessage> processUserMessage(String message) async {
-    // Simulate processing delay
-    await Future.delayed(const Duration(seconds: 2));
-
-    // In a real implementation, this would:
-    // 1. Analyze the user's mood data
-    // 2. Process the message with AI
-    // 3. Generate personalized insights
-    // 4. Return relevant recommendations
-
-    return CoachMessage(
-      id: 'response_${DateTime.now().millisecondsSinceEpoch}',
-      text: _generateMockResponse(message),
-      isUser: false,
-      timestamp: DateTime.now(),
-      suggestions: [
-        'Tell me more about this',
-        'What should I do about it?',
-        'Any other insights?',
-      ],
+  Future<void> _disableCoach() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) =>
+          AlertDialog(
+            title: const Text('Disable AI Coach'),
+            content: const Text(
+                'This will disable the AI Coach and clear all conversation history. You can re-enable it later.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Disable'),
+              ),
+            ],
+          ),
     );
+
+    if (confirmed == true) {
+      await MoodCoachService.disableCoach();
+      setState(() {
+        _isEnabled = false;
+        _disclaimerAccepted = false;
+        _messages.clear();
+      });
+    }
   }
-
-  static String _generateMockResponse(String userMessage) {
-    final lowercaseMessage = userMessage.toLowerCase();
-
-    if (lowercaseMessage.contains('pattern')) {
-      return 'I notice you tend to feel better in the mornings (average 7.2) vs evenings (5.8). Your mood also correlates strongly with sleep quality - when you get 8+ hours, your next day mood averages 7.5 vs 6.1 with less sleep.';
-    }
-
-    if (lowercaseMessage.contains('improve') || lowercaseMessage.contains('better')) {
-      return 'Based on your data, here are 3 proven mood boosters for you: 1) Light exercise gives you a +1.8 boost, 2) Video calls with friends boost you +2.1, 3) Getting outside on sunny days adds +1.4 points.';
-    }
-
-    if (lowercaseMessage.contains('feeling off') || lowercaseMessage.contains('down')) {
-      return 'I notice you logged 4.2 today. Looking at your patterns: You missed your usual 2 PM snack, and your energy dips typically happen when you skip protein at lunch. Try a quick protein snack + 10-min walk - this combo worked 8/10 times before.';
-    }
-
-    return 'That\'s an interesting question! Based on your mood data from the past 30 days, I can see some patterns that might help. Would you like me to dive deeper into any specific aspect of your mood tracking?';
-  }
-}
-
-class CoachMessage {
-  final String id;
-  final String text;
-  final bool isUser;
-  final DateTime timestamp;
-  final List<String>? suggestions;
-  final bool isError;
-
-  CoachMessage({
-    required this.id,
-    required this.text,
-    required this.isUser,
-    required this.timestamp,
-    this.suggestions,
-    this.isError = false,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'text': text,
-    'isUser': isUser,
-    'timestamp': timestamp.toIso8601String(),
-    'suggestions': suggestions,
-    'isError': isError,
-  };
-
-  factory CoachMessage.fromJson(Map<String, dynamic> json) => CoachMessage(
-    id: json['id'],
-    text: json['text'],
-    isUser: json['isUser'],
-    timestamp: DateTime.parse(json['timestamp']),
-    suggestions: json['suggestions'] != null
-        ? List<String>.from(json['suggestions'])
-        : null,
-    isError: json['isError'] ?? false,
-  );
 }
