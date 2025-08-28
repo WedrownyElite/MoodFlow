@@ -166,6 +166,17 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
   Future<void> _performAnalysis() async {
     if (!_hasValidKey) {
       await _showApiKeyDialog();
+      
+      final result = await MoodAnalysisService.generateEnhancedAnalysis(
+        startDate: _startDate,
+        endDate: _endDate,
+        includeMoodData: _includeMoodData,
+        includeWeatherData: _includeWeatherData,
+        includeSleepData: _includeSleepData,
+        includeActivityData: _includeActivityData,
+        includeWorkStressData: _includeWorkStressData,
+      );
+      
       return;
     }
 

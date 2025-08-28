@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../data/mood_data_service.dart';
 import '../data/correlation_data_service.dart';
+import '../insights/smart_insights_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MoodAnalysisService {
@@ -471,6 +472,75 @@ class MoodAnalysisService {
     }
   }
 
+  /// Enhanced analysis that combines AI with local pattern detection
+  static Future<MoodAnalysisResult> generateEnhancedAnalysis({
+    required DateTime startDate,
+    required DateTime endDate,
+    bool includeMoodData = true,
+    bool includeWeatherData = false,
+    bool includeSleepData = false,
+    bool includeActivityData = false,
+    bool includeWorkStressData = false,
+  }) async {
+    try {
+      // Get standard AI analysis
+      final aiResult = await analyzeMoodTrendsWithOptions(
+        startDate: startDate,
+        endDate: endDate,
+        includeMoodData: includeMoodData,
+        includeWeatherData: includeWeatherData,
+        includeSleepData: includeSleepData,
+        includeActivityData: includeActivityData,
+        includeWorkStressData: includeWorkStressData,
+      );
+
+      if (!aiResult.success) return aiResult;
+
+      // Enhance with local pattern detection
+      final smartInsights = await SmartInsightsService.generateInsights(forceRefresh: true);
+
+      // Convert SmartInsights to MoodInsights and MoodRecommendations
+      final enhancedInsights = <MoodInsight>[];
+      final enhancedRecommendations = <MoodRecommendation>[];
+
+      for (final insight in smartInsights.take(3)) {
+        enhancedInsights.add(MoodInsight(
+          title: insight.title,
+          description: insight.description,
+          type: insight.type == InsightType.pattern ? InsightType.positive : InsightType.neutral,
+        ));
+
+        if (insight.actionSteps != null && insight.actionSteps!.isNotEmpty) {
+          enhancedRecommendations.add(MoodRecommendation(
+            title: 'Action Plan: ${insight.title}',
+            description: insight.actionSteps!.join(' • '),
+            priority: insight.priority == AlertPriority.high
+                ? RecommendationPriority.high
+                : RecommendationPriority.medium,
+          ));
+        }
+      }
+
+      // Combine with AI results
+      final combinedInsights = [...aiResult.insights, ...enhancedInsights];
+      final combinedRecommendations = [...aiResult.recommendations, ...enhancedRecommendations];
+
+      return MoodAnalysisResult(
+        success: true,
+        insights: combinedInsights,
+        recommendations: combinedRecommendations,
+      );
+
+    } catch (e) {
+      return MoodAnalysisResult(
+        success: false,
+        error: 'Enhanced analysis failed: ${e.toString()}',
+        insights: [],
+        recommendations: [],
+      );
+    }
+  }
+  
   static InsightType _parseInsightType(String? type) {
     switch (type?.toLowerCase()) {
       case 'positive':

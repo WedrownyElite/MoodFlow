@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import '../services/data/correlation_data_service.dart';
 import '../widgets/weather_api_setup_dialog.dart';
+import '../services/insights/smart_insights_service.dart';
 
 class CorrelationScreen extends StatefulWidget {
   final DateTime? initialDate;
@@ -111,6 +112,10 @@ class _CorrelationScreenState extends State<CorrelationScreen>
 
     if (success) {
       setState(() => _hasChanges = false);
+
+      // Trigger insights regeneration in background
+      SmartInsightsService.backgroundRefresh();
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

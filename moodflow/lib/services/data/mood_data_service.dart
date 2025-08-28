@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../backup/cloud_backup_service.dart';
 import '../utils/logger.dart';
+import '../insights/smart_insights_service.dart';
 
 class MoodDataService {
   static const List<String> timeSegments = ['Morning', 'Midday', 'Evening'];
@@ -176,6 +177,7 @@ class MoodDataService {
 
           // Trigger cloud backup after successful save
           _scheduleThrottledBackup();
+          SmartInsightsService.backgroundRefresh();
 
           return true;
         } else {
