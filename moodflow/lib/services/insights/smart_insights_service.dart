@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/mood_data_service.dart';
 import '../data/correlation_data_service.dart';
@@ -150,7 +149,6 @@ class WeeklyData {
 class SmartInsightsService {
   static const String _insightsKey = 'enhanced_smart_insights';
   static const String _lastAnalysisKey = 'last_enhanced_analysis_date';
-  static const String _userPatternsKey = 'enhanced_user_patterns';
 
   /// Generate comprehensive insights
   static Future<List<SmartInsight>> generateInsights({bool forceRefresh = false}) async {

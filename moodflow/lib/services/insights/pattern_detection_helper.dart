@@ -1,6 +1,5 @@
 ﻿// lib/services/insights/pattern_detection_helper.dart
 import 'dart:math';
-import '../data/correlation_data_service.dart';
 import 'smart_insights_service.dart';
 
 // Data classes for pattern insights

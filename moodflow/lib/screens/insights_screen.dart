@@ -136,83 +136,6 @@ class _InsightsScreenState extends State<InsightsScreen>
     );
   }
 
-  Widget _buildSmartInsightsCard() {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.auto_awesome, color: Colors.purple, size: 20),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Smart Insights',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/insights'),
-                  child: const Text('View All'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            FutureBuilder<List<SmartInsight>>(
-              future: SmartInsightsService.loadInsights(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Text('Generate insights from your mood patterns');
-                }
-
-                final topInsight = snapshot.data!.first;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      topInsight.title,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      topInsight.description,
-                      style: const TextStyle(fontSize: 14, height: 1.3),
-                    ),
-                    if (topInsight.confidence != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.analytics, size: 14, color: Colors.grey.shade600),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${(topInsight.confidence! * 100).round()}% confidence',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildSmartInsightsTab() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -557,22 +480,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: Theme.of(context).brightness == Brightness.dark
-                ? [
-              Colors.grey.shade700,
-              Colors.grey.shade600,
-            ]
-                : [
-              Colors.purple.shade50,
-              Colors.blue.shade50,
-            ],
-          ),
-        ),
+        // Remove decoration entirely - let Card handle the background
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -625,13 +533,11 @@ class _InsightsScreenState extends State<InsightsScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade800
-                    : Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade500
+                      ? Colors.grey.shade600
                       : Colors.purple.withValues(alpha: 0.2),
                 ),
               ),
