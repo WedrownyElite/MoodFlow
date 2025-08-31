@@ -81,7 +81,14 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
   }
 
   /// Process user message and generate AI response
-  static Future<CoachMessage> processUserMessage(String message) async {
+  static Future<CoachMessage> processUserMessage(
+      String message, {
+        bool includeMoodData = true,
+        bool includeWeatherData = false,
+        bool includeSleepData = false,
+        bool includeActivityData = false,
+        bool includeWorkStressData = false,
+      }) async {
     try {
       Logger.aiService('🤖 Processing user message: ${message.substring(0, math.min(50, message.length))}...');
 
@@ -97,7 +104,13 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
       ));
 
       // Analyze user's mood data
-      final moodAnalysis = await _analyzeMoodData();
+      final moodAnalysis = await _analyzeMoodData(
+        includeMoodData: includeMoodData,
+        includeWeatherData: includeWeatherData,
+        includeSleepData: includeSleepData,
+        includeActivityData: includeActivityData,
+        includeWorkStressData: includeWorkStressData,
+      );
 
       // Generate contextual response based on message and data
       final response = await _generateResponse(message, moodAnalysis);
@@ -120,52 +133,95 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
     }
   }
 
-  /// Analyze user's mood data for context
-  static Future<MoodAnalysisContext> _analyzeMoodData() async {
+  /// Analyze user's mood data for context with data filtering
+  static Future<MoodAnalysisContext> _analyzeMoodData({
+    bool includeMoodData = true,
+    bool includeWeatherData = false,
+    bool includeSleepData = false,
+    bool includeActivityData = false,
+    bool includeWorkStressData = false,
+  }) async {
     try {
       final endDate = DateTime.now();
       final startDate = endDate.subtract(const Duration(days: 30));
 
-      // Get mood trends
-      final trends = await MoodTrendsService.getMoodTrends(
-        startDate: startDate,
-        endDate: endDate,
-      );
+      // Initialize context with defaults
+      double overallAverage = 0.0;
+      int currentStreak = 0;
+      int daysLogged = 0;
+      List<double> recentMoods = [];
+      List<CorrelationData> recentCorrelationData = [];
+      int bestTimeSegment = 0;
+      Map<int, double> timeSegmentAverages = {};
 
-      final statistics = await MoodTrendsService.calculateStatisticsForDateRange(
-          trends, startDate, endDate
-      );
+      // Get mood data if enabled
+      if (includeMoodData) {
+        // Get mood trends
+        final trends = await MoodTrendsService.getMoodTrends(
+          startDate: startDate,
+          endDate: endDate,
+        );
 
-      // Get recent mood entries
-      final recentMoods = <double>[];
-      for (int i = 0; i < 7; i++) {
-        final date = DateTime.now().subtract(Duration(days: i));
-        for (int segment = 0; segment < 3; segment++) {
-          final mood = await MoodDataService.loadMood(date, segment);
-          if (mood != null && mood['rating'] != null) {
-            recentMoods.add((mood['rating'] as num).toDouble());
+        final statistics = await MoodTrendsService.calculateStatisticsForDateRange(
+            trends, startDate, endDate
+        );
+
+        overallAverage = statistics.overallAverage;
+        currentStreak = statistics.currentStreak;
+        daysLogged = statistics.daysLogged;
+        bestTimeSegment = statistics.bestTimeSegment;
+        timeSegmentAverages = statistics.timeSegmentAverages;
+
+        // Get recent mood entries
+        for (int i = 0; i < 7; i++) {
+          final date = DateTime.now().subtract(Duration(days: i));
+          for (int segment = 0; segment < 3; segment++) {
+            final mood = await MoodDataService.loadMood(date, segment);
+            if (mood != null && mood['rating'] != null) {
+              recentMoods.add((mood['rating'] as num).toDouble());
+            }
           }
         }
       }
 
-      // Get correlation data
-      final recentCorrelationData = <CorrelationData>[];
-      for (int i = 0; i < 7; i++) {
-        final date = DateTime.now().subtract(Duration(days: i));
-        final correlation = await CorrelationDataService.loadCorrelationData(date);
-        if (correlation != null) {
-          recentCorrelationData.add(correlation);
+      // Get correlation data if any correlation type is enabled
+      if (includeWeatherData || includeSleepData || includeActivityData || includeWorkStressData) {
+        for (int i = 0; i < 7; i++) {
+          final date = DateTime.now().subtract(Duration(days: i));
+          final correlation = await CorrelationDataService.loadCorrelationData(date);
+          if (correlation != null) {
+            // Filter correlation data based on what's enabled
+            final filteredCorrelation = CorrelationData(
+              date: correlation.date,
+              weather: includeWeatherData ? correlation.weather : null,
+              temperature: includeWeatherData ? correlation.temperature : null,
+              temperatureUnit: includeWeatherData ? correlation.temperatureUnit : null,
+              weatherDescription: includeWeatherData ? correlation.weatherDescription : null,
+              sleepQuality: includeSleepData ? correlation.sleepQuality : null,
+              sleepDuration: includeSleepData ? correlation.sleepDuration : null,
+              bedtime: includeSleepData ? correlation.bedtime : null,
+              wakeTime: includeSleepData ? correlation.wakeTime : null,
+              exerciseLevel: includeActivityData ? correlation.exerciseLevel : null,
+              socialActivity: includeActivityData ? correlation.socialActivity : null,
+              workStress: includeWorkStressData ? correlation.workStress : null,
+              customTags: correlation.customTags,
+              notes: correlation.notes,
+              autoWeather: correlation.autoWeather,
+              weatherData: includeWeatherData ? correlation.weatherData : null,
+            );
+            recentCorrelationData.add(filteredCorrelation);
+          }
         }
       }
 
       return MoodAnalysisContext(
-        overallAverage: statistics.overallAverage,
-        currentStreak: statistics.currentStreak,
-        daysLogged: statistics.daysLogged,
+        overallAverage: overallAverage,
+        currentStreak: currentStreak,
+        daysLogged: daysLogged,
         recentMoods: recentMoods,
         recentCorrelationData: recentCorrelationData,
-        bestTimeSegment: statistics.bestTimeSegment,
-        timeSegmentAverages: statistics.timeSegmentAverages,
+        bestTimeSegment: bestTimeSegment,
+        timeSegmentAverages: timeSegmentAverages,
       );
 
     } catch (e) {
@@ -220,21 +276,21 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
     if (context.timeSegmentAverages.isNotEmpty) {
       final bestSegment = context.bestTimeSegment;
       final segmentNames = ['morning', 'midday', 'evening'];
-      insights.add('You tend to feel best in the ${segmentNames[bestSegment]} (average ${context.timeSegmentAverages[bestSegment]?.toStringAsFixed(1) ?? "N/A"}/10).');
+      insights.add('Your energy tends to peak in the ${segmentNames[bestSegment]} (average ${context.timeSegmentAverages[bestSegment]?.toStringAsFixed(1) ?? "N/A"}/10).');
       suggestions.add('Schedule important tasks in the ${segmentNames[bestSegment]}');
     }
 
     if (context.currentStreak > 0) {
-      insights.add('You\'ve been consistently logging for ${context.currentStreak} days - that\'s excellent self-awareness!');
+      insights.add('You\'ve maintained ${context.currentStreak} days of consistent mood tracking - excellent self-awareness!');
       suggestions.add('Keep up your consistent logging streak');
     }
 
     if (context.recentMoods.isNotEmpty) {
       final recentAvg = context.recentMoods.reduce((a, b) => a + b) / context.recentMoods.length;
       if (recentAvg > context.overallAverage + 0.5) {
-        insights.add('Your recent mood (${recentAvg.toStringAsFixed(1)}) has been higher than your overall average (${context.overallAverage.toStringAsFixed(1)}) - great progress!');
+        insights.add('Your recent patterns (${recentAvg.toStringAsFixed(1)}) show improvement compared to your baseline (${context.overallAverage.toStringAsFixed(1)}) - great progress!');
       } else if (recentAvg < context.overallAverage - 0.5) {
-        insights.add('Your recent mood has been lower than usual. This might be a good time for extra self-care.');
+        insights.add('Your recent patterns suggest a dip from your usual baseline. This might be a good time for extra self-care.');
         suggestions.add('Try one mood-boosting activity today');
       }
     }
@@ -247,7 +303,7 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
 
     final insightText = insights.isNotEmpty
         ? insights.join('\n\n')
-        : 'I\'m analyzing your patterns. Keep logging regularly for better insights!';
+        : 'Based on your data patterns, I can see some interesting trends forming. Keep logging regularly for better insights!';
 
     suggestions.addAll([
       'What should I focus on this week?',
@@ -274,12 +330,12 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
           .reduce((a, b) => a.value < b.value ? a : b);
       final segmentNames = ['morning', 'midday', 'evening'];
 
-      recommendations.add('Your ${segmentNames[worstSegment.key]} tends to be challenging. Try scheduling lighter activities then.');
+      recommendations.add('Your ${segmentNames[worstSegment.key]} patterns suggest room for optimization. Try scheduling lighter activities then.');
     }
 
     // Streak-based recommendations
     if (context.currentStreak < 7) {
-      recommendations.add('Building a consistent logging habit (currently ${context.currentStreak} days) will help me give you better insights.');
+      recommendations.add('Building a stronger tracking habit (currently ${context.currentStreak} days) will help me provide better insights.');
       suggestions.add('Set a daily reminder to log your mood');
     }
 
@@ -305,7 +361,7 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
 
     return CoachMessage(
       id: 'improvement_response_${now.millisecondsSinceEpoch}',
-      text: '💡 **Personalized Recommendations**\n\nBased on your data, here are some strategies that might help:\n\n• $recommendationText\n\n*These are suggestions based on general wellness principles and your patterns. For persistent concerns, please consult a healthcare professional.*',
+      text: '💡 **Personalized Recommendations**\n\nHere are some strategies that might help:\n\n• $recommendationText\n\n*These are suggestions based on general wellness principles and your patterns. For persistent concerns, please consult a healthcare professional.*',
       isUser: false,
       timestamp: now,
       suggestions: suggestions.take(3).toList(),
@@ -321,7 +377,7 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
     if (currentHour < 12) {
       todayAdvice.add('Good morning! Starting your day with intention can set a positive tone.');
       if (context.timeSegmentAverages[0] != null && context.timeSegmentAverages[0]! > 6.5) {
-        todayAdvice.add('Your mornings tend to be your strongest time - take advantage of this energy!');
+        todayAdvice.add('Mornings tend to be your strongest time - take advantage of this energy!');
       }
     } else if (currentHour < 17) {
       todayAdvice.add('How\'s your day going so far? Midday is a great time to check in with yourself.');
@@ -335,7 +391,7 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
       final isImproving = recentTrend[0] > recentTrend[2];
 
       if (isImproving) {
-        todayAdvice.add('I notice your mood has been trending upward recently - keep doing what\'s working!');
+        todayAdvice.add('Your recent patterns show an upward trend - keep doing what\'s working!');
       } else {
         todayAdvice.add('If you\'re having a tough day, remember that it\'s temporary. Be extra kind to yourself.');
         suggestions.add('What can I do to feel better right now?');
@@ -495,9 +551,9 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
 
   static CoachMessage _generateDefaultResponse(MoodAnalysisContext context, DateTime now) {
     final responses = [
-      'That\'s a thoughtful question! Based on your mood tracking data, I can see some interesting patterns.',
-      'I appreciate you sharing that with me. Let me look at your recent mood data to provide some context.',
-      'Thanks for that insight! Your ${context.daysLogged} days of mood tracking give us good data to work with.',
+      'That\'s an interesting question. Let me analyze your patterns to help with that.',
+      'Good question! Based on your mood history, here\'s what I can tell you.',
+      'I can help you explore that. Your ${context.daysLogged} days of mood tracking give us good data to work with.',
     ];
 
     final insights = <String>[];

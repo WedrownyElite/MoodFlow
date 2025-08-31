@@ -1,5 +1,4 @@
-﻿// lib/widgets/ai_coach_widget.dart
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/ai/mood_coach_service.dart';
 
@@ -17,6 +16,14 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
   bool _isTyping = false;
   bool _isEnabled = false;
   bool _disclaimerAccepted = false;
+  bool _showDataSettings = false;
+
+  // Data selection options
+  bool _includeMoodData = true;
+  bool _includeWeatherData = false;
+  bool _includeSleepData = false;
+  bool _includeActivityData = false;
+  bool _includeWorkStressData = false;
 
   @override
   void initState() {
@@ -69,7 +76,14 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
     _scrollToBottom();
 
     try {
-      final response = await MoodCoachService.processUserMessage(text);
+      final response = await MoodCoachService.processUserMessage(
+        text,
+        includeMoodData: _includeMoodData,
+        includeWeatherData: _includeWeatherData,
+        includeSleepData: _includeSleepData,
+        includeActivityData: _includeActivityData,
+        includeWorkStressData: _includeWorkStressData,
+      );
 
       if (mounted) {
         setState(() {
@@ -133,6 +147,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
         child: Column(
           children: [
             _buildHeader(),
+            if (_showDataSettings) _buildDataSelectionPanel(),
             Expanded(child: _buildMessageList()),
             _buildInputArea(),
           ],
@@ -241,6 +256,15 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
               ],
             ),
           ),
+          IconButton(
+            onPressed: () => setState(() => _showDataSettings = !_showDataSettings),
+            icon: Icon(
+              Icons.tune,
+              size: 20,
+              color: Colors.grey.shade600,
+            ),
+            tooltip: 'Data Settings',
+          ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -302,6 +326,111 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDataSelectionPanel() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Data to include in AI responses:',
+            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+
+          // Compact checkboxes
+          _buildCompactCheckbox(
+            'Mood Data',
+            'Daily mood ratings and notes',
+            Icons.sentiment_satisfied,
+            _includeMoodData,
+                (value) => setState(() => _includeMoodData = value ?? true),
+          ),
+
+          _buildCompactCheckbox(
+            'Weather Data',
+            'Weather conditions and temperature',
+            Icons.wb_sunny,
+            _includeWeatherData,
+                (value) => setState(() => _includeWeatherData = value ?? false),
+          ),
+
+          _buildCompactCheckbox(
+            'Sleep Data',
+            'Sleep quality, duration, and schedule',
+            Icons.bedtime,
+            _includeSleepData,
+                (value) => setState(() => _includeSleepData = value ?? false),
+          ),
+
+          _buildCompactCheckbox(
+            'Activity Data',
+            'Exercise levels and social activities',
+            Icons.fitness_center,
+            _includeActivityData,
+                (value) => setState(() => _includeActivityData = value ?? false),
+          ),
+
+          _buildCompactCheckbox(
+            'Work Stress Data',
+            'Work stress levels and patterns',
+            Icons.work,
+            _includeWorkStressData,
+                (value) => setState(() => _includeWorkStressData = value ?? false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactCheckbox(
+      String title,
+      String subtitle,
+      IconData icon,
+      bool value,
+      ValueChanged<bool?> onChanged,
+      ) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: Colors.grey.shade600),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            Transform.scale(
+              scale: 0.8,
+              child: Checkbox(
+                value: value,
+                onChanged: onChanged,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

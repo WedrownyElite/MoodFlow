@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/insights/smart_insights_service.dart';
+import '../widgets/ai_coach_widget.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -95,6 +96,11 @@ class _InsightsScreenState extends State<InsightsScreen>
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.smart_toy),
+            onPressed: _openAiCoach,
+            tooltip: 'AI Coach',
+          ),
           IconButton(
             icon: _isGenerating
                 ? const SizedBox(
@@ -1351,6 +1357,39 @@ class _InsightsScreenState extends State<InsightsScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openAiCoach() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                height: 4,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Expanded(child: AiCoachWidget()),
+            ],
+          ),
+        ),
       ),
     );
   }

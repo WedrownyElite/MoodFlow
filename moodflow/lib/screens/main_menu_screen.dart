@@ -210,23 +210,6 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                       ],
                     ),
 
-                    const SizedBox(height: 12),
-
-                    _buildQuickButton(
-                      'AI Coach',
-                      Icons.smart_toy,
-                          () => _navigateWithBlur(
-                        Scaffold(
-                          appBar: AppBar(
-                            title: const Text('AI Mood Coach'),
-                            backgroundColor: Colors.indigo,
-                            foregroundColor: Colors.white,
-                          ),
-                          body: const AiCoachWidget(),
-                        ),
-                      ),
-                    ),
-
                     const SizedBox(height: 24),
 
                     // Secondary actions row
