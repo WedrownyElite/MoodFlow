@@ -12,6 +12,7 @@ import 'settings_screen.dart';
 import 'ai_analysis_screen.dart';
 import 'backup_export_screen.dart';
 import '../services/backup/startup_restore_service.dart';
+import '../widgets/ai_coach_widget.dart';
 
 class MainMenuScreen extends StatefulWidget {
   final ThemeMode themeMode;
@@ -207,6 +208,23 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                                 () => _navigateWithBlur(const CorrelationScreen(
                                     initialTabIndex: 0)))),
                       ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildQuickButton(
+                      'AI Coach',
+                      Icons.smart_toy,
+                          () => _navigateWithBlur(
+                        Scaffold(
+                          appBar: AppBar(
+                            title: const Text('AI Mood Coach'),
+                            backgroundColor: Colors.indigo,
+                            foregroundColor: Colors.white,
+                          ),
+                          body: const AiCoachWidget(),
+                        ),
+                      ),
                     ),
 
                     const SizedBox(height: 24),
