@@ -202,6 +202,17 @@ class SmartInsightsService {
       await _saveInsights(insights.take(15).toList());
       await _updateLastAnalysis();
 
+      // Add debug logging
+      Logger.smartInsightService('📊 Generated insights breakdown:');
+      Logger.smartInsightService('  - Actionable: ${insights.where((i) => i.type == InsightType.actionable).length}');
+      Logger.smartInsightService('  - Predictions: ${insights.where((i) => i.type == InsightType.prediction).length}');
+      Logger.smartInsightService('  - Patterns: ${insights.where((i) => i.type == InsightType.pattern).length}');
+      Logger.smartInsightService('  - Suggestions: ${insights.where((i) => i.type == InsightType.suggestion).length}');
+
+      for (final insight in insights.take(3)) {
+        Logger.smartInsightService('  📝 ${insight.type.name}: ${insight.title}');
+      }
+
       Logger.smartInsightService('✅ Generated ${insights.length} enhanced insights');
       return insights.take(15).toList();
 
@@ -490,7 +501,7 @@ class SmartInsightsService {
   // Helper methods and data gathering
   static Future<ComprehensiveAnalysisData> _gatherComprehensiveData() async {
     final now = DateTime.now();
-    final startDate = now.subtract(const Duration(days: 30));
+    final startDate = now.subtract(const Duration(days: 60));
     final days = <DayAnalysisData>[];
 
     DateTime currentDate = startDate;
@@ -524,6 +535,7 @@ class SmartInsightsService {
       currentDate = currentDate.add(const Duration(days: 1));
     }
 
+    Logger.smartInsightService('📊 Gathered ${days.length} days of data for analysis');
     return ComprehensiveAnalysisData(days: days);
   }
 

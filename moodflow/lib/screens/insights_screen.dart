@@ -66,6 +66,9 @@ class _InsightsScreenState extends State<InsightsScreen>
         _isGenerating = false;
       });
 
+      // Trigger a complete reload to ensure all tabs show new data
+      await _loadInsights();
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -249,7 +252,8 @@ class _InsightsScreenState extends State<InsightsScreen>
     }
 
     final predictiveInsights = _insights.where(
-            (insight) => insight.type == InsightType.prediction
+            (insight) => insight.type == InsightType.prediction ||
+            insight.type == InsightType.concern
     ).toList();
 
     return SingleChildScrollView(
@@ -295,7 +299,8 @@ class _InsightsScreenState extends State<InsightsScreen>
     }
 
     final patternInsights = _insights.where(
-            (insight) => insight.type == InsightType.pattern
+            (insight) => insight.type == InsightType.pattern ||
+            insight.type == InsightType.achievement
     ).toList();
 
     if (patternInsights.isEmpty) {
@@ -557,7 +562,12 @@ class _InsightsScreenState extends State<InsightsScreen>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
+            colors: Theme.of(context).brightness == Brightness.dark
+                ? [
+              Colors.grey.shade700,
+              Colors.grey.shade600,
+            ]
+                : [
               Colors.purple.shade50,
               Colors.blue.shade50,
             ],
@@ -615,9 +625,15 @@ class _InsightsScreenState extends State<InsightsScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.purple.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade500
+                      : Colors.purple.withValues(alpha: 0.2),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1191,9 +1207,11 @@ class _InsightsScreenState extends State<InsightsScreen>
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade900
+            : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         children: [
@@ -1203,7 +1221,9 @@ class _InsightsScreenState extends State<InsightsScreen>
             height: 4,
             width: 40,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade600
+                  : Colors.grey.shade300,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1297,10 +1317,14 @@ class _InsightsScreenState extends State<InsightsScreen>
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: primaryColor.withValues(alpha: 0.05),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade800
+                              : primaryColor.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: primaryColor.withValues(alpha: 0.2),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey.shade600
+                                : primaryColor.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Row(
@@ -1347,9 +1371,15 @@ class _InsightsScreenState extends State<InsightsScreen>
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade800
+                            : Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade600
+                              : Colors.grey.shade200,
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
