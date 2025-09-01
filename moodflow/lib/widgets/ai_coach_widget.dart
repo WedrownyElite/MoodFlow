@@ -176,7 +176,14 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
           _buildHeader(),
           if (_showDataSettings) _buildDataSelectionPanel(),
           Expanded(child: _buildMessageList()),
-          _buildInputArea(),
+          // Wrap input area with bottom padding based on keyboard
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: _buildInputArea(),
+          ),
         ],
       ),
     );
@@ -496,9 +503,13 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                   'Powered by ChatGPT • Not professional advice',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade600,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.amber.shade300
+                        : Colors.orange.shade600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
+
               ],
             ),
           ),
@@ -741,7 +752,11 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
             Icon(
                 icon,
                 size: 16,
-                color: enabled ? Colors.grey.shade600 : Colors.grey.shade400
+                color: enabled
+                    ? (Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade300
+                    : Colors.grey.shade600)
+                    : Colors.grey.shade500
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -759,8 +774,10 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                   Text(
                     subtitle,
                     style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey.shade600
+                      fontSize: 10,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade300
+                          : Colors.grey.shade600,
                     ),
                   ),
                 ],
@@ -896,18 +913,67 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    message.text,
-                    style: TextStyle(
-                      color: isUser
-                          ? Colors.white
-                          : isError
-                          ? Colors.red.shade700
-                          : Theme.of(context).textTheme.bodyLarge?.color,
-                      height: 1.5,
-                      fontSize: 14,
-                    ),
-                  ),
+                  // Split message into main content and disclaimer
+                      () {
+                    if (!isUser && message.text.contains('IMPORTANT SAFETY NOTICE')) {
+                      // Split on the first occurrence of the safety notice
+                      final parts = message.text.split(RegExp(r'\n\s*⚠️\s*IMPORTANT SAFETY NOTICE\s*⚠️'));
+
+                      if (parts.length >= 2) {
+                        final mainText = parts[0].trim();
+                        final disclaimerText = '⚠️ IMPORTANT SAFETY NOTICE ⚠️\n${parts.sublist(1).join('\n⚠️ IMPORTANT SAFETY NOTICE ⚠️')}'.trim();
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (mainText.isNotEmpty)
+                              Text(
+                                mainText,
+                                style: TextStyle(
+                                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                                  height: 1.5,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            if (disclaimerText.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.red.shade300, width: 1.5),
+                                ),
+                                child: Text(
+                                  disclaimerText,
+                                  style: TextStyle(
+                                    color: Colors.red.shade800,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.3,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
+                      }
+                    }
+
+                    // Default case - display the full message as-is
+                    return Text(
+                      message.text,
+                      style: TextStyle(
+                        color: isUser
+                            ? Colors.white
+                            : isError
+                            ? Colors.red.shade700
+                            : Theme.of(context).textTheme.bodyLarge?.color,
+                        height: 1.5,
+                        fontSize: 14,
+                      ),
+                    );
+                  }(),
                   if (message.suggestions != null && message.suggestions!.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Wrap(

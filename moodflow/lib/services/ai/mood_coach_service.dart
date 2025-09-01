@@ -394,6 +394,7 @@ RESPONSE GUIDELINES:
 - Be encouraging and supportive while being honest about patterns
 - Focus on one main insight or suggestion per response
 - Use simple, clear language
+- When providing follow-up suggestions, write them from the user's first-person perspective using "I", "my", "me"
 
 USER'S MOOD DATA:
 $moodContext
@@ -514,16 +515,18 @@ Requirements for follow-up questions:
 - Focus on actionable next steps or clarifying questions
 - Must make sense given their actual data (don't suggest topics they have no data for)
 - Should feel like natural conversation continuations
+- CRITICAL: Write suggestions from the USER'S perspective using "I", "my", "me" - never "you" or "your"
 
 Examples of GOOD prompts:
 - "What boosts my morning mood most?"
 - "How can I improve my sleep?"
 - "What patterns should I watch?"
+- "What activities make me happiest?"
+- "How does my sleep affect mood?"
 
-Examples of BAD prompts:
-- "What physical activities bring you joy?" (too generic, assumes data not shown)
-- "Tell me about your relationships" (not related to mood tracking data)
-- "How do you handle stress at work?" (too long, generic)
+Examples of BAD prompts (using second person):
+- "How can you incorporate more productivity?" (should be "How can I be more productive?")
+- "What activities bring you joy?" (should be "What activities bring me joy?")
 
 Return ONLY a JSON array of exactly 3 strings: ["prompt1", "prompt2", "prompt3"]''';
 
@@ -622,16 +625,25 @@ Return ONLY a JSON array of exactly 3 strings: ["prompt1", "prompt2", "prompt3"]
 
   /// Add safety disclaimer to AI response
   static String _addSafetyDisclaimer(String aiResponse) {
-    final disclaimer = '''
+    // Only add disclaimer if it's not already present
+    if (aiResponse.contains('IMPORTANT SAFETY NOTICE')) {
+      return aiResponse;
+    }
 
----
-*This is AI-generated guidance, not professional medical advice. If you're in crisis or danger to yourself/others, please contact:*
-• **Emergency**: 911 (US), 112 (EU), 000 (AU)
-• **Crisis Text Line**: Text HOME to 741741 (US)
-• **Suicide Prevention**: 988 (US), 13 11 14 (AU), 116 123 (UK)
-• **Crisis Support**: Your local emergency services''';
+    const highlightedDisclaimer = '''
 
-    return aiResponse + disclaimer;
+⚠️ IMPORTANT SAFETY NOTICE ⚠️
+🚨 This is AI-generated guidance, NOT professional medical advice 🚨
+
+IF YOU ARE IN CRISIS OR DANGER:
+- 🚨 Emergency: 911 (US), 112 (EU), 000 (AU)
+- 💬 Crisis Text Line: Text HOME to 741741 (US)  
+- 📞 Suicide Prevention: 988 (US), 13 11 14 (AU), 116 123 (UK)
+- 🆘 Crisis Support: Your local emergency services
+
+⚠️ Please contact these resources immediately if you're having thoughts of self-harm. ⚠️''';
+
+      return aiResponse + highlightedDisclaimer;
   }
 
   /// Get recent conversation history for context
