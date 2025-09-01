@@ -50,7 +50,7 @@ You can download the latest version of MoodFlow here:
     - Option to use your own API key
     - Or pay to use MoodFlow’s managed app key
  
-### Correlations and Insights 🔎 *(New)*
+### Correlations and Insights 🔎
 - **Weather Integration** - Auto-fetch weather data with OpenWeatherMap API
 - **Sleep Tracking** - Monitor sleep quality, duration, and schedule
 - **Activity Monitoring** - Track exercise levels and social activities
