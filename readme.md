@@ -58,6 +58,20 @@ You can download the latest version of MoodFlow here:
 - **Smart Analytics** - Discover correlations between daily factors and mood
 - **Pattern Recognition** - Weekly trends, time-of-day patterns, and insights dashboard
 
+### Forecast & AI Coach 🌤️🧑‍🏫 *(New)*
+
+- **Mood Forecasting** – The Insights screen now attempts to **predict tomorrow’s probable mood** based on your past logs and patterns  
+  - Provides a simple “forecast” (e.g., likely positive, neutral, or challenging day)  
+  - Offers **hard-coded planning suggestions** like *“Plan extra self-care activities”*
+
+- **AI Coach (Powered by ChatGPT API)** – Access a personal AI companion directly from the Insights screen  
+  - Open the **AI Coach widget** in the top-right corner to chat with the assistant  
+  - Choose whether to provide additional context from your **mood logs, weather data, sleep data, and work stress data**  
+  - Get **personalized suggestions, reflections, or analysis** based on your data  
+  - Adjustable **response length control** – set the maximum word count for replies  
+
+*These features aim to make MoodFlow not only a tracker, but also a supportive tool for daily planning, reflection, and growth.*
+
 ### User Experience
 - **Blur Transitions** - Smooth, professional navigation animations
 - **Responsive Design** - Optimized for all screen sizes and orientations
