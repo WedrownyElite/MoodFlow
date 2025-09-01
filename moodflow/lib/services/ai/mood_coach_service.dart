@@ -1,7 +1,7 @@
-﻿// lib/services/ai/mood_coach_service.dart
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import '../data/mood_data_service.dart';
 import '../data/correlation_data_service.dart';
 import '../data/mood_trends_service.dart';
@@ -11,7 +11,10 @@ class MoodCoachService {
   static const String _enabledKey = 'ai_coach_enabled';
   static const String _conversationHistoryKey = 'coach_conversation_history';
   static const String _disclaimerAcceptedKey = 'coach_disclaimer_accepted';
+  static const String _openaiApiKeyKey = 'openai_api_key';
   static const int _maxHistoryLength = 20; // Keep last 20 messages
+
+  static const String _baseUrl = 'https://api.openai.com/v1/chat/completions';
 
   /// Check if coach is enabled and properly configured
   static Future<bool> isCoachEnabled() async {
@@ -19,9 +22,77 @@ class MoodCoachService {
       final prefs = await SharedPreferences.getInstance();
       final isEnabled = prefs.getBool(_enabledKey) ?? false;
       final disclaimerAccepted = prefs.getBool(_disclaimerAcceptedKey) ?? false;
-      return isEnabled && disclaimerAccepted;
+      final hasApiKey = await _hasValidApiKey();
+      return isEnabled && disclaimerAccepted && hasApiKey;
     } catch (e) {
       Logger.aiService('❌ Error checking coach status: $e');
+      return false;
+    }
+  }
+
+  /// Check if we have a valid API key stored
+  static Future<bool> hasValidApiKey() async {
+    return await _hasValidApiKey();
+  }
+
+  /// Validate and save API key (reuse from MoodAnalysisService)
+  static Future<bool> validateAndSaveApiKey(String apiKey) async {
+    try {
+      // Test the API key with a simple request using available models
+      final models = ['gpt-4o-mini', 'gpt-3.5-turbo'];
+
+      for (final model in models) {
+        try {
+          final response = await http.post(
+            Uri.parse(_baseUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $apiKey',
+            },
+            body: jsonEncode({
+              'model': model,
+              'messages': [
+                {
+                  'role': 'user',
+                  'content': 'Test',
+                },
+              ],
+              'max_tokens': 5,
+            }),
+          );
+
+          if (response.statusCode == 200) {
+            // Valid key, save it
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(_openaiApiKeyKey, apiKey);
+            Logger.aiService('✅ OpenAI API key validated and saved (using model: $model)');
+            return true;
+          } else if (response.statusCode == 401) {
+            // Invalid API key
+            Logger.aiService('❌ API key validation failed: Invalid key');
+            return false;
+          } else if (response.statusCode == 403 && model == models.first) {
+            // Model not available, try next one
+            Logger.aiService('⚠️ Model $model not available during validation, trying fallback...');
+            continue;
+          } else {
+            Logger.aiService('❌ API key validation failed: ${response.statusCode}');
+            return false;
+          }
+        } catch (e) {
+          if (model == models.last) {
+            // Last model failed
+            Logger.aiService('❌ API key validation error: $e');
+            return false;
+          }
+          // Try next model
+          continue;
+        }
+      }
+
+      return false;
+    } catch (e) {
+      Logger.aiService('❌ API key validation error: $e');
       return false;
     }
   }
@@ -52,22 +123,39 @@ class MoodCoachService {
     }
   }
 
+  /// Check if we have a valid OpenAI API key
+  static Future<bool> _hasValidApiKey() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final apiKey = prefs.getString(_openaiApiKeyKey);
+      return apiKey != null && apiKey.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get stored API key
+  static Future<String?> _getApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_openaiApiKeyKey);
+  }
+
   /// Get welcome message with disclaimer
   static Future<CoachMessage?> getWelcomeMessage() async {
     if (!await isCoachEnabled()) return null;
 
     return CoachMessage(
       id: 'welcome_${DateTime.now().millisecondsSinceEpoch}',
-      text: '''Hello! I'm your AI Mood Coach. 
+      text: '''Hello! I'm your AI Mood Coach, powered by ChatGPT. 
 
-⚠️ IMPORTANT DISCLAIMER: I'm an AI assistant created to help analyze your mood patterns. I am NOT a licensed therapist, psychologist, or medical professional. My insights are for informational purposes only and should never replace professional mental health care.
+⚠️ **IMPORTANT**: I'm an AI assistant that analyzes your mood data. I am NOT a licensed therapist or medical professional. My insights are for informational purposes only.
 
-If you're experiencing a mental health crisis, please contact:
-• Emergency services: 911
+**For mental health crises, contact:**
+• Emergency: 911
 • Crisis Text Line: Text HOME to 741741
 • National Suicide Prevention Lifeline: 988
 
-Now, I'm here to help you understand your mood patterns. What would you like to explore?''',
+I can help you understand your mood patterns, provide wellness suggestions, and have meaningful conversations about your wellbeing journey. What would you like to explore about your mood data?''',
       isUser: false,
       timestamp: DateTime.now(),
       suggestions: [
@@ -79,9 +167,10 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
     );
   }
 
-  /// Process user message and generate AI response
+  /// Process user message with authentic ChatGPT integration
   static Future<CoachMessage> processUserMessage(
       String message, {
+        int maxWordCount = 150,
         bool includeMoodData = true,
         bool includeWeatherData = false,
         bool includeSleepData = false,
@@ -91,19 +180,17 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
     try {
       Logger.aiService('🤖 Processing user message: ${message.substring(0, math.min(50, message.length))}...');
 
-      // Simulate processing delay
-      await Future.delayed(const Duration(seconds: 1, milliseconds: 500));
-
-      // Save user message to history
-      await _saveMessageToHistory(CoachMessage(
+      // Save user message to history first
+      final userMessage = CoachMessage(
         id: 'user_${DateTime.now().millisecondsSinceEpoch}',
         text: message,
         isUser: true,
         timestamp: DateTime.now(),
-      ));
+      );
+      await _saveMessageToHistory(userMessage);
 
-      // Analyze user's mood data
-      final moodAnalysis = await _analyzeMoodData(
+      // Get user's mood data for context
+      final moodContext = await _buildMoodDataContext(
         includeMoodData: includeMoodData,
         includeWeatherData: includeWeatherData,
         includeSleepData: includeSleepData,
@@ -111,20 +198,42 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
         includeWorkStressData: includeWorkStressData,
       );
 
-      // Generate contextual response based on message and data
-      final response = await _generateResponse(message, moodAnalysis);
+      // Get conversation history for context
+      final conversationHistory = await _getRecentConversationHistory();
+
+      // Build the ChatGPT prompt with context
+      final systemPrompt = _buildSystemPrompt(moodContext, maxWordCount);
+      final messages = _buildChatMessages(systemPrompt, conversationHistory, message);
+
+      // Call OpenAI API for main response
+      final aiResponse = await _callOpenAI(messages, maxWordCount: maxWordCount);
+
+      // Generate follow-up suggestions using AI
+      final suggestions = await _generateAISuggestions(message, aiResponse, moodContext);
+
+      // Add safety disclaimer to response
+      final responseWithDisclaimer = _addSafetyDisclaimer(aiResponse);
+
+      // Create response message
+      final responseMessage = CoachMessage(
+        id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
+        text: responseWithDisclaimer,
+        isUser: false,
+        timestamp: DateTime.now(),
+        suggestions: suggestions,
+      );
 
       // Save AI response to history
-      await _saveMessageToHistory(response);
+      await _saveMessageToHistory(responseMessage);
 
-      Logger.aiService('✅ Generated coach response');
-      return response;
+      Logger.aiService('✅ Generated authentic AI coach response');
+      return responseMessage;
 
     } catch (e) {
       Logger.aiService('❌ Error processing message: $e');
       return CoachMessage(
         id: 'error_${DateTime.now().millisecondsSinceEpoch}',
-        text: 'I apologize, but I\'m having trouble processing your message right now. Please try again in a moment.',
+        text: 'I apologize, but I\'m having trouble processing your message right now. This could be due to an API issue or network problem. Please try again in a moment.',
         isUser: false,
         timestamp: DateTime.now(),
         isError: true,
@@ -132,566 +241,409 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
     }
   }
 
-  /// Analyze user's mood data for context with data filtering
-  static Future<MoodAnalysisContext> _analyzeMoodData({
+  /// Build comprehensive mood data context for ChatGPT
+  static Future<String> _buildMoodDataContext({
     bool includeMoodData = true,
     bool includeWeatherData = false,
     bool includeSleepData = false,
     bool includeActivityData = false,
     bool includeWorkStressData = false,
   }) async {
-    try {
-      final endDate = DateTime.now();
-      final startDate = endDate.subtract(const Duration(days: 30));
+    final context = StringBuffer();
+    final now = DateTime.now();
+    final thirtyDaysAgo = now.subtract(const Duration(days: 30));
 
-      // Initialize context with defaults
-      double overallAverage = 0.0;
-      int currentStreak = 0;
-      int daysLogged = 0;
-      List<double> recentMoods = [];
-      List<CorrelationData> recentCorrelationData = [];
-      int bestTimeSegment = 0;
-      Map<int, double> timeSegmentAverages = {};
+    context.writeln('USER MOOD DATA CONTEXT:');
+    context.writeln('Date range: ${_formatDate(thirtyDaysAgo)} to ${_formatDate(now)}');
+    context.writeln('Mood scale: 1 (very poor) to 10 (excellent)');
+    context.writeln('Time segments: Morning (0), Midday (1), Evening (2)');
+    context.writeln('');
 
-      // Get mood data if enabled
-      if (includeMoodData) {
-        // Get mood trends
+    // Get mood statistics
+    if (includeMoodData) {
+      try {
         final trends = await MoodTrendsService.getMoodTrends(
-          startDate: startDate,
-          endDate: endDate,
+          startDate: thirtyDaysAgo,
+          endDate: now,
         );
 
         final statistics = await MoodTrendsService.calculateStatisticsForDateRange(
-            trends, startDate, endDate
+            trends, thirtyDaysAgo, now
         );
 
-        overallAverage = statistics.overallAverage;
-        currentStreak = statistics.currentStreak;
-        daysLogged = statistics.daysLogged;
-        bestTimeSegment = statistics.bestTimeSegment;
-        timeSegmentAverages = statistics.timeSegmentAverages;
+        context.writeln('MOOD STATISTICS:');
+        context.writeln('- Overall average: ${statistics.overallAverage.toStringAsFixed(1)}/10');
+        context.writeln('- Current logging streak: ${statistics.currentStreak} days');
+        context.writeln('- Total days logged: ${statistics.daysLogged}');
 
-        // Get recent mood entries
+        if (statistics.timeSegmentAverages.isNotEmpty) {
+          context.writeln('- Time segment averages:');
+          final segments = ['Morning', 'Midday', 'Evening'];
+          for (final entry in statistics.timeSegmentAverages.entries) {
+            context.writeln('  • ${segments[entry.key]}: ${entry.value.toStringAsFixed(1)}/10');
+          }
+        }
+
+        context.writeln('');
+
+        // Add recent mood entries for detailed context
+        context.writeln('RECENT MOOD ENTRIES (last 7 days):');
         for (int i = 0; i < 7; i++) {
-          final date = DateTime.now().subtract(Duration(days: i));
+          final date = now.subtract(Duration(days: i));
+          final dayData = <String>[];
+
           for (int segment = 0; segment < 3; segment++) {
             final mood = await MoodDataService.loadMood(date, segment);
             if (mood != null && mood['rating'] != null) {
-              recentMoods.add((mood['rating'] as num).toDouble());
+              final rating = (mood['rating'] as num).toDouble();
+              final note = mood['note'] as String? ?? '';
+              final segmentName = ['Morning', 'Midday', 'Evening'][segment];
+
+              if (note.isNotEmpty) {
+                dayData.add('$segmentName: $rating/10 ("$note")');
+              } else {
+                dayData.add('$segmentName: $rating/10');
+              }
             }
           }
-        }
-      }
 
-      // Get correlation data if any correlation type is enabled
-      if (includeWeatherData || includeSleepData || includeActivityData || includeWorkStressData) {
-        for (int i = 0; i < 7; i++) {
-          final date = DateTime.now().subtract(Duration(days: i));
-          final correlation = await CorrelationDataService.loadCorrelationData(date);
-          if (correlation != null) {
-            // Filter correlation data based on what's enabled
-            final filteredCorrelation = CorrelationData(
-              date: correlation.date,
-              weather: includeWeatherData ? correlation.weather : null,
-              temperature: includeWeatherData ? correlation.temperature : null,
-              temperatureUnit: includeWeatherData ? correlation.temperatureUnit : null,
-              weatherDescription: includeWeatherData ? correlation.weatherDescription : null,
-              sleepQuality: includeSleepData ? correlation.sleepQuality : null,
-              sleepDuration: includeSleepData ? correlation.sleepDuration : null,
-              bedtime: includeSleepData ? correlation.bedtime : null,
-              wakeTime: includeSleepData ? correlation.wakeTime : null,
-              exerciseLevel: includeActivityData ? correlation.exerciseLevel : null,
-              socialActivity: includeActivityData ? correlation.socialActivity : null,
-              workStress: includeWorkStressData ? correlation.workStress : null,
-              customTags: correlation.customTags,
-              notes: correlation.notes,
-              autoWeather: correlation.autoWeather,
-              weatherData: includeWeatherData ? correlation.weatherData : null,
-            );
-            recentCorrelationData.add(filteredCorrelation);
+          if (dayData.isNotEmpty) {
+            context.writeln('${_formatDate(date)}: ${dayData.join(', ')}');
+          }
+        }
+        context.writeln('');
+      } catch (e) {
+        Logger.aiService('❌ Error building mood context: $e');
+        context.writeln('MOOD DATA: Error loading mood statistics');
+      }
+    }
+
+    // Add correlation data context
+    if (includeWeatherData || includeSleepData || includeActivityData || includeWorkStressData) {
+      context.writeln('LIFESTYLE FACTORS (last 7 days):');
+
+      for (int i = 0; i < 7; i++) {
+        final date = now.subtract(Duration(days: i));
+        final correlation = await CorrelationDataService.loadCorrelationData(date);
+
+        if (correlation != null) {
+          final factors = <String>[];
+
+          if (includeWeatherData && correlation.weather != null) {
+            final temp = correlation.temperature != null
+                ? ', ${correlation.temperature!.toStringAsFixed(1)}°C'
+                : '';
+            factors.add('Weather: ${correlation.weather!.name}$temp');
+          }
+
+          if (includeSleepData && correlation.sleepQuality != null) {
+            factors.add('Sleep: ${correlation.sleepQuality}/10');
+            if (correlation.bedtime != null && correlation.wakeTime != null) {
+              factors.add('Sleep schedule: ${_formatTime(correlation.bedtime!)} - ${_formatTime(correlation.wakeTime!)}');
+            }
+          }
+
+          if (includeActivityData) {
+            if (correlation.exerciseLevel != null) {
+              factors.add('Exercise: ${correlation.exerciseLevel!.name}');
+            }
+            if (correlation.socialActivity != null) {
+              factors.add('Social: ${correlation.socialActivity!.name}');
+            }
+          }
+
+          if (includeWorkStressData && correlation.workStress != null) {
+            factors.add('Work stress: ${correlation.workStress}/10');
+          }
+
+          if (factors.isNotEmpty) {
+            context.writeln('${_formatDate(date)}: ${factors.join(', ')}');
           }
         }
       }
+      context.writeln('');
+    }
 
-      return MoodAnalysisContext(
-        overallAverage: overallAverage,
-        currentStreak: currentStreak,
-        daysLogged: daysLogged,
-        recentMoods: recentMoods,
-        recentCorrelationData: recentCorrelationData,
-        bestTimeSegment: bestTimeSegment,
-        timeSegmentAverages: timeSegmentAverages,
-      );
+    return context.toString();
+  }
 
+  /// Build system prompt for ChatGPT
+  static String _buildSystemPrompt(String moodContext, int maxWordCount) {
+    return '''You are an AI Mood Coach in a mood tracking app called MoodFlow. You help users understand their mood patterns and provide supportive, insightful conversations about their mental wellbeing.
+
+CRITICAL WORD LIMIT: Your response must be EXACTLY $maxWordCount words or fewer. Count your words carefully and stop when you reach this limit.
+
+IMPORTANT DISCLAIMERS TO REMEMBER:
+- You are NOT a licensed therapist, psychologist, or medical professional
+- Your insights are for informational and self-reflection purposes only
+- Always remind users to seek professional help for serious mental health concerns
+- For crisis situations, direct users to emergency services
+
+YOUR ROLE:
+- Analyze mood patterns and provide insights based on the user's data
+- Offer supportive, empathetic conversation about their mood journey
+- Provide evidence-based wellness suggestions and coping strategies
+- Help users reflect on their mood tracking data and identify patterns
+- Be conversational, warm, and supportive while maintaining professionalism
+
+RESPONSE GUIDELINES:
+- MUST stay within $maxWordCount words - this is critical
+- Be conversational and empathetic, not clinical or robotic
+- Reference specific data points from their mood tracking when relevant
+- Provide actionable, practical suggestions
+- Be encouraging and supportive while being honest about patterns
+- Focus on one main insight or suggestion per response
+- Use simple, clear language
+
+USER'S MOOD DATA:
+$moodContext
+
+Remember: Keep your response to $maxWordCount words maximum. Be helpful but concise.''';
+  }
+
+  /// Build chat messages for OpenAI API
+  static List<Map<String, String>> _buildChatMessages(
+      String systemPrompt,
+      List<CoachMessage> conversationHistory,
+      String newMessage) {
+    final messages = <Map<String, String>>[];
+
+    // Add system prompt
+    messages.add({
+      'role': 'system',
+      'content': systemPrompt,
+    });
+
+    // Add recent conversation history for context (last 6 messages)
+    final recentHistory = conversationHistory.takeLast(6).toList();
+    for (final historyMessage in recentHistory) {
+      messages.add({
+        'role': historyMessage.isUser ? 'user' : 'assistant',
+        'content': historyMessage.text,
+      });
+    }
+
+    // Add current user message
+    messages.add({
+      'role': 'user',
+      'content': newMessage,
+    });
+
+    return messages;
+  }
+
+  /// Call OpenAI API for authentic ChatGPT response
+  static Future<String> _callOpenAI(List<Map<String, String>> messages, {int? maxWordCount}) async {
+    final apiKey = await _getApiKey();
+    if (apiKey == null || apiKey.isEmpty) {
+      throw Exception('OpenAI API key not configured');
+    }
+
+    // Calculate appropriate max_tokens based on word count (roughly 1.3 tokens per word)
+    final maxTokens = maxWordCount != null ? (maxWordCount * 1.5).round() : 600;
+
+    // Try with gpt-3.5-turbo first (more widely available), then gpt-4o-mini
+    final models = ['gpt-3.5-turbo', 'gpt-4o-mini'];
+
+    for (final model in models) {
+      try {
+        final response = await http.post(
+          Uri.parse(_baseUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $apiKey',
+          },
+          body: jsonEncode({
+            'model': model,
+            'messages': messages,
+            'max_tokens': maxTokens,
+            'temperature': 0.7, // Balanced creativity and consistency
+            'presence_penalty': 0.2, // Encourage varied responses
+            'frequency_penalty': 0.1, // Reduce repetition
+          }),
+        ).timeout(const Duration(seconds: 30));
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          Logger.aiService('✅ Successfully used model: $model');
+          return data['choices'][0]['message']['content'] as String;
+        } else if (response.statusCode == 401) {
+          throw Exception('Invalid API key. Please check your OpenAI API key in settings.');
+        } else if (response.statusCode == 429) {
+          throw Exception('API rate limit exceeded. Please try again in a moment.');
+        } else if (response.statusCode == 403 && model == models.first) {
+          // Model not available, try next one
+          Logger.aiService('⚠️ Model $model not available, trying fallback...');
+          continue;
+        } else {
+          throw Exception('API error: ${response.statusCode} - ${response.body}');
+        }
+      } catch (e) {
+        if (model == models.last) {
+          // Last model failed, rethrow error
+          rethrow;
+        }
+        // Try next model
+        Logger.aiService('⚠️ Model $model failed: $e, trying fallback...');
+        continue;
+      }
+    }
+
+    throw Exception('All AI models failed to respond');
+  }
+
+  /// Generate AI-powered contextual suggestions
+  static Future<List<String>> _generateAISuggestions(
+      String userMessage, String aiResponse, String moodContext) async {
+    try {
+      final apiKey = await _getApiKey();
+      if (apiKey == null) return [];
+
+      final suggestionPrompt = '''Based on this mood coaching conversation, suggest 3 helpful follow-up questions the user could ask.
+
+USER ASKED: "$userMessage"
+AI COACH RESPONDED: "$aiResponse"
+
+MOOD DATA CONTEXT: 
+$moodContext
+
+Requirements for follow-up questions:
+- Must be directly relevant to the user's mood data and this conversation
+- Maximum 7 words each
+- Should help the user get deeper insights about their specific mood patterns
+- Focus on actionable next steps or clarifying questions
+- Must make sense given their actual data (don't suggest topics they have no data for)
+- Should feel like natural conversation continuations
+
+Examples of GOOD prompts:
+- "What boosts my morning mood most?"
+- "How can I improve my sleep?"
+- "What patterns should I watch?"
+
+Examples of BAD prompts:
+- "What physical activities bring you joy?" (too generic, assumes data not shown)
+- "Tell me about your relationships" (not related to mood tracking data)
+- "How do you handle stress at work?" (too long, generic)
+
+Return ONLY a JSON array of exactly 3 strings: ["prompt1", "prompt2", "prompt3"]''';
+
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $apiKey',
+        },
+        body: jsonEncode({
+          'model': 'gpt-3.5-turbo',
+          'messages': [
+            {'role': 'user', 'content': suggestionPrompt},
+          ],
+          'max_tokens': 150,
+          'temperature': 0.9, // Higher creativity for diverse suggestions
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final content = data['choices'][0]['message']['content'] as String;
+
+        // Extract JSON from response (sometimes AI adds extra text)
+        final jsonMatch = RegExp(r'\[(.*?)\]', dotAll: true).firstMatch(content);
+        if (jsonMatch != null) {
+          final jsonString = '[${jsonMatch.group(1)}]';
+          final suggestions = jsonDecode(jsonString) as List<dynamic>;
+
+          // Validate suggestions are 7 words or less
+          final validSuggestions = suggestions
+              .map((s) => s.toString().trim())
+              .where((s) => s.split(' ').length <= 7 && s.length > 10)
+              .take(3)
+              .toList();
+
+          if (validSuggestions.length >= 2) {
+            Logger.aiService('✅ Generated ${validSuggestions.length} AI suggestions');
+            return validSuggestions;
+          }
+        }
+      }
     } catch (e) {
-      Logger.aiService('❌ Error analyzing mood data: $e');
-      return MoodAnalysisContext.empty();
+      Logger.aiService('⚠️ Could not generate AI suggestions: $e');
     }
+
+    // Fallback to contextual suggestions if AI fails
+    return _generateFallbackSuggestions(userMessage, aiResponse);
   }
 
-  /// Generate contextual response based on user message and mood data
-  static Future<CoachMessage> _generateResponse(
-      String userMessage, MoodAnalysisContext context) async {
-
+  /// Generate fallback suggestions if AI suggestion generation fails
+  static List<String> _generateFallbackSuggestions(String userMessage, String aiResponse) {
+    final suggestions = <String>[];
     final lowercaseMessage = userMessage.toLowerCase();
-    final now = DateTime.now();
+    final lowercaseResponse = aiResponse.toLowerCase();
 
-    if (lowercaseMessage.contains('sleep pattern') ||
-        lowercaseMessage.contains('tell me about') && lowercaseMessage.contains('sleep')) {
-      return _generateSleepResponse(context, now);
+    // Generate contextual suggestions based on content
+    if (lowercaseResponse.contains('sleep') || lowercaseMessage.contains('sleep')) {
+      suggestions.add('How does sleep affect my mood?');
     }
 
-    if (lowercaseMessage.contains('what patterns') ||
-        lowercaseMessage.contains('patterns do you see')) {
-      return await _generatePatternResponse(context, now);
+    if (lowercaseResponse.contains('exercise') || lowercaseMessage.contains('exercise')) {
+      suggestions.add('Best exercise for my mood?');
     }
 
-    // Pattern recognition responses
-    if (lowercaseMessage.contains('pattern') || lowercaseMessage.contains('trends')) {
-      return await _generatePatternResponse(context, now);
+    if (lowercaseResponse.contains('weather') || lowercaseMessage.contains('weather')) {
+      suggestions.add('Weather and mood correlation?');
     }
 
-    if (lowercaseMessage.contains('improve') || lowercaseMessage.contains('better') ||
-        lowercaseMessage.contains('help')) {
-      return _generateImprovementResponse(context, now);
+    if (lowercaseResponse.contains('pattern') || lowercaseMessage.contains('pattern')) {
+      suggestions.add('What patterns should I watch?');
     }
 
-    if (lowercaseMessage.contains('today') || lowercaseMessage.contains('right now') ||
-        lowercaseMessage.contains('feeling')) {
-      return _generateTodayResponse(context, now);
-    }
-
-    if (lowercaseMessage.contains('sleep') || lowercaseMessage.contains('tired')) {
-      return _generateSleepResponse(context, now);
-    }
-
-    if (lowercaseMessage.contains('stress') || lowercaseMessage.contains('work') ||
-        lowercaseMessage.contains('anxious')) {
-      return _generateStressResponse(context, now);
-    }
-
-    if (lowercaseMessage.contains('exercise') || lowercaseMessage.contains('activity')) {
-      return _generateExerciseResponse(context, now);
-    }
-
-    // Default contextual response
-    return _generateDefaultResponse(context, now);
-  }
-
-  static DateTime? _lastPatternResponse;
-  
-  static Future<CoachMessage> _generatePatternResponse(MoodAnalysisContext context, DateTime now) async {
-    final suggestions = <String>[];
-    final insights = <String>[];
-
-    // Prevent duplicate responses within 30 seconds
-    if (_lastPatternResponse != null &&
-        now.difference(_lastPatternResponse!).inSeconds < 30) {
-      return _generateDefaultResponse(context, now);
-    }
-    _lastPatternResponse = now;
-
-    if (context.timeSegmentAverages.isNotEmpty) {
-      final bestSegment = context.bestTimeSegment;
-      final segmentNames = ['morning', 'midday', 'evening'];
-      insights.add('Your energy tends to peak in the ${segmentNames[bestSegment]} (average ${context.timeSegmentAverages[bestSegment]?.toStringAsFixed(1) ?? "N/A"}/10).');
-      suggestions.add('Schedule important tasks in the ${segmentNames[bestSegment]}');
-    }
-
-    if (context.currentStreak > 0) {
-      insights.add('You\'ve maintained ${context.currentStreak} days of consistent mood tracking - excellent self-awareness!');
-      suggestions.add('Keep up your consistent logging streak');
-    }
-
-    if (context.recentMoods.isNotEmpty) {
-      final recentAvg = context.recentMoods.reduce((a, b) => a + b) / context.recentMoods.length;
-      if (recentAvg > context.overallAverage + 0.5) {
-        insights.add('Your recent patterns (${recentAvg.toStringAsFixed(1)}) show improvement compared to your baseline (${context.overallAverage.toStringAsFixed(1)}) - great progress!');
-      } else if (recentAvg < context.overallAverage - 0.5) {
-        insights.add('Your recent patterns suggest a dip from your usual baseline. This might be a good time for extra self-care.');
-        suggestions.add('Try one mood-boosting activity today');
-      }
-    }
-
-    // Weather patterns from correlation data
-    final weatherInsights = await _analyzeWeatherPatterns(context.recentCorrelationData);
-    if (weatherInsights.isNotEmpty) {
-      insights.add(weatherInsights);
-    }
-
-    final insightText = insights.isNotEmpty
-        ? insights.join('\n\n')
-        : 'Based on your data patterns, I can see some interesting trends forming. Keep logging regularly for better insights!';
-
-    suggestions.addAll([
-      'What should I focus on this week?',
-      'Tell me about my sleep patterns',
-      'How does weather affect my mood?',
-    ]);
-
-    return CoachMessage(
-      id: 'pattern_response_${now.millisecondsSinceEpoch}',
-      text: '📊 **Pattern Analysis**\n\n$insightText\n\n*Remember: These are AI-generated observations, not professional medical advice.*',
-      isUser: false,
-      timestamp: now,
-      suggestions: suggestions.take(3).toList(),
-    );
-  }
-
-  static CoachMessage _generateImprovementResponse(MoodAnalysisContext context, DateTime now) {
-    final recommendations = <String>[];
-    final suggestions = <String>[];
-
-    // Time-based recommendations
-    if (context.timeSegmentAverages.isNotEmpty) {
-      final worstSegment = context.timeSegmentAverages.entries
-          .reduce((a, b) => a.value < b.value ? a : b);
-      final segmentNames = ['morning', 'midday', 'evening'];
-
-      recommendations.add('Your ${segmentNames[worstSegment.key]} patterns suggest room for optimization. Try scheduling lighter activities then.');
-    }
-
-    // Streak-based recommendations
-    if (context.currentStreak < 7) {
-      recommendations.add('Building a stronger tracking habit (currently ${context.currentStreak} days) will help me provide better insights.');
-      suggestions.add('Set a daily reminder to log your mood');
-    }
-
-    // Activity recommendations based on correlation data
-    final activityRecommendations = _generateActivityRecommendations(context.recentCorrelationData);
-    recommendations.addAll(activityRecommendations);
-
-    // General mood-boosting strategies
-    recommendations.addAll([
-      'Try 10 minutes of sunlight exposure in the morning',
-      'Practice deep breathing when you notice stress building',
-      'Maintain a consistent sleep schedule',
-      'Connect with supportive friends or family',
-    ]);
-
-    suggestions.addAll([
-      'What activities make me feel best?',
-      'Help me plan a better week',
-      'What should I do when I feel down?',
-    ]);
-
-    final recommendationText = recommendations.take(4).join('\n• ');
-
-    return CoachMessage(
-      id: 'improvement_response_${now.millisecondsSinceEpoch}',
-      text: '💡 **Personalized Recommendations**\n\nHere are some strategies that might help:\n\n• $recommendationText\n\n*These are suggestions based on general wellness principles and your patterns. For persistent concerns, please consult a healthcare professional.*',
-      isUser: false,
-      timestamp: now,
-      suggestions: suggestions.take(3).toList(),
-    );
-  }
-
-  static CoachMessage _generateTodayResponse(MoodAnalysisContext context, DateTime now) {
-    final todayAdvice = <String>[];
-    final suggestions = <String>[];
-
-    // Time of day specific advice
-    final currentHour = now.hour;
-    if (currentHour < 12) {
-      todayAdvice.add('Good morning! Starting your day with intention can set a positive tone.');
-      if (context.timeSegmentAverages[0] != null && context.timeSegmentAverages[0]! > 6.5) {
-        todayAdvice.add('Mornings tend to be your strongest time - take advantage of this energy!');
-      }
-    } else if (currentHour < 17) {
-      todayAdvice.add('How\'s your day going so far? Midday is a great time to check in with yourself.');
-    } else {
-      todayAdvice.add('Evening is here - time to wind down and reflect on your day.');
-    }
-
-    // Recent mood trend advice
-    if (context.recentMoods.isNotEmpty && context.recentMoods.length >= 3) {
-      final recentTrend = context.recentMoods.take(3).toList();
-      final isImproving = recentTrend[0] > recentTrend[2];
-
-      if (isImproving) {
-        todayAdvice.add('Your recent patterns show an upward trend - keep doing what\'s working!');
-      } else {
-        todayAdvice.add('If you\'re having a tough day, remember that it\'s temporary. Be extra kind to yourself.');
-        suggestions.add('What can I do to feel better right now?');
-      }
-    }
-
-    suggestions.addAll([
-      'Give me a quick mood boost tip',
+    // Fill with general helpful suggestions
+    final fallbackSuggestions = [
       'What should I focus on today?',
-      'Help me plan my evening',
-    ]);
-
-    final adviceText = todayAdvice.join('\n\n');
-
-    return CoachMessage(
-      id: 'today_response_${now.millisecondsSinceEpoch}',
-      text: '🌟 **Today\'s Guidance**\n\n$adviceText\n\n*Remember: I\'m here to support your self-reflection, but please reach out to friends, family, or professionals if you need more support.*',
-      isUser: false,
-      timestamp: now,
-      suggestions: suggestions.take(3).toList(),
-    );
-  }
-
-  static CoachMessage _generateSleepResponse(MoodAnalysisContext context, DateTime now) {
-    final sleepInsights = <String>[];
-    final suggestions = <String>[];
-
-    // Analyze sleep patterns from correlation data
-    final sleepData = context.recentCorrelationData
-        .where((data) => data.sleepQuality != null)
-        .toList();
-
-    if (sleepData.isNotEmpty) {
-      final avgSleepQuality = sleepData
-          .map((data) => data.sleepQuality!)
-          .reduce((a, b) => a + b) / sleepData.length;
-
-      sleepInsights.add('Your recent sleep quality averages ${avgSleepQuality.toStringAsFixed(1)}/10.');
-
-      if (avgSleepQuality < 6.0) {
-        sleepInsights.add('Poor sleep can significantly impact mood. Consider improving your sleep hygiene.');
-        suggestions.add('Tell me about sleep hygiene tips');
-      } else if (avgSleepQuality > 7.5) {
-        sleepInsights.add('Your sleep quality looks good - this likely supports your overall wellbeing!');
-      }
-    } else {
-      sleepInsights.add('I don\'t have recent sleep data from you. Tracking sleep alongside mood can reveal important patterns.');
-      suggestions.add('Start tracking my sleep quality');
-    }
-
-    // General sleep advice
-    sleepInsights.addAll([
-      'Good sleep is crucial for emotional regulation and mental health.',
-      'Try to maintain consistent sleep and wake times, even on weekends.',
-    ]);
-
-    suggestions.addAll([
-      'What affects my sleep quality?',
-      'Help me improve my sleep routine',
-      'How does sleep affect my mood?',
-    ]);
-
-    return CoachMessage(
-      id: 'sleep_response_${now.millisecondsSinceEpoch}',
-      text: '😴 **Sleep & Mood Connection**\n\n${sleepInsights.join('\n\n')}\n\n*For persistent sleep issues, consider consulting a healthcare provider or sleep specialist.*',
-      isUser: false,
-      timestamp: now,
-      suggestions: suggestions.take(3).toList(),
-    );
-  }
-
-  static CoachMessage _generateStressResponse(MoodAnalysisContext context, DateTime now) {
-    final stressInsights = <String>[];
-    final suggestions = <String>[];
-
-    // Analyze work stress from correlation data
-    final stressData = context.recentCorrelationData
-        .where((data) => data.workStress != null)
-        .toList();
-
-    if (stressData.isNotEmpty) {
-      final avgStress = stressData
-          .map((data) => data.workStress!)
-          .reduce((a, b) => a + b) / stressData.length;
-
-      stressInsights.add('Your recent work stress levels average ${avgStress.toStringAsFixed(1)}/10.');
-
-      if (avgStress > 7.0) {
-        stressInsights.add('High stress levels can really impact your mood and wellbeing. It\'s important to find healthy coping strategies.');
-      }
-    }
-
-    // General stress management advice
-    stressInsights.addAll([
-      'Here are some quick stress management techniques:',
-      '• Deep breathing: 4 counts in, hold for 4, out for 4',
-      '• Progressive muscle relaxation',
-      '• Take short breaks throughout your day',
-      '• Practice mindfulness or meditation',
-    ]);
-
-    suggestions.addAll([
-      'Quick stress relief techniques',
-      'How can I manage work stress better?',
-      'What helps when I feel overwhelmed?',
-    ]);
-
-    return CoachMessage(
-      id: 'stress_response_${now.millisecondsSinceEpoch}',
-      text: '🧘 **Stress Management Support**\n\n${stressInsights.join('\n\n')}\n\n*If stress is severely impacting your life, please consider speaking with a mental health professional for additional support.*',
-      isUser: false,
-      timestamp: now,
-      suggestions: suggestions.take(3).toList(),
-    );
-  }
-
-  static CoachMessage _generateExerciseResponse(MoodAnalysisContext context, DateTime now) {
-    final exerciseInsights = <String>[];
-    final suggestions = <String>[];
-
-    // Analyze exercise patterns from correlation data
-    final exerciseData = context.recentCorrelationData
-        .where((data) => data.exerciseLevel != null)
-        .toList();
-
-    if (exerciseData.isNotEmpty) {
-      final exerciseLevels = <String, int>{};
-      for (final data in exerciseData) {
-        final level = data.exerciseLevel!.name;
-        exerciseLevels[level] = (exerciseLevels[level] ?? 0) + 1;
-      }
-
-      final mostCommon = exerciseLevels.entries.reduce((a, b) => a.value > b.value ? a : b);
-      exerciseInsights.add('You\'ve mostly been doing ${mostCommon.key} activity recently.');
-    }
-
-    exerciseInsights.addAll([
-      'Physical activity is one of the most effective mood boosters available!',
-      'Even light movement like a 10-minute walk can improve mood.',
-      'Find activities you enjoy - consistency matters more than intensity.',
-    ]);
-
-    suggestions.addAll([
-      'What exercise is best for my mood?',
-      'Quick activities I can do now',
-      'How to build an exercise routine',
-    ]);
-
-    return CoachMessage(
-      id: 'exercise_response_${now.millisecondsSinceEpoch}',
-      text: '💪 **Movement & Mood**\n\n${exerciseInsights.join('\n\n')}\n\n*Start slowly and listen to your body. Consult healthcare providers before starting new exercise routines if you have health concerns.*',
-      isUser: false,
-      timestamp: now,
-      suggestions: suggestions.take(3).toList(),
-    );
-  }
-
-  static CoachMessage _generateDefaultResponse(MoodAnalysisContext context, DateTime now) {
-    final responses = [
-      'That\'s an interesting question. Let me analyze your patterns to help with that.',
-      'Good question! Based on your mood history, here\'s what I can tell you.',
-      'I can help you explore that. Your ${context.daysLogged} days of mood tracking give us good data to work with.',
+      'Give me a personalized tip',
+      'How can I improve this week?',
+      'What time am I happiest?',
+      'What are my biggest mood boosters?',
+      'Help me plan tomorrow better',
     ];
 
-    final insights = <String>[];
+    while (suggestions.length < 3) {
+      final available = fallbackSuggestions
+          .where((s) => !suggestions.contains(s))
+          .toList();
+      if (available.isEmpty) break;
 
-    if (context.overallAverage > 0) {
-      insights.add('Your overall mood average is ${context.overallAverage.toStringAsFixed(1)}/10.');
+      final randomIndex = math.Random().nextInt(available.length);
+      suggestions.add(available[randomIndex]);
     }
 
-    if (context.currentStreak > 1) {
-      insights.add('You\'ve been consistently tracking for ${context.currentStreak} days.');
-    }
-
-    final responseText = responses[math.Random().nextInt(responses.length)];
-    final insightText = insights.isNotEmpty ? '\n\n${insights.join(' ')}' : '';
-
-    return CoachMessage(
-      id: 'default_response_${now.millisecondsSinceEpoch}',
-      text: '$responseText$insightText\n\n*I\'m here to help you understand patterns, but remember I\'m an AI assistant, not a licensed mental health professional.*',
-      isUser: false,
-      timestamp: now,
-      suggestions: [
-        'What patterns do you see in my data?',
-        'How can I improve my mood?',
-        'What should I focus on this week?',
-      ],
-    );
-  }
-  /// Helper methods for generating insights
-  static Future<String> _analyzeWeatherPatterns(List<CorrelationData> correlationData) async {
-    if (correlationData.isEmpty) return '';
-
-    final weatherMoodPairs = <String, List<double>>{};
-
-    // For each day with weather data, get the corresponding mood data
-    for (final correlation in correlationData) {
-      if (correlation.weather != null) {
-        // Get all mood segments for this date
-        final dayMoods = <double>[];
-
-        for (int segment = 0; segment < 3; segment++) {
-          final mood = await MoodDataService.loadMood(correlation.date, segment);
-          if (mood != null && mood['rating'] != null) {
-            dayMoods.add((mood['rating'] as num).toDouble());
-          }
-        }
-
-        // If we have mood data for this day, pair it with weather
-        if (dayMoods.isNotEmpty) {
-          final averageMood = dayMoods.reduce((a, b) => a + b) / dayMoods.length;
-          final weatherCondition = correlation.weather!.name;
-
-          weatherMoodPairs.putIfAbsent(weatherCondition, () => []).add(averageMood);
-        }
-      }
-    }
-
-    // Analyze the weather-mood relationships
-    if (weatherMoodPairs.length < 2) {
-      return 'I notice you\'ve been tracking weather, but need more data to identify clear patterns.';
-    }
-
-    // Find best and worst weather conditions for mood
-    String? bestWeather;
-    String? worstWeather;
-    double bestMoodAvg = 0.0;
-    double worstMoodAvg = 10.0;
-
-    for (final entry in weatherMoodPairs.entries) {
-      if (entry.value.length >= 2) { // Need at least 2 data points
-        final avgMood = entry.value.reduce((a, b) => a + b) / entry.value.length;
-
-        if (avgMood > bestMoodAvg) {
-          bestMoodAvg = avgMood;
-          bestWeather = entry.key;
-        }
-
-        if (avgMood < worstMoodAvg) {
-          worstMoodAvg = avgMood;
-          worstWeather = entry.key;
-        }
-      }
-    }
-
-    if (bestWeather != null && worstWeather != null && bestWeather != worstWeather) {
-      final difference = bestMoodAvg - worstMoodAvg;
-      if (difference >= 0.8) {
-        return 'Weather affects your mood: you average ${bestMoodAvg.toStringAsFixed(1)}/10 on ${_getWeatherDisplayName(bestWeather)} days vs ${worstMoodAvg.toStringAsFixed(1)}/10 on ${_getWeatherDisplayName(worstWeather)} days.';
-      }
-    }
-
-    return 'I can see weather patterns in your data, but the impact on mood varies. Keep tracking for clearer insights!';
+    return suggestions.take(3).toList();
   }
 
-  /// Helper method to get display-friendly weather names
-  static String _getWeatherDisplayName(String weatherCondition) {
-    switch (weatherCondition) {
-      case 'sunny': return 'sunny';
-      case 'cloudy': return 'cloudy';
-      case 'rainy': return 'rainy';
-      case 'stormy': return 'stormy';
-      case 'snowy': return 'snowy';
-      case 'foggy': return 'foggy';
-      default: return weatherCondition;
-    }
+  /// Add safety disclaimer to AI response
+  static String _addSafetyDisclaimer(String aiResponse) {
+    final disclaimer = '''
+
+---
+*This is AI-generated guidance, not professional medical advice. If you're in crisis or danger to yourself/others, please contact:*
+• **Emergency**: 911 (US), 112 (EU), 000 (AU)
+• **Crisis Text Line**: Text HOME to 741741 (US)
+• **Suicide Prevention**: 988 (US), 13 11 14 (AU), 116 123 (UK)
+• **Crisis Support**: Your local emergency services''';
+
+    return aiResponse + disclaimer;
   }
 
-  static List<String> _generateActivityRecommendations(List<CorrelationData> correlationData) {
-    final recommendations = <String>[];
-
-    // Analyze exercise patterns
-    if (correlationData.any((data) => data.exerciseLevel == ActivityLevel.none)) {
-      recommendations.add('Light physical activity could help boost your mood');
+  /// Get recent conversation history for context
+  static Future<List<CoachMessage>> _getRecentConversationHistory() async {
+    try {
+      final history = await getConversationHistory();
+      // Return last 10 messages for context (excluding current)
+      return history.takeLast(10).toList();
+    } catch (e) {
+      Logger.aiService('❌ Error getting conversation history: $e');
+      return [];
     }
-
-    // Analyze social patterns
-    if (correlationData.any((data) => data.socialActivity == SocialActivity.none)) {
-      recommendations.add('Consider connecting with friends or family');
-    }
-
-    return recommendations;
   }
 
   /// Save message to conversation history
@@ -757,6 +709,23 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
     } catch (e) {
       return false;
     }
+  }
+
+  // Helper methods
+  static String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  static String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+// Extension to get last N elements from a list
+extension ListExtension<T> on List<T> {
+  List<T> takeLast(int count) {
+    if (count >= length) return this;
+    return skip(length - count).toList();
   }
 }
 
