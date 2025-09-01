@@ -106,7 +106,7 @@ MoodFlow is a **smart mood tracking app** that helps you:
 * **Architecture**: Service-oriented
 
 <details>
-<summary>📦 Installation & Setup</summary>
+<summary>📦 Installation & Setup 📦 ─────────</summary>
 
 ### Prerequisites
 
@@ -138,7 +138,7 @@ flutter run
 </details>
 
 <details>
-<summary>🏗️ Project Structure</summary>
+<summary>🌟 Daily Mood Tracking 🌟 ─────────</summary>
 
 ```
 lib/
