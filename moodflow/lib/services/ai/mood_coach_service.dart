@@ -11,7 +11,6 @@ class MoodCoachService {
   static const String _enabledKey = 'ai_coach_enabled';
   static const String _conversationHistoryKey = 'coach_conversation_history';
   static const String _disclaimerAcceptedKey = 'coach_disclaimer_accepted';
-  static const String _apiKeyKey = 'openai_api_key';
   static const int _maxHistoryLength = 20; // Keep last 20 messages
 
   /// Check if coach is enabled and properly configured
@@ -239,7 +238,7 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
 
     // Pattern recognition responses
     if (lowercaseMessage.contains('pattern') || lowercaseMessage.contains('trends')) {
-      return _generatePatternResponse(context, now);
+      return await _generatePatternResponse(context, now);
     }
 
     if (lowercaseMessage.contains('improve') || lowercaseMessage.contains('better') ||
@@ -269,7 +268,7 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
     return _generateDefaultResponse(context, now);
   }
 
-  static CoachMessage _generatePatternResponse(MoodAnalysisContext context, DateTime now) {
+  static Future<CoachMessage> _generatePatternResponse(MoodAnalysisContext context, DateTime now) async {
     final suggestions = <String>[];
     final insights = <String>[];
 
@@ -296,7 +295,7 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
     }
 
     // Weather patterns from correlation data
-    final weatherInsights = _analyzeWeatherPatterns(context.recentCorrelationData);
+    final weatherInsights = await _analyzeWeatherPatterns(context.recentCorrelationData);
     if (weatherInsights.isNotEmpty) {
       insights.add(weatherInsights);
     }
@@ -581,17 +580,83 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
       ],
     );
   }
-
   /// Helper methods for generating insights
-  static String _analyzeWeatherPatterns(List<CorrelationData> correlationData) {
-    final weatherMoods = <String, List<double>>{};
+  static Future<String> _analyzeWeatherPatterns(List<CorrelationData> correlationData) async {
+    if (correlationData.isEmpty) return '';
 
-    // This would need mood data paired with weather data
-    // For now, return general weather insight
-    if (correlationData.any((data) => data.weather != null)) {
-      return 'I notice you\'ve been tracking weather. Weather can significantly impact mood for many people.';
+    final weatherMoodPairs = <String, List<double>>{};
+
+    // For each day with weather data, get the corresponding mood data
+    for (final correlation in correlationData) {
+      if (correlation.weather != null) {
+        // Get all mood segments for this date
+        final dayMoods = <double>[];
+
+        for (int segment = 0; segment < 3; segment++) {
+          final mood = await MoodDataService.loadMood(correlation.date, segment);
+          if (mood != null && mood['rating'] != null) {
+            dayMoods.add((mood['rating'] as num).toDouble());
+          }
+        }
+
+        // If we have mood data for this day, pair it with weather
+        if (dayMoods.isNotEmpty) {
+          final averageMood = dayMoods.reduce((a, b) => a + b) / dayMoods.length;
+          final weatherCondition = correlation.weather!.name;
+
+          weatherMoodPairs.putIfAbsent(weatherCondition, () => []).add(averageMood);
+        }
+      }
     }
-    return '';
+
+    // Analyze the weather-mood relationships
+    if (weatherMoodPairs.length < 2) {
+      return 'I notice you\'ve been tracking weather, but need more data to identify clear patterns.';
+    }
+
+    // Find best and worst weather conditions for mood
+    String? bestWeather;
+    String? worstWeather;
+    double bestMoodAvg = 0.0;
+    double worstMoodAvg = 10.0;
+
+    for (final entry in weatherMoodPairs.entries) {
+      if (entry.value.length >= 2) { // Need at least 2 data points
+        final avgMood = entry.value.reduce((a, b) => a + b) / entry.value.length;
+
+        if (avgMood > bestMoodAvg) {
+          bestMoodAvg = avgMood;
+          bestWeather = entry.key;
+        }
+
+        if (avgMood < worstMoodAvg) {
+          worstMoodAvg = avgMood;
+          worstWeather = entry.key;
+        }
+      }
+    }
+
+    if (bestWeather != null && worstWeather != null && bestWeather != worstWeather) {
+      final difference = bestMoodAvg - worstMoodAvg;
+      if (difference >= 0.8) {
+        return 'Weather affects your mood: you average ${bestMoodAvg.toStringAsFixed(1)}/10 on ${_getWeatherDisplayName(bestWeather)} days vs ${worstMoodAvg.toStringAsFixed(1)}/10 on ${_getWeatherDisplayName(worstWeather)} days.';
+      }
+    }
+
+    return 'I can see weather patterns in your data, but the impact on mood varies. Keep tracking for clearer insights!';
+  }
+
+  /// Helper method to get display-friendly weather names
+  static String _getWeatherDisplayName(String weatherCondition) {
+    switch (weatherCondition) {
+      case 'sunny': return 'sunny';
+      case 'cloudy': return 'cloudy';
+      case 'rainy': return 'rainy';
+      case 'stormy': return 'stormy';
+      case 'snowy': return 'snowy';
+      case 'foggy': return 'foggy';
+      default: return weatherCondition;
+    }
   }
 
   static List<String> _generateActivityRecommendations(List<CorrelationData> correlationData) {
