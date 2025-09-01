@@ -7,7 +7,7 @@
 <img src="screenshots/moodflow_icon.png" alt="MoodFlow Icon" width="128">
 
 [![Release](https://img.shields.io/github/v/release/wedrownyelite/MoodFlow)](https://github.com/wedrownyelite/MoodFlow/releases/latest)
-[![License](https://img.shields.io/github/license/wedrownyelite/MoodFlow)](LICENSE)
+[![License: MoodFlow](https://img.shields.io/badge/License-MoodFlow-blue.svg)](LICENSE)
 [![Issues](https://img.shields.io/github/issues/wedrownyelite/MoodFlow)](https://github.com/wedrownyelite/MoodFlow/issues)
 [![Flutter](https://img.shields.io/badge/Flutter-3.8.1-blue)](https://flutter.dev)
 
