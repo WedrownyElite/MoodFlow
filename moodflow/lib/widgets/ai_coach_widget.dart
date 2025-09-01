@@ -12,7 +12,7 @@ class AiCoachWidget extends StatefulWidget {
 class _AiCoachWidgetState extends State<AiCoachWidget> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
-  List<CoachMessage> _messages = [];
+  final List<CoachMessage> _messages = [];
   bool _isTyping = false;
   bool _isEnabled = false;
   bool _disclaimerAccepted = false;
@@ -138,10 +138,9 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Colors.blue.shade50,
-              Colors.purple.shade50,
-            ],
+            colors: Theme.of(context).brightness == Brightness.dark
+                ? [Colors.grey.shade800, Colors.grey.shade900]
+                : [Colors.blue.shade50, Colors.purple.shade50],
           ),
         ),
         child: Column(
@@ -161,6 +160,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
       margin: const EdgeInsets.all(16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Theme.of(context).cardColor,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -168,8 +168,14 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                color: Theme.of(context).cardColor,
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).dividerColor,
+                    width: 1,
+                  ),
+                ),
               ),
               child: const Icon(
                 Icons.psychology,
@@ -225,8 +231,14 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              color: Theme.of(context).cardColor,
+              border: Border(
+                bottom: BorderSide(
+                  color: Theme.of(context).dividerColor,
+                  width: 1,
+                ),
+              ),
             ),
             child: const Icon(
               Icons.psychology,
@@ -235,7 +247,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -250,7 +262,9 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                   'AI-powered insights, not professional advice',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade400
+                        : Colors.grey,
                   ),
                 ),
               ],
@@ -334,8 +348,10 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.blue.shade50,
+        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -484,8 +500,10 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                 color: isUser
                     ? Colors.blue.shade600
                     : isError
-                    ? Colors.red.shade50
-                    : Colors.white,
+                    ? (Theme.of(context).brightness == Brightness.dark
+                    ? Colors.red.shade900
+                    : Colors.red.shade50)
+                    : Theme.of(context).cardColor,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(12),
                   topRight: const Radius.circular(12),
@@ -495,7 +513,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                 border: isError
                     ? Border.all(color: Colors.red.shade200)
                     : !isUser
-                    ? Border.all(color: Colors.grey.shade200)
+                    ? Border.all(color: Theme.of(context).dividerColor)
                     : null,
               ),
               child: Column(
@@ -504,7 +522,11 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                   Text(
                     message.text,
                     style: TextStyle(
-                      color: isUser ? Colors.white : isError ? Colors.red.shade700 : Colors.black87,
+                      color: isUser
+                          ? Colors.white
+                          : isError
+                          ? Colors.red.shade700
+                          : Theme.of(context).textTheme.bodyLarge?.color,
                       height: 1.4,
                     ),
                   ),
@@ -576,8 +598,14 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
             height: 32,
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: Theme.of(context).cardColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+                bottomLeft: Radius.circular(4),
+              ),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
             child: const Icon(
               Icons.psychology,
@@ -637,11 +665,11 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
         border: Border(
           top: BorderSide(
-            color: Colors.grey.shade200,
+            color: Theme.of(context).dividerColor,
             width: 1,
           ),
         ),
@@ -672,7 +700,9 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                   decoration: InputDecoration(
                     hintText: 'Ask about your mood patterns...',
                     filled: true,
-                    fillColor: Colors.grey.shade50,
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade800
+                        : Colors.grey.shade50,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
                       borderSide: BorderSide.none,

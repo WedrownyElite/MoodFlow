@@ -12,7 +12,6 @@ import 'settings_screen.dart';
 import 'ai_analysis_screen.dart';
 import 'backup_export_screen.dart';
 import '../services/backup/startup_restore_service.dart';
-import '../widgets/ai_coach_widget.dart';
 
 class MainMenuScreen extends StatefulWidget {
   final ThemeMode themeMode;

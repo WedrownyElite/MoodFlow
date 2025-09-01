@@ -236,6 +236,16 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
     final lowercaseMessage = userMessage.toLowerCase();
     final now = DateTime.now();
 
+    if (lowercaseMessage.contains('sleep pattern') ||
+        lowercaseMessage.contains('tell me about') && lowercaseMessage.contains('sleep')) {
+      return _generateSleepResponse(context, now);
+    }
+
+    if (lowercaseMessage.contains('what patterns') ||
+        lowercaseMessage.contains('patterns do you see')) {
+      return await _generatePatternResponse(context, now);
+    }
+
     // Pattern recognition responses
     if (lowercaseMessage.contains('pattern') || lowercaseMessage.contains('trends')) {
       return await _generatePatternResponse(context, now);
@@ -268,9 +278,18 @@ Now, I'm here to help you understand your mood patterns. What would you like to 
     return _generateDefaultResponse(context, now);
   }
 
+  static DateTime? _lastPatternResponse;
+  
   static Future<CoachMessage> _generatePatternResponse(MoodAnalysisContext context, DateTime now) async {
     final suggestions = <String>[];
     final insights = <String>[];
+
+    // Prevent duplicate responses within 30 seconds
+    if (_lastPatternResponse != null &&
+        now.difference(_lastPatternResponse!).inSeconds < 30) {
+      return _generateDefaultResponse(context, now);
+    }
+    _lastPatternResponse = now;
 
     if (context.timeSegmentAverages.isNotEmpty) {
       final bestSegment = context.bestTimeSegment;
