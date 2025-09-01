@@ -127,13 +127,6 @@ class _CorrelationScreenState extends State<CorrelationScreen>
     }
   }
 
-  void _updateData(CorrelationData newData) {
-    setState(() {
-      _currentData = newData;
-      _hasChanges = true;
-    });
-  }
-
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -178,7 +171,7 @@ class _CorrelationScreenState extends State<CorrelationScreen>
 
     try {
       final weather =
-          await CorrelationDataService.autoFetchWeather(forDate: _selectedDate);
+      await CorrelationDataService.autoFetchWeather(forDate: _selectedDate);
 
       if (!mounted) return;
 
@@ -193,6 +186,7 @@ class _CorrelationScreenState extends State<CorrelationScreen>
         );
 
         _updateData(updatedData);
+        _updateTemperatureController();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -224,6 +218,15 @@ class _CorrelationScreenState extends State<CorrelationScreen>
     if (mounted) {
       setState(() => _isFetchingWeather = false);
     }
+  }
+
+  void _updateData(CorrelationData newData) {
+    setState(() {
+      _currentData = newData;
+      _hasChanges = true;
+    });
+
+    _updateTemperatureController();
   }
 
   @override
