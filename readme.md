@@ -3,321 +3,260 @@
 </div>
 
 # MoodFlow 🌟
+
 <img src="screenshots/moodflow_icon.png" alt="MoodFlow Icon" width="128">
 
-A comprehensive mood tracking application built with Flutter, designed to help users monitor their emotional wellbeing throughout the day with intelligent insights and goal tracking.
+[![Release](https://img.shields.io/github/v/release/wedrownyelite/MoodFlow)](https://github.com/wedrownyelite/MoodFlow/releases/latest)
+[![License](https://img.shields.io/github/license/wedrownyelite/MoodFlow)](LICENSE)
+[![Issues](https://img.shields.io/github/issues/wedrownyelite/MoodFlow)](https://github.com/wedrownyelite/MoodFlow/issues)
+[![Flutter](https://img.shields.io/badge/Flutter-3.8.1-blue)](https://flutter.dev)
 
 ## 📝 License
 
 This project is licensed under the **MoodFlow License**.
 
 **TL;DR:**
-- ✅ Free for personal, educational, and research use  
-- ✅ Modification and redistribution allowed with attribution and inclusion of this license  
-- ❌ Commercial use prohibited  
-- ❌ Rebranding or publishing as a different app prohibited  
+- ✅ Free for personal, educational, and research use
+- ✅ Modification and redistribution allowed with attribution and inclusion of this license
+- ❌ Commercial use prohibited
+- ❌ Rebranding or publishing as a different app prohibited
 
 See the full [LICENSE](LICENSE) file for complete terms.
 
-## 📥 Download
+# 🌟 Track. Understand. Improve. 🌟
+MoodFlow is a **smart mood tracking app** that helps you:
 
-You can download the latest version of MoodFlow here:  
-➡️ [Download APK](https://github.com/wedrownyelite/MoodFlow/releases/latest)
+
+* 🌅 Track your mood throughout the day (morning, midday, evening)
+* 📊 Visualize trends with charts & insights
+* 🤖 Get personalized advice with the AI Coach
+* 🌤️ Plan your day with mood forecasting
+
+## 📥 Get MoodFlow Now
+
+[![Download APK](https://img.shields.io/badge/Download-APK-brightgreen)](https://github.com/wedrownyelite/MoodFlow/releases/latest)
+
+## 🤔 Why MoodFlow?
+
+* Quickly identify emotional patterns
+* Plan your day using AI-powered insights
+* Track lifestyle factors affecting your mood
+* No ads, no hidden tracking — fully private
 
 ## 📱 Features
 
 ### Core Functionality
-- **Multi-Segment Daily Tracking** - Track your mood during morning, midday, and evening periods
-- **Visual Mood Rating** - Intuitive 1-10 scale with emoji feedback and smooth animations
-- **Rich Note-Taking** - Add detailed notes and thoughts for each mood entry
-- **Historical View** - Browse and edit past mood entries with monthly navigation
-- **Trend Analysis** - Visualize mood patterns with interactive charts and heatmaps
+
+* 🌞 **Morning, Midday, Evening Tracking** – Track moods in multiple segments
+* 😃 **Visual Mood Rating** – Emoji-based 1–10 slider
+* 📝 **Notes & Journaling** – Record thoughts and reflections
+* 📈 **Trends & Analytics** – Charts, heatmaps, and streaks
 
 ### Smart Features
-- **Intelligent Notifications** - Context-aware reminders for mood logging
-- **Goal Setting & Tracking** - Set personalized mood goals with progress monitoring
-- **Time-Based Access** - Morning, midday, and evening logging unlocks throughout the day
-- **Statistics Dashboard** - Comprehensive insights including streaks, averages, and patterns
-- **Dark/Light Mode** - Adaptive themes with custom gradient backgrounds
+
+* 🔔 **Intelligent Notifications** – Context-aware reminders for mood logging
+* 🎯 **Goal Setting & Tracking** – Personalized goals with progress monitoring
+* ⏰ **Time-Based Access** – Morning, midday, evening logging unlocks
+* 📊 **Statistics Dashboard** – Comprehensive insights including streaks and averages
+* 🌗 **Dark/Light Mode** – Adaptive themes with gradient backgrounds
 
 ### AI Analysis ✨
-- AI-Powered Insights - Leverage OpenAI to receive intelligent summaries and mood analysis
-- Custom API Key - Add your own OpenAI key for private usage
-- Future Updates:
-    - Choose which AI model you’d like to use
-    - Select from different AI providers (not just OpenAI)
-- Production Plan:
-    - Option to use your own API key
-    - Or pay to use MoodFlow’s managed app key
- 
-### Correlations and Insights 🔎
-- **Weather Integration** - Auto-fetch weather data with OpenWeatherMap API
-- **Sleep Tracking** - Monitor sleep quality, duration, and schedule
-- **Activity Monitoring** - Track exercise levels and social activities
-- **Lifestyle Factors** - Log work stress, custom tags, and notes
-- **Smart Analytics** - Discover correlations between daily factors and mood
-- **Pattern Recognition** - Weekly trends, time-of-day patterns, and insights dashboard
+
+| Feature             | Description                                                        |
+| ------------------- | ------------------------------------------------------------------ |
+| AI-Powered Insights | Leverage OpenAI to receive intelligent summaries and mood analysis |
+| Custom API Key      | Add your own OpenAI key for private usage                          |
+| Production Plan     | Use your own key or MoodFlow’s managed key                         |
+| Future Updates      | Choose AI models and providers                                     |
+
+### Correlations & Insights 🔎
+
+* ☀️ **Weather Integration** – Auto-fetch weather data
+* 💤 **Sleep Tracking** – Monitor sleep quality and duration
+* 🏃 **Activity Monitoring** – Track exercise and social activities
+* 💼 **Lifestyle Factors** – Log work stress, custom tags, notes
+* 📈 **Smart Analytics** – Discover correlations between factors and mood
+* 📅 **Pattern Recognition** – Weekly trends, time-of-day patterns
 
 ### Forecast & AI Coach 🌤️🧑‍🏫 *(New)*
 
-- **Mood Forecasting** – The Insights screen now attempts to **predict tomorrow’s probable mood** based on your past logs and patterns  
-  - Provides a simple “forecast” (e.g., likely positive, neutral, or challenging day)  
-  - Offers **hard-coded planning suggestions** like *“Plan extra self-care activities”*
+| Feature       | Description                                                     |
+| ------------- | --------------------------------------------------------------- |
+| Mood Forecast | Predict tomorrow’s probable mood & planning tips                |
+| AI Coach      | Chat with AI using your mood logs, sleep, weather & stress data |
+| Customization | Control max response length and choose shared data              |
 
-- **AI Coach (Powered by ChatGPT API)** – Access a personal AI companion directly from the Insights screen  
-  - Open the **AI Coach widget** in the top-right corner to chat with the assistant  
-  - Choose whether to provide additional context from your **mood logs, weather data, sleep data, and work stress data**  
-  - Get **personalized suggestions, reflections, or analysis** based on your data  
-  - Adjustable **response length control** – set the maximum word count for replies  
-
-*These features aim to make MoodFlow not only a tracker, but also a supportive tool for daily planning, reflection, and growth.*
+> 💡 **Tip:** Use AI Coach to reflect on patterns and plan a better day!
 
 ### User Experience
-- **Blur Transitions** - Smooth, professional navigation animations
-- **Responsive Design** - Optimized for all screen sizes and orientations
-- **Offline Support** - Local data storage with SharedPreferences
-- **Manual Entry** - Add historical mood data for missed days
+
+* 🎨 **Blur Transitions** – Smooth navigation animations
+* 📱 **Responsive Design** – Optimized for all screen sizes
+* 💾 **Offline Support** – Local data storage
+* ✍️ **Manual Entry** – Add historical mood data
 
 ## 🛠️ Technology Stack
 
-- **Framework**: Flutter 3.8.1+
-- **Language**: Dart
-- **Local Storage**: SharedPreferences
-- **Notifications**: Flutter Local Notifications
-- **Date/Time**: Intl package for internationalization
-- **Permissions**: Permission Handler
-- **Architecture**: Service-oriented with separation of concerns
+* **Framework**: Flutter 3.8.1+
+* **Language**: Dart
+* **Local Storage**: SharedPreferences
+* **Notifications**: Flutter Local Notifications
+* **Date/Time**: Intl package
+* **Permissions**: Permission Handler
+* **Architecture**: Service-oriented
 
-## 📦 Installation
-<img src="screenshots/moodflow_icon.png" alt="MoodFlow Icon" width="64">
+<details>
+<summary>📦 Installation & Setup</summary>
 
 ### Prerequisites
-- Flutter SDK (3.8.1 or higher)
-- Dart SDK
-- Android Studio / VS Code
-- Android SDK (for Android development)
-- Xcode (for iOS development, macOS only)
+
+* Flutter SDK 3.8.1+
+* Dart SDK
+* Android Studio / VS Code
+* Android SDK (for Android)
+* Xcode (for iOS)
 
 ### Setup
-1. Clone the repository:
+
 ```bash
 git clone https://github.com/wedrownyelite/MoodFlow.git
 cd moodflow
-```
-
-2. Install dependencies:
-```bash
 flutter pub get
-```
-
-3. Run the app:
-```bash
 flutter run
 ```
 
-### Platform-Specific Setup
-
 #### Android
-- Minimum SDK: 21 (Android 5.0)
-- Target SDK: Latest
-- Notification permissions are handled automatically
+
+* Minimum SDK: 21
+* Target SDK: Latest
 
 #### iOS
-- Minimum iOS: 12.0
-- Notification permissions requested on first launch
-- Background app refresh recommended for notifications
 
-## 🏗️ Project Structure
+* Minimum iOS: 12.0
+* Background refresh recommended
+
+</details>
+
+<details>
+<summary>🏗️ Project Structure</summary>
 
 ```
 lib/
-├── main.dart                 # App entry point
-├── screens/                  # UI screens
-│   ├── main_menu_screen.dart
-│   ├── mood_log_screen.dart
-│   ├── mood_history_screen.dart
-│   ├── mood_trends_screen.dart
-│   ├── goals_screen.dart
-│   ├── ai_analysis_screen.dart
-│   ├── settings_screen.dart
-│   └── [additional files]
-├── services/                 # Business logic
-│   ├── ai/                 # AI services
-│   ├── animation/           # Animation services
-│   ├── data/               # Data management
-│   ├── backup/              # Backup services
-│   ├── import/               # Import services
-│   ├── notifications/           # Notification services
-│   ├── ui/                    # UI utilities
-│   └── [additional directories]
-├── widgets/                 # Reusable components
-│   ├── animated_mood_slider.dart
-│   ├── mood_line_chart.dart
-│   ├── mood_heatmap.dart
-│   ├── goal_card.dart
-│   └── [additional files]
+├── main.dart
+├── screens/
+├── services/
+├── widgets/
 └── [additional files]
 ```
 
+</details>
+
 ## 🎯 Usage
 
-### Daily Mood Tracking
-1. **Morning** (Available from 12:00 AM): Log your starting mood and thoughts
-2. **Midday** (Available from 12:00 PM): Check in during your day
-3. **Evening** (Available from 6:00 PM): Reflect on your day's emotional journey
+<details>
+<summary>Daily Mood Tracking</summary>
 
-*(Users can customize access and notification times in the settings)*
+1. Morning: Log starting mood
+2. Midday: Check-in
+3. Evening: Reflect on your day
 
-### Setting Goals
-- Navigate to the Goals screen
-- Choose from preset goal types or create custom goals
-- Track progress with visual indicators
-- Receive notifications for goal milestones
+</details>
 
-### Viewing Trends
-- Access comprehensive charts and statistics
-- View mood patterns over different time periods
-- Identify your peak emotional times of day
-- Track logging streaks and consistency
+<details>
+<summary>Setting Goals</summary>
+- Navigate to Goals screen
+- Choose preset or custom goals
+- Track progress with notifications
+</details>
 
-### AI Analysis
-- Currently, requires your own OpenAI API Key
-- Specify date ranges to analyze
-- Key Insights (Trends for negative and positive moods)
-- Recommendations based on given factors (NOT PROFESSIONAL)
+<details>
+<summary>Viewing Trends</summary>
+- Charts and statistics
+- Mood patterns over time
+- Peak emotional times and streaks
+</details>
+
+<details>
+<summary>AI Analysis</summary>
+- Requires OpenAI API Key
+- Specify date ranges
+- Get trends and recommendations
+</details>
 
 ## 🔧 Configuration
 
-### Notifications
-Customize notification preferences in Settings:
-- Morning, midday, and evening reminders
-- End-of-day completion notifications
-- Goal progress updates
-- Streak celebration alerts
-
-### Themes
-- **Light Mode**: Clean, bright interface
-- **Dark Mode**: Easy on the eyes for evening use
-- **Custom Gradients**: Dynamic backgrounds based on mood data
-
-## 🧪 Testing
-
-Run tests with:
-```bash
-flutter test
-```
-
-For integration tests:
-```bash
-flutter test integration_test
-```
+<details>
+<summary>Notifications & Themes</summary>
+- Custom reminders and alerts
+- Light/Dark Mode with gradients
+</details>
 
 ## 📊 Data & Privacy
 
-- **Local Storage**: Data stored locally on device using SharedPreferences
-- **Cloud Sync**: Your data can be saved through the iCloud and Google Cloud
-- **No Analytics**: No user tracking or data collection
-- **Export/Import**: Manual backup through device storage access available
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/<feature-name>`)
-3. Commit your changes (`git commit -m 'Added a feature hehe'`)
-4. Push to the branch (`git push origin feature/<feature-name>`)
-5. Open a Pull Request
-
-### Development Guidelines
-- Follow Dart/Flutter best practices
-- Maintain consistent code formatting
-- Add tests for new features
-- Update documentation as needed
-
-## 🐛 Bug Reports & Feature Requests
-
-Please use the [GitHub Issues](https://github.com/wedrownyelite/moodflow/issues) page to:
-- Report bugs with detailed reproduction steps
-- Request new features with clear use cases
-- Discuss improvements and suggestions
-
-## 📞 Support
-
-For support and questions:
-- 📧 Email: oddologyinc@gmail.com
-- 💬 Discussions: Use GitHub Discussions for community support
-
-## 🗺️ Roadmap
-
-### Upcoming Features
-- [X] Data export/import functionality
-- [X] Mood correlation with weather/activities
-- [X] Advanced AI statistical analysis
-- [ ] Widget support for home screen
-- [X] Backup and sync options
-- [ ] Accessibility improvements
-
-### Long-term Goals
-- [ ] Machine learning mood predictions
-- [ ] Integration with health apps
-- [ ] Multi-language support
-- [ ] Web companion app
-- [ ] Community features (optional)
+* 💾 Local Storage (SharedPreferences)
+* ☁️ Optional Cloud Sync (iCloud/Google Cloud)
+* ❌ No analytics tracking
+* 🔄 Export/Import available
 
 ## 📸 Screenshots
 
 ### Main App Flow
-| Home Screen | Mood Logging | Dark Mode |
-|-------------|--------------|-----------|
+
+| Home                          | Mood Logging                        | Dark Mode                          |
+| ----------------------------- | ----------------------------------- | ---------------------------------- |
 | ![Home](screenshots/home.jpg) | ![Logging](screenshots/logging.jpg) | ![Dark Mode](screenshots/dark.jpg) |
 
+### Daily Factors
+
+| Sleep                                        | Weather                                          | Activity                                           | Work Stress                                         |
+| -------------------------------------------- | ------------------------------------------------ | -------------------------------------------------- | --------------------------------------------------- |
+| ![Sleep](screenshots/dailyfactors_sleep.jpg) | ![Weather](screenshots/dailyfactors_weather.jpg) | ![Activity](screenshots/dailyfactors_activity.jpg) | ![Work Stress](screenshots/dailyfactors_stress.jpg) |
+
+### Insights & AI Coach
+
+| Insights Overview                                       | Mood Forecast                                       | Correlation Patterns                                   | Insights Summary                                      | AI Coach                                      |
+| ------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------- | --------------------------------------------- |
+| ![Insights Overview](screenshots/insights_overview.jpg) | ![Mood Forecast](screenshots/insights_forecast.jpg) | ![Correlations](screenshots/insights_correlations.jpg) | ![Insights Summary](screenshots/insights_summary.jpg) | ![AI Coach](screenshots/insights_aicoach.jpg) |
+
 ### Trends & Analytics
-| Trends Overview | Detailed Analytics |
-|-----------------|-------------------|
-| ![Trends Overview](screenshots/trends1.jpg) | ![Detailed Analytics](screenshots/trends2.jpg) |
+
+| Overview                           | Detailed                             |
+| ---------------------------------- | ------------------------------------ |
+| ![Trends](screenshots/trends1.jpg) | ![Detailed](screenshots/trends2.jpg) |
 
 ### AI Analysis
-| AI Analysis | Disclaimer |
-|-------------|------------|
+
+| Analysis                                  | Disclaimer                                         |
+| ----------------------------------------- | -------------------------------------------------- |
 | ![AI Analysis](screenshots/aianalyze.jpg) | ![Disclaimer](screenshots/aianalyzedisclaimer.jpg) |
 
-### AI Analysis Results
-| Result 1 | Result 2 |
-|----------|----------|
-| ![Result 1](screenshots/airesult1.jpg) | ![Result 2](screenshots/airesult2.jpg) |
-
 ### Backup & Export
-| Export | Cloud Backup | Restore |
-|--------|--------------|---------|
+
+| Export                            | Cloud Backup                                 | Restore                             |
+| --------------------------------- | -------------------------------------------- | ----------------------------------- |
 | ![Export](screenshots/export.jpg) | ![Cloud Backup](screenshots/cloudbackup.jpg) | ![Restore](screenshots/restore.jpg) |
 
-
 ### Goals & Progress
-| Goals Dashboard | Goal Details |
-|-----------------|--------------|
-| ![Goals 1](screenshots/goals1.jpg) | ![Goals 2](screenshots/goals2.jpg) |
+
+| Dashboard                        | Details                            |
+| -------------------------------- | ---------------------------------- |
+| ![Goals](screenshots/goals1.jpg) | ![Details](screenshots/goals2.jpg) |
 
 ### Settings & Customization
-| Themes & Basic Notifications | Backup Options | Advanced Notifications |
-|------------------------------|----------------|------------------------|
-| ![Settings 1](screenshots/settings1.jpg) | ![Settings Backup](screenshots/settingsbackup.jpg) | ![Settings 3](screenshots/settings2.jpg) |
 
-
-
-*Extensive notification customization with granular control over reminders, timing, and preferences*
+| Themes                               | Backup                                    | Notifications                          |
+| ------------------------------------ | ----------------------------------------- | -------------------------------------- |
+| ![Themes](screenshots/settings1.jpg) | ![Backup](screenshots/settingsbackup.jpg) | ![Advanced](screenshots/settings2.jpg) |
 
 ## 🙏 Acknowledgments
 
-- Flutter team for the amazing framework
+* Flutter team for the amazing framework
 
 ---
 
 <div align="center">
-  <p>Made with ❤️ and Flutter</p>
-  <p>
-    <a href="#top">Back to Top</a> •
-    <a href="https://github.com/wedrownyelite/moodflow/issues">Report Bug</a> •
-    <a href="https://github.com/wedrownyelite/moodflow/issues">Request Feature</a>
-  </p>
+<p>Made with ❤️ and Flutter</p>
+<p>
+<a href="#top">Back to Top</a> • <a href="https://github.com/wedrownyelite/moodflow/issues">Report Bug</a> • <a href="https://github.com/wedrownyelite/moodflow/issues">Request Feature</a>
+</p>
 </div>
