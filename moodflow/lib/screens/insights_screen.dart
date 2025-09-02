@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/insights/smart_insights_service.dart';
+import '../services/ai/mood_analysis_service.dart' as ai_service;
 import '../widgets/ai_coach_widget.dart';
 
 class InsightsScreen extends StatefulWidget {
@@ -19,11 +20,23 @@ class _InsightsScreenState extends State<InsightsScreen>
   bool _isLoading = false;
   bool _isGenerating = false;
 
+  bool _hasApiKey = false;
+  bool _isGeneratingAI = false;
+  bool _showAIOptions = false;
+
+  // AI data selection options (same as AI analysis screen)
+  bool _includeMoodData = true;
+  bool _includeWeatherData = false;
+  bool _includeSleepData = false;
+  bool _includeActivityData = false;
+  bool _includeWorkStressData = false;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _loadInsights();
+    _checkApiKey();
   }
 
   @override
@@ -57,6 +70,13 @@ class _InsightsScreenState extends State<InsightsScreen>
     }
   }
 
+  Future<void> _checkApiKey() async {
+    final hasKey = await ai_service.MoodAnalysisService.hasValidApiKey();
+    setState(() {
+      _hasApiKey = hasKey;
+    });
+  }
+
   Future<void> _generateNewInsights() async {
     setState(() => _isGenerating = true);
 
@@ -67,7 +87,6 @@ class _InsightsScreenState extends State<InsightsScreen>
         _isGenerating = false;
       });
 
-      // Trigger a complete reload to ensure all tabs show new data
       await _loadInsights();
 
       if (mounted) {
@@ -88,6 +107,194 @@ class _InsightsScreenState extends State<InsightsScreen>
     }
   }
 
+  Future<void> _generateAIInsights() async {
+    if (!_hasApiKey) {
+      _showApiKeyDialog();
+      return;
+    }
+
+    setState(() => _isGeneratingAI = true);
+
+    try {
+      final startDate = DateTime.now().subtract(const Duration(days: 30));
+      final endDate = DateTime.now();
+
+      final aiResult = await ai_service.MoodAnalysisService.analyzeMoodTrendsWithOptions(
+        startDate: startDate,
+        endDate: endDate,
+        includeMoodData: _includeMoodData,
+        includeWeatherData: _includeWeatherData,
+        includeSleepData: _includeSleepData,
+        includeActivityData: _includeActivityData,
+        includeWorkStressData: _includeWorkStressData,
+      );
+
+      if (aiResult.success) {
+        // Convert AI insights to SmartInsights and merge
+        final smartInsights = await SmartInsightsService.loadInsights();
+        final enhancedInsights = _convertAIInsightsToSmart(aiResult);
+
+        final allInsights = [...enhancedInsights, ...smartInsights];
+        setState(() {
+          _insights = allInsights;
+          _isGeneratingAI = false;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Generated ${enhancedInsights.length} AI-powered insights!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        throw Exception(aiResult.error ?? 'AI analysis failed');
+      }
+    } catch (e) {
+      setState(() => _isGeneratingAI = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('AI analysis failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  List<SmartInsight> _convertAIInsightsToSmart(ai_service.MoodAnalysisResult aiResult) {
+    final insights = <SmartInsight>[];
+    final now = DateTime.now();
+
+    for (int i = 0; i < aiResult.insights.length; i++) {
+      final insight = aiResult.insights[i];
+      insights.add(SmartInsight(
+        id: 'ai_insight_${now.millisecondsSinceEpoch}_$i',
+        title: '🤖 ${insight.title}',
+        description: insight.description,
+        type: insight.type == ai_service.InsightType.positive
+            ? InsightType.achievement
+            : insight.type == ai_service.InsightType.negative
+            ? InsightType.concern
+            : InsightType.pattern,
+        priority: AlertPriority.medium,
+        createdAt: now,
+        confidence: 0.8, // AI confidence
+      ));
+    }
+
+    for (int i = 0; i < aiResult.recommendations.length; i++) {
+      final rec = aiResult.recommendations[i];
+      insights.add(SmartInsight(
+        id: 'ai_rec_${now.millisecondsSinceEpoch}_$i',
+        title: '💡 ${rec.title}',
+        description: rec.description,
+        type: InsightType.suggestion,
+        priority: rec.priority == ai_service.RecommendationPriority.high
+            ? AlertPriority.high
+            : AlertPriority.medium,
+        createdAt: now,
+        confidence: 0.8,
+        actionSteps: [rec.description],
+      ));
+    }
+
+    return insights;
+  }
+
+  Future<void> _showApiKeyDialog() async {
+    final controller = TextEditingController();
+    bool isValidating = false;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Enter OpenAI API Key'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('To use AI insights, you need an OpenAI API key:'),
+              const SizedBox(height: 8),
+              const Text(
+                'https://platform.openai.com/api-keys',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'API Key',
+                  hintText: 'sk-...',
+                  border: OutlineInputBorder(),
+                ),
+                obscureText: true,
+                enabled: !isValidating,
+              ),
+              if (isValidating) ...[
+                const SizedBox(height: 12),
+                const Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('Validating API key...'),
+                  ],
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isValidating ? null : () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isValidating ? null : () async {
+                if (controller.text.trim().isEmpty) return;
+                setDialogState(() => isValidating = true);
+
+                final isValid = await ai_service.MoodAnalysisService.validateAndSaveApiKey(
+                    controller.text.trim()
+                );
+
+                if (!context.mounted) return;
+
+                if (isValid) {
+                  Navigator.of(context).pop(true);
+                } else {
+                  setDialogState(() => isValidating = false);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Invalid API key. Please try again.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true) {
+      _checkApiKey();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,20 +308,53 @@ class _InsightsScreenState extends State<InsightsScreen>
             onPressed: _openAiCoach,
             tooltip: 'AI Coach',
           ),
-          IconButton(
-            icon: _isGenerating
-                ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
+          if (_hasApiKey)
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'ai_insights') {
+                  setState(() => _showAIOptions = !_showAIOptions);
+                } else if (value == 'regular_insights') {
+                  _generateNewInsights();
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'ai_insights',
+                  child: Row(
+                    children: [
+                      Icon(_isGeneratingAI ? Icons.hourglass_bottom : Icons.psychology),
+                      const SizedBox(width: 8),
+                      Text(_showAIOptions ? 'Hide AI Options' : 'AI Insights'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'regular_insights',
+                  child: Row(
+                    children: [
+                      Icon(Icons.refresh),
+                      SizedBox(width: 8),
+                      Text('Refresh Insights'),
+                    ],
+                  ),
+                ),
+              ],
             )
-                : const Icon(Icons.psychology),
-            onPressed: _isGenerating ? null : _generateNewInsights,
-            tooltip: 'Generate AI insights',
-          ),
+          else
+            IconButton(
+              icon: _isGenerating
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+                  : const Icon(Icons.psychology),
+              onPressed: _isGenerating ? null : _generateNewInsights,
+              tooltip: 'Generate insights',
+            ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -130,14 +370,134 @@ class _InsightsScreenState extends State<InsightsScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildSmartInsightsTab(),
-          _buildPredictiveTab(),
-          _buildPatternsTab(),
-          _buildSummaryTab(),
+          if (_showAIOptions) _buildAIOptionsPanel(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSmartInsightsTab(),
+                _buildPredictiveTab(),
+                _buildPatternsTab(),
+                _buildSummaryTab(),
+              ],
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAIOptionsPanel() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.psychology, color: Theme.of(context).primaryColor),
+              const SizedBox(width: 8),
+              const Text(
+                'AI-Powered Insights',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildDataSelectionRow(),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: _isGeneratingAI
+                  ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+                  : const Icon(Icons.auto_awesome),
+              label: Text(_isGeneratingAI ? 'Analyzing...' : 'Generate AI Insights'),
+              onPressed: _isGeneratingAI ? null : _generateAIInsights,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataSelectionRow() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Include in analysis:',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            _buildCompactCheckbox('Moods', Icons.sentiment_satisfied, _includeMoodData,
+                    (value) => setState(() => _includeMoodData = value ?? true)),
+            _buildCompactCheckbox('Weather', Icons.wb_sunny, _includeWeatherData,
+                    (value) => setState(() => _includeWeatherData = value ?? false)),
+            _buildCompactCheckbox('Sleep', Icons.bedtime, _includeSleepData,
+                    (value) => setState(() => _includeSleepData = value ?? false)),
+            _buildCompactCheckbox('Activity', Icons.fitness_center, _includeActivityData,
+                    (value) => setState(() => _includeActivityData = value ?? false)),
+            _buildCompactCheckbox('Work Stress', Icons.work, _includeWorkStressData,
+                    (value) => setState(() => _includeWorkStressData = value ?? false)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactCheckbox(String label, IconData icon, bool value, ValueChanged<bool?> onChanged) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: value ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : null,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: value ? Theme.of(context).primaryColor : Colors.grey.shade400,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: value ? Theme.of(context).primaryColor : Colors.grey.shade600),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: value ? Theme.of(context).primaryColor : Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(
+              value ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 12,
+              color: value ? Theme.of(context).primaryColor : Colors.grey.shade400,
+            ),
+          ],
+        ),
       ),
     );
   }
