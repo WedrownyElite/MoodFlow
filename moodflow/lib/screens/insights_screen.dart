@@ -401,8 +401,8 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   Widget _buildHistoryTab() {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: SmartInsightsService.exportInsightsData(),
+    return FutureBuilder<List<SavedSmartInsights>>(
+      future: SmartInsightsService.getSavedInsightsHistory(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -412,64 +412,152 @@ class _InsightsScreenState extends State<InsightsScreen>
           return _buildEmptyState(
             icon: Icons.history,
             title: 'No insight history yet',
-            subtitle: 'Past insights will appear here as you use the app',
+            subtitle: 'Past insights will appear here as you generate them',
+            actionText: 'Generate Insights',
+            onAction: () => _generateNewInsights(),
           );
         }
 
-        final insightsData = snapshot.data!;
-        final insights = insightsData['insights'] as List<dynamic>? ?? [];
+        final savedInsights = snapshot.data!;
 
-        if (insights.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.history,
-            title: 'No insight history yet',
-            subtitle: 'Past insights will appear here as you use the app',
-          );
-        }
-
-        // Group insights by date
-        final groupedInsights = <String, List<dynamic>>{};
-        for (final insightJson in insights) {
-          final insight = SmartInsight.fromJson(insightJson);
-          final dateKey = DateFormat('yyyy-MM-dd').format(insight.createdAt);
-          groupedInsights.putIfAbsent(dateKey, () => []).add(insightJson);
-        }
-
-        // Sort dates in descending order
-        final sortedDates = groupedInsights.keys.toList()
-          ..sort((a, b) => b.compareTo(a));
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: sortedDates.length,
-          itemBuilder: (context, index) {
-            final dateKey = sortedDates[index];
-            final dateInsights = groupedInsights[dateKey]!;
-            final date = DateTime.parse(dateKey);
-
-            return Card(
-              margin: const EdgeInsets.only(bottom: 16),
-              child: ExpansionTile(
-                title: Text(
-                  DateFormat('MMMM d, yyyy').format(date),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text('${dateInsights.length} insights'),
-                children: dateInsights.map<Widget>((insightJson) {
-                  final insight = SmartInsight.fromJson(insightJson);
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: _buildInsightCard(insight),
-                  );
-                }).toList(),
-              ),
-            );
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() {}); // Trigger rebuild
           },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: savedInsights.length,
+            itemBuilder: (context, index) {
+              final saved = savedInsights[index];
+              return _buildSavedInsightsCard(saved);
+            },
+          ),
         );
       },
     );
   }
 
+  Widget _buildSavedInsightsCard(SavedSmartInsights saved) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ExpansionTile(
+        title: Text(
+          'Insights from ${DateFormat('MMM d, y').format(saved.createdAt)}',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${DateFormat('h:mm a').format(saved.createdAt)} • ${saved.totalInsights} insights generated',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 6,
+              children: saved.insights.take(3).map((insight) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _getInsightTypeColor(insight.type).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _getInsightTypeColor(insight.type).withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Text(
+                  insight.type.name,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: _getInsightTypeColor(insight.type),
+                  ),
+                ),
+              )).toList(),
+            ),
+          ],
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Insights section
+                ...saved.insights.map((insight) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildInsightCard(insight),
+                )),
+
+                // Delete button
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Insights'),
+                            content: const Text(
+                              'This will permanently delete this insight session. Continue?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.of(context).pop(true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true) {
+                          await SmartInsightsService.deleteSavedInsights(saved.id);
+                          setState(() {}); // Refresh the list
+                        }
+                      },
+                      icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                      label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getInsightTypeColor(InsightType type) {
+    switch (type) {
+      case InsightType.actionable:
+        return Colors.blue;
+      case InsightType.prediction:
+        return Colors.purple;
+      case InsightType.achievement:
+        return Colors.green;
+      case InsightType.celebration:
+        return Colors.amber;
+      case InsightType.concern:
+        return Colors.red;
+      case InsightType.pattern:
+        return Colors.indigo;
+      case InsightType.suggestion:
+        return Colors.orange;
+    }
+  }
+  
   Widget _buildAIOptionsPanel() {
     return Container(
       padding: const EdgeInsets.all(16),

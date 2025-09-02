@@ -145,10 +145,65 @@ class WeeklyData {
   });
 }
 
+class SavedSmartInsights {
+  final String id;
+  final DateTime createdAt;
+  final List<SmartInsight> insights;
+  final WeeklySummary? weeklySummary;
+  final int totalInsights;
+
+  SavedSmartInsights({
+    required this.id,
+    required this.createdAt,
+    required this.insights,
+    this.weeklySummary,
+    required this.totalInsights,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'createdAt': createdAt.toIso8601String(),
+    'insights': insights.map((i) => i.toJson()).toList(),
+    'weeklySummary': weeklySummary != null ? {
+      'weekStart': weeklySummary!.weekStart.toIso8601String(),
+      'weekEnd': weeklySummary!.weekEnd.toIso8601String(),
+      'averageMood': weeklySummary!.averageMood,
+      'daysLogged': weeklySummary!.daysLogged,
+      'totalDays': weeklySummary!.totalDays,
+      'bestDay': weeklySummary!.bestDay,
+      'trend': weeklySummary!.trend,
+      'highlights': weeklySummary!.highlights,
+      'concerns': weeklySummary!.concerns,
+      'recommendations': weeklySummary!.recommendations,
+    } : null,
+    'totalInsights': totalInsights,
+  };
+
+  factory SavedSmartInsights.fromJson(Map<String, dynamic> json) => SavedSmartInsights(
+    id: json['id'],
+    createdAt: DateTime.parse(json['createdAt']),
+    insights: (json['insights'] as List).map((i) => SmartInsight.fromJson(i)).toList(),
+    weeklySummary: json['weeklySummary'] != null ? WeeklySummary(
+      weekStart: DateTime.parse(json['weeklySummary']['weekStart']),
+      weekEnd: DateTime.parse(json['weeklySummary']['weekEnd']),
+      averageMood: json['weeklySummary']['averageMood']?.toDouble() ?? 0.0,
+      daysLogged: json['weeklySummary']['daysLogged'] ?? 0,
+      totalDays: json['weeklySummary']['totalDays'] ?? 0,
+      bestDay: json['weeklySummary']['bestDay']?.toDouble() ?? 0.0,
+      trend: json['weeklySummary']['trend'] ?? 'stable',
+      highlights: List<String>.from(json['weeklySummary']['highlights'] ?? []),
+      concerns: List<String>.from(json['weeklySummary']['concerns'] ?? []),
+      recommendations: List<String>.from(json['weeklySummary']['recommendations'] ?? []),
+    ) : null,
+    totalInsights: json['totalInsights'] ?? 0,
+  );
+}
+
 // Main service class
 class SmartInsightsService {
   static const String _insightsKey = 'enhanced_smart_insights';
   static const String _lastAnalysisKey = 'last_enhanced_analysis_date';
+  static const String _savedInsightsKey = 'saved_smart_insights_history';
 
   /// Generate comprehensive insights
   static Future<List<SmartInsight>> generateInsights({bool forceRefresh = false}) async {
@@ -200,6 +255,9 @@ class SmartInsightsService {
       await _saveInsights(insights.take(15).toList());
       await _updateLastAnalysis();
 
+      // Save insights to history
+      await _saveInsightsToHistory(insights.take(15).toList());
+
       // Add debug logging
       Logger.smartInsightService('📊 Generated insights breakdown:');
       Logger.smartInsightService('  - Actionable: ${insights.where((i) => i.type == InsightType.actionable).length}');
@@ -220,6 +278,64 @@ class SmartInsightsService {
     }
   }
 
+  /// Save insights to history for later viewing
+  static Future<void> _saveInsightsToHistory(List<SmartInsight> insights) async {
+    try {
+      final savedInsights = SavedSmartInsights(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        createdAt: DateTime.now(),
+        insights: insights,
+        totalInsights: insights.length,
+      );
+
+      final existingHistory = await getSavedInsightsHistory();
+      existingHistory.insert(0, savedInsights); // Add to beginning
+
+      // Keep only last 20 insight generations
+      final limitedHistory = existingHistory.take(20).toList();
+
+      final prefs = await SharedPreferences.getInstance();
+      final jsonData = limitedHistory.map((saved) => saved.toJson()).toList();
+      await prefs.setString(_savedInsightsKey, jsonEncode(jsonData));
+
+      Logger.smartInsightService('✅ Saved insights to history');
+    } catch (e) {
+      Logger.smartInsightService('❌ Error saving insights to history: $e');
+    }
+  }
+
+  /// Get all saved insights history
+  static Future<List<SavedSmartInsights>> getSavedInsightsHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_savedInsightsKey);
+
+      if (jsonString == null) return [];
+
+      final jsonList = jsonDecode(jsonString) as List<dynamic>;
+      return jsonList.map((json) => SavedSmartInsights.fromJson(json)).toList();
+    } catch (e) {
+      Logger.smartInsightService('❌ Error loading insights history: $e');
+      return [];
+    }
+  }
+
+  /// Delete a saved insights session
+  static Future<void> deleteSavedInsights(String insightsId) async {
+    try {
+      final history = await getSavedInsightsHistory();
+      history.removeWhere((saved) => saved.id == insightsId);
+
+      final prefs = await SharedPreferences.getInstance();
+      final jsonData = history.map((saved) => saved.toJson()).toList();
+      await prefs.setString(_savedInsightsKey, jsonEncode(jsonData));
+
+      Logger.smartInsightService('✅ Deleted saved insights: $insightsId');
+    } catch (e) {
+      Logger.smartInsightService('❌ Error deleting saved insights: $e');
+    }
+  }
+  
   /// Generate actionable pattern recognition insights
   static Future<List<SmartInsight>> _generateActionablePatterns(
       ComprehensiveAnalysisData data) async {
@@ -761,8 +877,10 @@ class SmartInsightsService {
   static Future<Map<String, dynamic>> exportInsightsData() async {
     try {
       final insights = await loadInsights();
+      final history = await getSavedInsightsHistory(); // ADD THIS LINE
       return {
         'insights': insights.map((insight) => insight.toJson()).toList(),
+        'history': history.map((saved) => saved.toJson()).toList(), // ADD THIS LINE
         'exportDate': DateTime.now().toIso8601String(),
         'totalInsights': insights.length,
       };
@@ -782,9 +900,20 @@ class SmartInsightsService {
 
         await _saveInsights(importedInsights);
         Logger.smartInsightService('✅ Imported ${importedInsights.length} insights');
-        return true;
       }
-      return false;
+
+      if (data['history'] is List) {
+        final importedHistory = (data['history'] as List)
+            .map((json) => SavedSmartInsights.fromJson(json))
+            .toList();
+
+        final prefs = await SharedPreferences.getInstance();
+        final jsonData = importedHistory.map((saved) => saved.toJson()).toList();
+        await prefs.setString(_savedInsightsKey, jsonEncode(jsonData));
+        Logger.smartInsightService('✅ Imported ${importedHistory.length} insight history items');
+      }
+
+      return true;
     } catch (e) {
       Logger.smartInsightService('❌ Error importing insights: $e');
       return false;
