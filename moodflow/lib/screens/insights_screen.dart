@@ -130,6 +130,9 @@ class _InsightsScreenState extends State<InsightsScreen>
       );
 
       if (aiResult.success) {
+        // Save the AI analysis result for backup/restore
+        await _saveAIAnalysisResult(aiResult);
+
         // Convert AI insights to SmartInsights and merge
         final smartInsights = await SmartInsightsService.loadInsights();
         final enhancedInsights = _convertAIInsightsToSmart(aiResult);
@@ -197,11 +200,135 @@ class _InsightsScreenState extends State<InsightsScreen>
             : AlertPriority.medium,
         createdAt: now,
         confidence: 0.8,
-        actionSteps: [rec.description],
+        actionSteps: rec.actionSteps.isNotEmpty ? rec.actionSteps : [rec.description],
       ));
     }
 
     return insights;
+  }
+
+  List<String> _generateActionStepsFromRecommendation(String description) {
+    final steps = <String>[];
+
+    // Clean the description first
+    String cleanDesc = description.trim();
+
+    // Handle bullet points with • or -
+    if (cleanDesc.contains('•')) {
+      steps.addAll(cleanDesc
+          .split('•')
+          .map((step) => step.trim())
+          .where((step) => step.isNotEmpty && step.length > 5)
+          .map((step) => step.replaceAll(RegExp(r'\s+'), ' ').trim())
+          .take(5));
+    }
+    // Handle numbered lists
+    else if (cleanDesc.contains(RegExp(r'\d+\.'))) {
+      steps.addAll(cleanDesc
+          .split(RegExp(r'\d+\.'))
+          .map((step) => step.trim())
+          .where((step) => step.isNotEmpty && step.length > 5)
+          .map((step) => step.replaceAll(RegExp(r'\s+'), ' ').trim())
+          .take(5));
+    }
+    // Handle dashes
+    else if (cleanDesc.contains('-') && cleanDesc.split('-').length > 2) {
+      steps.addAll(cleanDesc
+          .split('-')
+          .map((step) => step.trim())
+          .where((step) => step.isNotEmpty && step.length > 5)
+          .map((step) => step.replaceAll(RegExp(r'\s+'), ' ').trim())
+          .take(5));
+    }
+
+    // If we got good steps, clean them up and return
+    if (steps.isNotEmpty) {
+      final cleanedSteps = steps
+          .map((step) {
+        // Remove any trailing punctuation and clean up
+        step = step.replaceAll(RegExp(r'[.,:;]+$'), '').trim();
+        // Ensure first letter is capitalized
+        if (step.isNotEmpty) {
+          step = step[0].toUpperCase() + step.substring(1);
+        }
+        return step;
+      })
+          .where((step) => step.length >= 10 && step.length <= 80) // Reasonable length
+          .toList();
+
+      if (cleanedSteps.length >= 3) {
+        return cleanedSteps.take(5).toList();
+      }
+    }
+
+    // Fallback: Generate context-aware action steps
+    return _generateContextAwareActionSteps(cleanDesc);
+  }
+
+  List<String> _generateContextAwareActionSteps(String description) {
+    final lowerDesc = description.toLowerCase();
+    final steps = <String>[];
+
+    if (lowerDesc.contains('sleep') || lowerDesc.contains('bedtime') || lowerDesc.contains('wake')) {
+      steps.addAll([
+        'Set a consistent bedtime and wake time',
+        'Create a relaxing pre-sleep routine',
+        'Limit screen time 1 hour before bed',
+        'Keep bedroom cool, dark, and quiet',
+        'Avoid caffeine 6 hours before bedtime'
+      ]);
+    } else if (lowerDesc.contains('exercise') || lowerDesc.contains('activity') || lowerDesc.contains('movement')) {
+      steps.addAll([
+        'Schedule 20-30 minutes of daily movement',
+        'Choose activities you genuinely enjoy',
+        'Start with gentle walks if beginning',
+        'Track your activity to build the habit',
+        'Find an exercise buddy for motivation'
+      ]);
+    } else if (lowerDesc.contains('morning') || lowerDesc.contains('start') && lowerDesc.contains('day')) {
+      steps.addAll([
+        'Wake up at the same time daily',
+        'Get sunlight exposure within first hour',
+        'Start with 5 minutes of deep breathing',
+        'Eat a nutritious breakfast',
+        'Set 3 positive intentions for the day'
+      ]);
+    } else if (lowerDesc.contains('stress') || lowerDesc.contains('work') || lowerDesc.contains('overwhelm')) {
+      steps.addAll([
+        'Practice 5-minute breathing exercises',
+        'Take short breaks every 90 minutes',
+        'Identify your main stress triggers',
+        'Use time-blocking for important tasks',
+        'End workday with a transition ritual'
+      ]);
+    } else if (lowerDesc.contains('social') || lowerDesc.contains('friends') || lowerDesc.contains('family')) {
+      steps.addAll([
+        'Schedule regular check-ins with loved ones',
+        'Join a group activity or class',
+        'Practice active listening in conversations',
+        'Share your feelings with trusted friends',
+        'Plan one social activity per week'
+      ]);
+    } else if (lowerDesc.contains('weather') || lowerDesc.contains('indoor') || lowerDesc.contains('light')) {
+      steps.addAll([
+        'Use a light therapy lamp for 20 minutes',
+        'Plan engaging indoor activities',
+        'Keep curtains open during the day',
+        'Spend time near windows when possible',
+        'Create a cozy, bright indoor environment'
+      ]);
+    } else {
+      // Generic wellness steps
+      steps.addAll([
+        'Track patterns in your daily routine',
+        'Make one small positive change daily',
+        'Focus on progress, not perfection',
+        'Celebrate small wins along the way',
+        'Be patient and kind with yourself'
+      ]);
+    }
+
+    return steps.take(5).toList();
   }
 
   Future<void> _showApiKeyDialog() async {
@@ -322,17 +449,23 @@ class _InsightsScreenState extends State<InsightsScreen>
                   value: 'ai_insights',
                   child: Row(
                     children: [
-                      Icon(_isGeneratingAI ? Icons.hourglass_bottom : Icons.psychology),
+                      Icon(
+                        _isGeneratingAI ? Icons.hourglass_bottom : Icons.psychology,
+                        color: Theme.of(context).iconTheme.color,
+                      ),
                       const SizedBox(width: 8),
                       Text(_showAIOptions ? 'Hide AI Options' : 'AI Insights'),
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'regular_insights',
                   child: Row(
                     children: [
-                      Icon(Icons.refresh),
+                      Icon(
+                        Icons.refresh,
+                        color: Theme.of(context).iconTheme.color,
+                      ),
                       SizedBox(width: 8),
                       Text('Refresh Insights'),
                     ],
@@ -398,11 +531,24 @@ class _InsightsScreenState extends State<InsightsScreen>
         children: [
           Row(
             children: [
-              Icon(Icons.psychology, color: Theme.of(context).primaryColor),
+              Icon(
+                  Icons.psychology,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Theme.of(context).primaryColor
+              ),
               const SizedBox(width: 8),
-              const Text(
-                'AI-Powered Insights',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              const Expanded(
+                child: Text(
+                  'AI-Powered Insights',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+              IconButton(
+                onPressed: () => setState(() => _showAIOptions = false),
+                icon: const Icon(Icons.close, size: 20),
+                tooltip: 'Close',
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               ),
             ],
           ),
@@ -425,7 +571,9 @@ class _InsightsScreenState extends State<InsightsScreen>
               label: Text(_isGeneratingAI ? 'Analyzing...' : 'Generate AI Insights'),
               onPressed: _isGeneratingAI ? null : _generateAIInsights,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
+                backgroundColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.blue.shade600
+                    : Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
@@ -471,30 +619,63 @@ class _InsightsScreenState extends State<InsightsScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: value ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : null,
+          color: value
+              ? (Theme.of(context).brightness == Brightness.dark
+              ? Colors.blue.shade800.withValues(alpha: 0.3)
+              : Theme.of(context).primaryColor.withValues(alpha: 0.1))
+              : null,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: value ? Theme.of(context).primaryColor : Colors.grey.shade400,
+            color: value
+                ? (Theme.of(context).brightness == Brightness.dark
+                ? Colors.blue.shade600
+                : Theme.of(context).primaryColor)
+                : (Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade600
+                : Colors.grey.shade400),
           ),
         ),
+
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: value ? Theme.of(context).primaryColor : Colors.grey.shade600),
+            Icon(
+                icon,
+                size: 14,
+                color: value
+                    ? (Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Theme.of(context).primaryColor)
+                    : (Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade600)
+            ),
             const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: value ? Theme.of(context).primaryColor : Colors.grey.shade600,
+                color: value
+                    ? (Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Theme.of(context).primaryColor)
+                    : (Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade300
+                    : Colors.grey.shade600),
               ),
             ),
             const SizedBox(width: 2),
             Icon(
               value ? Icons.check_circle : Icons.radio_button_unchecked,
               size: 12,
-              color: value ? Theme.of(context).primaryColor : Colors.grey.shade400,
+              color: value
+                  ? (Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Theme.of(context).primaryColor)
+                  : (Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade500
+                  : Colors.grey.shade400),
             ),
           ],
         ),
@@ -513,13 +694,7 @@ class _InsightsScreenState extends State<InsightsScreen>
     ).toList();
 
     if (actionableInsights.isEmpty) {
-      return _buildEmptyState(
-        icon: Icons.lightbulb_outline,
-        title: 'Smart Insights Loading...',
-        subtitle: 'Keep logging your moods to unlock personalized insights!',
-        actionText: 'Generate Insights',
-        onAction: _generateNewInsights,
-      );
+      return _buildEmptyStateWithAIOptions();
     }
 
     return RefreshIndicator(
@@ -531,6 +706,59 @@ class _InsightsScreenState extends State<InsightsScreen>
           final insight = actionableInsights[index];
           return _buildInsightCard(insight);
         },
+      ),
+    );
+  }
+  
+  Widget _buildEmptyStateWithAIOptions() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.lightbulb_outline,
+              size: 80,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Smart Insights Loading...',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Keep logging your moods to unlock personalized insights!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade500,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Show AI options if user has API key
+            if (_hasApiKey) ...[
+              _buildAIOptionsPanel(),
+              const SizedBox(height: 16),
+            ],
+
+            ElevatedButton.icon(
+              icon: const Icon(Icons.psychology),
+              label: const Text('Generate Insights'),
+              onPressed: _generateNewInsights,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1752,5 +1980,15 @@ class _InsightsScreenState extends State<InsightsScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _saveAIAnalysisResult(ai_service.MoodAnalysisResult aiResult) async {
+    if (aiResult.success) {
+      await ai_service.MoodAnalysisService.saveAnalysisResult(
+          aiResult,
+          DateTime.now().subtract(const Duration(days: 30)),
+          DateTime.now()
+      );
+    }
   }
 }

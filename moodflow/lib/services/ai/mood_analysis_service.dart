@@ -243,9 +243,16 @@ class MoodAnalysisService {
     buffer.writeln('  ],');
     buffer.writeln('  "recommendations": [');
     buffer.writeln(
-        '    {"title": "Recommendation Title", "description": "Actionable advice", "priority": "high|medium|low"}');
+        '    {"title": "Recommendation Title", "description": "Actionable advice", "priority": "high|medium|low", "actionSteps": ["Step 1", "Step 2", "Step 3", "Step 4"]}');
     buffer.writeln('  ]');
     buffer.writeln('}');
+
+    buffer.writeln('');
+    buffer.writeln('IMPORTANT: For each recommendation, include 3-5 specific, actionable steps in the actionSteps array. Each step should be:');
+    buffer.writeln('- Short and clear (under 60 characters)');
+    buffer.writeln('- Specific and actionable');
+    buffer.writeln('- Easy to implement');
+    buffer.writeln('- Directly related to the recommendation');
 
     return buffer.toString();
   }
@@ -453,6 +460,9 @@ class MoodAnalysisService {
             title: rec['title'] ?? 'Recommendation',
             description: rec['description'] ?? '',
             priority: _parsePriority(rec['priority']),
+            actionSteps: rec['actionSteps'] != null
+                ? List<String>.from(rec['actionSteps'])
+                : [],
           ));
         }
       }
@@ -728,11 +738,13 @@ class MoodRecommendation {
   final String title;
   final String description;
   final RecommendationPriority priority;
+  final List<String> actionSteps;
 
   MoodRecommendation({
     required this.title,
     required this.description,
     required this.priority,
+    this.actionSteps = const [],
   });
 }
 
