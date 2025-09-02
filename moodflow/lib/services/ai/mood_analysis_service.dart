@@ -238,12 +238,10 @@ class MoodAnalysisService {
     buffer.writeln('Format your response as JSON with this structure:');
     buffer.writeln('{');
     buffer.writeln('  "insights": [');
-    buffer.writeln(
-        '    {"title": "Insight Title", "description": "Detailed explanation", "type": "positive|negative|neutral"}');
+    buffer.writeln('    {"title": "Insight Title", "description": "Detailed explanation", "type": "positive|negative|neutral", "actionSteps": ["Step 1", "Step 2", "Step 3"]}');
     buffer.writeln('  ],');
     buffer.writeln('  "recommendations": [');
-    buffer.writeln(
-        '    {"title": "Recommendation Title", "description": "Actionable advice", "priority": "high|medium|low", "actionSteps": ["Step 1", "Step 2", "Step 3", "Step 4"]}');
+    buffer.writeln('    {"title": "Recommendation Title", "description": "Actionable advice", "priority": "high|medium|low", "actionSteps": ["Step 1", "Step 2", "Step 3"]}');
     buffer.writeln('  ]');
     buffer.writeln('}');
 
@@ -449,6 +447,9 @@ class MoodAnalysisService {
             title: insight['title'] ?? 'Insight',
             description: insight['description'] ?? '',
             type: _parseInsightType(insight['type']),
+            actionSteps: insight['actionSteps'] != null
+                ? List<String>.from(insight['actionSteps'])
+                : [],
           ));
         }
       }
@@ -726,11 +727,13 @@ class MoodInsight {
   final String title;
   final String description;
   final InsightType type;
+  final List<String> actionSteps;
 
   MoodInsight({
     required this.title,
     required this.description,
     required this.type,
+    this.actionSteps = const [],
   });
 }
 

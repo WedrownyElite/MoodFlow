@@ -1,6 +1,9 @@
 // lib/screens/insights_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/utils/logger.dart';
 import '../services/insights/smart_insights_service.dart';
 import '../services/ai/mood_analysis_service.dart' as ai_service;
 import '../widgets/ai_coach_widget.dart';
@@ -30,6 +33,8 @@ class _InsightsScreenState extends State<InsightsScreen>
   bool _includeSleepData = false;
   bool _includeActivityData = false;
   bool _includeWorkStressData = false;
+
+  static const String _savedAIInsightsKey = 'saved_insights_ai_analyses';
 
   @override
   void initState() {
@@ -130,8 +135,8 @@ class _InsightsScreenState extends State<InsightsScreen>
       );
 
       if (aiResult.success) {
-        // Save the AI analysis result for backup/restore
-        await _saveAIAnalysisResult(aiResult);
+        // Save the AI analysis result to insights history (separate from AI analysis screen)
+        await _saveInsightsAIAnalysis(aiResult);
 
         // Convert AI insights to SmartInsights and merge
         final smartInsights = await SmartInsightsService.loadInsights();
@@ -167,10 +172,68 @@ class _InsightsScreenState extends State<InsightsScreen>
     }
   }
 
+  /// Save AI analysis result to insights screen history (separate storage)
+  Future<void> _saveInsightsAIAnalysis(ai_service.MoodAnalysisResult aiResult) async {
+    if (!aiResult.success) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final existingAnalyses = await _getInsightsAIAnalyses();
+
+      final savedAnalysis = InsightsAIAnalysis(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        createdAt: DateTime.now(),
+        startDate: DateTime.now().subtract(const Duration(days: 30)),
+        endDate: DateTime.now(),
+        result: aiResult,
+      );
+
+      existingAnalyses.insert(0, savedAnalysis); // Add to beginning
+
+      // Keep only last 20 analyses
+      final limitedAnalyses = existingAnalyses.take(20).toList();
+
+      final jsonData = limitedAnalyses.map((analysis) => analysis.toJson()).toList();
+      await prefs.setString(_savedAIInsightsKey, jsonEncode(jsonData));
+    } catch (e) {
+      Logger.smartInsightService('Error saving insights AI analysis: $e');
+    }
+  }
+
+  /// Get saved AI analyses from insights screen
+  Future<List<InsightsAIAnalysis>> _getInsightsAIAnalyses() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_savedAIInsightsKey);
+
+      if (jsonString == null) return [];
+
+      final jsonList = jsonDecode(jsonString) as List<dynamic>;
+      return jsonList.map((json) => InsightsAIAnalysis.fromJson(json)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Delete an insights AI analysis
+  Future<void> _deleteInsightsAIAnalysis(String analysisId) async {
+    try {
+      final analyses = await _getInsightsAIAnalyses();
+      analyses.removeWhere((analysis) => analysis.id == analysisId);
+
+      final prefs = await SharedPreferences.getInstance();
+      final jsonData = analyses.map((analysis) => analysis.toJson()).toList();
+      await prefs.setString(_savedAIInsightsKey, jsonEncode(jsonData));
+    } catch (e) {
+      Logger.smartInsightService('Error deleting insights AI analysis: $e');
+    }
+  }
+
   List<SmartInsight> _convertAIInsightsToSmart(ai_service.MoodAnalysisResult aiResult) {
     final insights = <SmartInsight>[];
     final now = DateTime.now();
 
+    // Convert AI insights
     for (int i = 0; i < aiResult.insights.length; i++) {
       final insight = aiResult.insights[i];
       insights.add(SmartInsight(
@@ -184,10 +247,12 @@ class _InsightsScreenState extends State<InsightsScreen>
             : InsightType.pattern,
         priority: AlertPriority.medium,
         createdAt: now,
-        confidence: 0.8, // AI confidence
+        confidence: 0.8,
+        actionSteps: insight.actionSteps.isNotEmpty ? insight.actionSteps : null,
       ));
     }
 
+    // Convert AI recommendations
     for (int i = 0; i < aiResult.recommendations.length; i++) {
       final rec = aiResult.recommendations[i];
       insights.add(SmartInsight(
@@ -200,13 +265,13 @@ class _InsightsScreenState extends State<InsightsScreen>
             : AlertPriority.medium,
         createdAt: now,
         confidence: 0.8,
-        actionSteps: rec.actionSteps.isNotEmpty ? rec.actionSteps : [rec.description],
+        actionSteps: rec.actionSteps.isNotEmpty ? rec.actionSteps : null,
       ));
     }
 
     return insights;
   }
-
+  
   Future<void> _showApiKeyDialog() async {
     final controller = TextEditingController();
     bool isValidating = false;
@@ -388,10 +453,10 @@ class _InsightsScreenState extends State<InsightsScreen>
               controller: _tabController,
               children: [
                 _buildSmartInsightsTab(),
+                _buildHistoryTab(),
                 _buildPredictiveTab(),
                 _buildPatternsTab(),
                 _buildSummaryTab(),
-                _buildHistoryTab(),
               ],
             ),
           ),
@@ -401,8 +466,8 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   Widget _buildHistoryTab() {
-    return FutureBuilder<List<SavedSmartInsights>>(
-      future: SmartInsightsService.getSavedInsightsHistory(),
+    return FutureBuilder<List<InsightsAIAnalysis>>(
+      future: _getInsightsAIAnalyses(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -411,14 +476,14 @@ class _InsightsScreenState extends State<InsightsScreen>
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return _buildEmptyState(
             icon: Icons.history,
-            title: 'No insight history yet',
-            subtitle: 'Past insights will appear here as you generate them',
-            actionText: 'Generate Insights',
-            onAction: () => _generateNewInsights(),
+            title: 'No AI analysis history yet',
+            subtitle: 'Past AI analyses will appear here as you generate them',
+            actionText: 'Generate AI Insights',
+            onAction: () => _generateAIInsights(),
           );
         }
 
-        final savedInsights = snapshot.data!;
+        final savedAnalyses = snapshot.data!;
 
         return RefreshIndicator(
           onRefresh: () async {
@@ -426,10 +491,10 @@ class _InsightsScreenState extends State<InsightsScreen>
           },
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: savedInsights.length,
+            itemCount: savedAnalyses.length,
             itemBuilder: (context, index) {
-              final saved = savedInsights[index];
-              return _buildSavedInsightsCard(saved);
+              final analysis = savedAnalyses[index];
+              return _buildSavedAnalysisCard(analysis);
             },
           ),
         );
@@ -437,46 +502,17 @@ class _InsightsScreenState extends State<InsightsScreen>
     );
   }
 
-  Widget _buildSavedInsightsCard(SavedSmartInsights saved) {
+  Widget _buildSavedAnalysisCard(InsightsAIAnalysis analysis) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
         title: Text(
-          'Insights from ${DateFormat('MMM d, y').format(saved.createdAt)}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          'Analysis from ${DateFormat('MMM d, y').format(analysis.createdAt)}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${DateFormat('h:mm a').format(saved.createdAt)} • ${saved.totalInsights} insights generated',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-            ),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 6,
-              children: saved.insights.take(3).map((insight) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _getInsightTypeColor(insight.type).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _getInsightTypeColor(insight.type).withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Text(
-                  insight.type.name,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: _getInsightTypeColor(insight.type),
-                  ),
-                ),
-              )).toList(),
-            ),
-          ],
+        subtitle: Text(
+          '${DateFormat('MMM d').format(analysis.startDate)} - ${DateFormat('MMM d, y').format(analysis.endDate)} • ${DateFormat('h:mm a').format(analysis.createdAt)}',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
         ),
         children: [
           Padding(
@@ -484,50 +520,27 @@ class _InsightsScreenState extends State<InsightsScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Insights section
-                ...saved.insights.map((insight) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildInsightCard(insight),
+                // Convert AI results back to Smart Insights and display them properly
+                ...(_convertAIInsightsToSmart(analysis.result).map((insight) =>
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildInsightCard(insight),
+                    )
                 )),
 
                 // Delete button
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton.icon(
                       onPressed: () async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Delete Insights'),
-                            content: const Text(
-                              'This will permanently delete this insight session. Continue?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(context).pop(false),
-                                child: const Text('Cancel'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () => Navigator.of(context).pop(true),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  foregroundColor: Colors.white,
-                                ),
-                                child: const Text('Delete'),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        if (confirmed == true) {
-                          await SmartInsightsService.deleteSavedInsights(saved.id);
-                          setState(() {}); // Refresh the list
-                        }
+                        await _deleteInsightsAIAnalysis(analysis.id);
+                        setState(() {}); // Refresh the list
                       },
                       icon: const Icon(Icons.delete, size: 16, color: Colors.red),
-                      label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                      label: const Text('Delete',
+                          style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),
@@ -537,25 +550,6 @@ class _InsightsScreenState extends State<InsightsScreen>
         ],
       ),
     );
-  }
-
-  Color _getInsightTypeColor(InsightType type) {
-    switch (type) {
-      case InsightType.actionable:
-        return Colors.blue;
-      case InsightType.prediction:
-        return Colors.purple;
-      case InsightType.achievement:
-        return Colors.green;
-      case InsightType.celebration:
-        return Colors.amber;
-      case InsightType.concern:
-        return Colors.red;
-      case InsightType.pattern:
-        return Colors.indigo;
-      case InsightType.suggestion:
-        return Colors.orange;
-    }
   }
   
   Widget _buildAIOptionsPanel() {
@@ -985,7 +979,9 @@ class _InsightsScreenState extends State<InsightsScreen>
                 style: TextStyle(
                   fontSize: 15,
                   height: 1.5,
-                  color: Colors.grey.shade700,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white70
+                      : Colors.grey.shade700,
                 ),
               ),
 
@@ -2017,14 +2013,75 @@ class _InsightsScreenState extends State<InsightsScreen>
       ),
     );
   }
+}
 
-  Future<void> _saveAIAnalysisResult(ai_service.MoodAnalysisResult aiResult) async {
-    if (aiResult.success) {
-      await ai_service.MoodAnalysisService.saveAnalysisResult(
-          aiResult,
-          DateTime.now().subtract(const Duration(days: 30)),
-          DateTime.now()
-      );
-    }
-  }
+/// Data class for AI analyses generated from insights screen
+class InsightsAIAnalysis {
+  final String id;
+  final DateTime createdAt;
+  final DateTime startDate;
+  final DateTime endDate;
+  final ai_service.MoodAnalysisResult result;
+
+  InsightsAIAnalysis({
+    required this.id,
+    required this.createdAt,
+    required this.startDate,
+    required this.endDate,
+    required this.result,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'createdAt': createdAt.toIso8601String(),
+    'startDate': startDate.toIso8601String(),
+    'endDate': endDate.toIso8601String(),
+    'result': {
+      'success': result.success,
+      'insights': result.insights
+          .map((i) => {
+        'title': i.title,
+        'description': i.description,
+        'type': i.type.name,
+      })
+          .toList(),
+      'recommendations': result.recommendations
+          .map((r) => {
+        'title': r.title,
+        'description': r.description,
+        'priority': r.priority.name,
+        'actionSteps': r.actionSteps,
+      })
+          .toList(),
+    },
+  };
+
+  factory InsightsAIAnalysis.fromJson(Map<String, dynamic> json) => InsightsAIAnalysis(
+    id: json['id'],
+    createdAt: DateTime.parse(json['createdAt']),
+    startDate: DateTime.parse(json['startDate']),
+    endDate: DateTime.parse(json['endDate']),
+    result: ai_service.MoodAnalysisResult(
+      success: json['result']['success'],
+      insights: (json['result']['insights'] as List)
+          .map((i) => ai_service.MoodInsight(
+        title: i['title'],
+        description: i['description'],
+        type: ai_service.InsightType.values
+            .firstWhere((t) => t.name == i['type']),
+      ))
+          .toList(),
+      recommendations: (json['result']['recommendations'] as List)
+          .map((r) => ai_service.MoodRecommendation(
+        title: r['title'],
+        description: r['description'],
+        priority: ai_service.RecommendationPriority.values
+            .firstWhere((p) => p.name == r['priority']),
+        actionSteps: r['actionSteps'] != null
+            ? List<String>.from(r['actionSteps'])
+            : [],
+      ))
+          .toList(),
+    ),
+  );
 }
