@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../data/mood_data_service.dart';
 import '../data/correlation_data_service.dart';
 import '../insights/smart_insights_service.dart'  as smartinsights;
+import '../utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MoodAnalysisService {
@@ -235,22 +236,45 @@ class MoodAnalysisService {
     buffer.writeln(
         '2. RECOMMENDATIONS: 3-5 actionable suggestions for improving mood or maintaining good patterns');
     buffer.writeln('');
-    buffer.writeln('Format your response as JSON with this structure:');
+
+    // CRITICAL: Make action steps mandatory
+    buffer.writeln('**IMPORTANT: Each insight and recommendation MUST include specific actionSteps.**');
+    buffer.writeln('');
+
+    buffer.writeln('Format your response as JSON with this EXACT structure:');
     buffer.writeln('{');
     buffer.writeln('  "insights": [');
-    buffer.writeln('    {"title": "Insight Title", "description": "Detailed explanation", "type": "positive|negative|neutral", "actionSteps": ["Step 1", "Step 2", "Step 3"]}');
+    buffer.writeln('    {');
+    buffer.writeln('      "title": "Insight Title",');
+    buffer.writeln('      "description": "Detailed explanation",');
+    buffer.writeln('      "type": "positive|negative|neutral",');
+    buffer.writeln('      "actionSteps": ["Step 1", "Step 2", "Step 3"]');
+    buffer.writeln('    }');
     buffer.writeln('  ],');
     buffer.writeln('  "recommendations": [');
-    buffer.writeln('    {"title": "Recommendation Title", "description": "Actionable advice", "priority": "high|medium|low", "actionSteps": ["Step 1", "Step 2", "Step 3"]}');
+    buffer.writeln('    {');
+    buffer.writeln('      "title": "Recommendation Title",');
+    buffer.writeln('      "description": "Actionable advice",');
+    buffer.writeln('      "priority": "high|medium|low",');
+    buffer.writeln('      "actionSteps": ["Step 1", "Step 2", "Step 3"]');
+    buffer.writeln('    }');
     buffer.writeln('  ]');
     buffer.writeln('}');
 
     buffer.writeln('');
-    buffer.writeln('IMPORTANT: For each recommendation, include 3-5 specific, actionable steps in the actionSteps array. Each step should be:');
-    buffer.writeln('- Short and clear (under 60 characters)');
-    buffer.writeln('- Specific and actionable');
-    buffer.writeln('- Easy to implement');
-    buffer.writeln('- Directly related to the recommendation');
+    buffer.writeln('CRITICAL REQUIREMENTS FOR ACTION STEPS:');
+    buffer.writeln('- Each insight MUST have 3-5 actionSteps');
+    buffer.writeln('- Each recommendation MUST have 3-5 actionSteps');
+    buffer.writeln('- Action steps should be specific and actionable');
+    buffer.writeln('- Each step should be under 60 characters');
+    buffer.writeln('- Steps should be practical and easy to implement');
+    buffer.writeln('- NO empty actionSteps arrays allowed');
+    buffer.writeln('');
+    buffer.writeln('Example actionSteps for insights:');
+    buffer.writeln('["Track when this pattern occurs", "Notice triggers", "Plan preventive actions"]');
+    buffer.writeln('');
+    buffer.writeln('Example actionSteps for recommendations:');
+    buffer.writeln('["Start with 10 minutes daily", "Track progress weekly", "Adjust as needed"]');
 
     return buffer.toString();
   }
@@ -440,33 +464,62 @@ class MoodAnalysisService {
       final insights = <MoodInsight>[];
       final recommendations = <MoodRecommendation>[];
 
-      // Parse insights
+      // Parse insights with action steps validation
       if (parsed['insights'] is List) {
-        for (final insight in parsed['insights']) {
+        for (int i = 0; i < (parsed['insights'] as List).length; i++) {
+          final insight = parsed['insights'][i];
+
+          // Ensure action steps exist, if not, generate appropriate ones
+          List<String> actionSteps;
+          if (insight['actionSteps'] is List && (insight['actionSteps'] as List).isNotEmpty) {
+            actionSteps = List<String>.from(insight['actionSteps']);
+          } else {
+            // Generate contextual action steps based on insight content
+            actionSteps = _generateInsightActionSteps(
+                insight['title'] ?? '',
+                insight['description'] ?? '',
+                insight['type'] ?? 'neutral'
+            );
+          }
+
           insights.add(MoodInsight(
             title: insight['title'] ?? 'Insight',
             description: insight['description'] ?? '',
             type: _parseInsightType(insight['type']),
-            actionSteps: insight['actionSteps'] != null
-                ? List<String>.from(insight['actionSteps'])
-                : [],
+            actionSteps: actionSteps,
           ));
         }
       }
 
-      // Parse recommendations
+      // Parse recommendations with action steps validation
       if (parsed['recommendations'] is List) {
-        for (final rec in parsed['recommendations']) {
+        for (int i = 0; i < (parsed['recommendations'] as List).length; i++) {
+          final rec = parsed['recommendations'][i];
+
+          // Ensure action steps exist, if not, generate appropriate ones
+          List<String> actionSteps;
+          if (rec['actionSteps'] is List && (rec['actionSteps'] as List).isNotEmpty) {
+            actionSteps = List<String>.from(rec['actionSteps']);
+          } else {
+            // Generate contextual action steps based on recommendation content
+            actionSteps = _generateRecommendationActionSteps(
+                rec['title'] ?? '',
+                rec['description'] ?? '',
+                rec['priority'] ?? 'medium'
+            );
+          }
+
           recommendations.add(MoodRecommendation(
             title: rec['title'] ?? 'Recommendation',
             description: rec['description'] ?? '',
             priority: _parsePriority(rec['priority']),
-            actionSteps: rec['actionSteps'] != null
-                ? List<String>.from(rec['actionSteps'])
-                : [],
+            actionSteps: actionSteps,
           ));
         }
       }
+
+      Logger.aiService('✅ Parsed ${insights.length} insights and ${recommendations.length} recommendations');
+      Logger.aiService('📝 Total action steps: ${insights.fold(0, (sum, i) => sum + i.actionSteps.length) + recommendations.fold(0, (sum, r) => sum + r.actionSteps.length)}');
 
       return MoodAnalysisResult(
         success: true,
@@ -474,6 +527,7 @@ class MoodAnalysisService {
         recommendations: recommendations,
       );
     } catch (e) {
+      Logger.aiService('❌ Failed to parse AI response: $e');
       return MoodAnalysisResult(
         success: false,
         error: 'Failed to parse AI response: ${e.toString()}',
@@ -481,6 +535,155 @@ class MoodAnalysisService {
         recommendations: [],
       );
     }
+  }
+
+  /// Generate contextual action steps for insights
+  static List<String> _generateInsightActionSteps(String title, String description, String type) {
+    // Default action steps based on insight type
+    final defaultSteps = <String>[];
+
+    final titleLower = title.toLowerCase();
+    final descLower = description.toLowerCase();
+
+    if (titleLower.contains('sleep') || descLower.contains('sleep')) {
+      defaultSteps.addAll([
+        'Track your sleep schedule for a week',
+        'Aim for consistent bedtime and wake time',
+        'Create a relaxing bedtime routine',
+        'Monitor how sleep affects your next day mood',
+      ]);
+    } else if (titleLower.contains('morning') || descLower.contains('morning')) {
+      defaultSteps.addAll([
+        'Plan important tasks for your morning hours',
+        'Try a 10-minute morning routine',
+        'Get sunlight exposure within first hour of waking',
+        'Eat a protein-rich breakfast',
+      ]);
+    } else if (titleLower.contains('exercise') || descLower.contains('exercise')) {
+      defaultSteps.addAll([
+        'Schedule 20-30 minutes of activity daily',
+        'Choose activities you actually enjoy',
+        'Start small and build consistency',
+        'Track how exercise impacts your mood',
+      ]);
+    } else if (titleLower.contains('stress') || descLower.contains('stress')) {
+      defaultSteps.addAll([
+        'Identify your main stress triggers',
+        'Practice deep breathing when stressed',
+        'Plan stress-relief activities',
+        'Consider talking to someone about stressors',
+      ]);
+    } else if (titleLower.contains('social') || descLower.contains('social')) {
+      defaultSteps.addAll([
+        'Schedule regular time with supportive people',
+        'Join activities that interest you',
+        'Practice saying no to draining social obligations',
+        'Balance social time with alone time',
+      ]);
+    } else {
+      // Generic action steps based on type
+      switch (type) {
+        case 'positive':
+          defaultSteps.addAll([
+            'Identify what makes this pattern successful',
+            'Plan to repeat positive behaviors',
+            'Share this success with someone supportive',
+            'Use this strength during challenging times',
+          ]);
+          break;
+        case 'negative':
+          defaultSteps.addAll([
+            'Notice when this pattern starts to happen',
+            'Prepare alternative responses',
+            'Ask for support when you notice this pattern',
+            'Be patient and kind with yourself',
+          ]);
+          break;
+        default:
+          defaultSteps.addAll([
+            'Observe this pattern in your daily life',
+            'Keep track of when it occurs',
+            'Consider what influences this pattern',
+            'Experiment with small changes',
+          ]);
+      }
+    }
+
+    return defaultSteps.take(4).toList();
+  }
+
+  /// Generate contextual action steps for recommendations
+  static List<String> _generateRecommendationActionSteps(String title, String description, String priority) {
+    final defaultSteps = <String>[];
+
+    final titleLower = title.toLowerCase();
+    final descLower = description.toLowerCase();
+
+    if (titleLower.contains('sleep') || descLower.contains('sleep')) {
+      defaultSteps.addAll([
+        'Set a consistent bedtime tonight',
+        'Create a calming bedtime routine',
+        'Avoid screens 1 hour before bed',
+        'Track sleep quality for one week',
+      ]);
+    } else if (titleLower.contains('exercise') || titleLower.contains('activity')) {
+      defaultSteps.addAll([
+        'Start with 10-15 minutes of activity today',
+        'Choose something you find enjoyable',
+        'Schedule it at the same time each day',
+        'Track how it affects your mood',
+      ]);
+    } else if (titleLower.contains('routine') || titleLower.contains('habit')) {
+      defaultSteps.addAll([
+        'Start with one small change',
+        'Practice it for just 5 minutes daily',
+        'Set a reminder or cue for the habit',
+        'Celebrate small wins along the way',
+      ]);
+    } else if (titleLower.contains('social') || titleLower.contains('connect')) {
+      defaultSteps.addAll([
+        'Reach out to one person today',
+        'Schedule regular check-ins',
+        'Join a group or activity you\'d enjoy',
+        'Be open about your feelings with trusted people',
+      ]);
+    } else if (titleLower.contains('stress') || titleLower.contains('manage')) {
+      defaultSteps.addAll([
+        'Try a 5-minute breathing exercise today',
+        'Identify your main stress triggers',
+        'Plan specific responses to stressful situations',
+        'Schedule regular stress-relief activities',
+      ]);
+    } else {
+      // Generic action steps based on priority
+      switch (priority) {
+        case 'high':
+          defaultSteps.addAll([
+            'Start implementing this today',
+            'Set aside dedicated time for this',
+            'Track your progress daily',
+            'Adjust your approach as needed',
+          ]);
+          break;
+        case 'low':
+          defaultSteps.addAll([
+            'Consider trying this when you have time',
+            'Start with small experiments',
+            'Notice how it affects your wellbeing',
+            'Build it into your routine gradually',
+          ]);
+          break;
+        default: // medium
+          defaultSteps.addAll([
+            'Plan to start this within the next few days',
+            'Set a specific time to try it',
+            'Monitor how it affects your mood',
+            'Be consistent for best results',
+          ]);
+      }
+    }
+
+    return defaultSteps.take(4).toList();
   }
 
   /// Enhanced analysis that combines AI with local pattern detection

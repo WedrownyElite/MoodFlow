@@ -236,6 +236,26 @@ class _InsightsScreenState extends State<InsightsScreen>
     // Convert AI insights
     for (int i = 0; i < aiResult.insights.length; i++) {
       final insight = aiResult.insights[i];
+
+      // DEBUG: Log original action steps
+      Logger.aiService('DEBUG: Original AI insight action steps: ${insight.actionSteps}');
+
+      // Generate meaningful action steps based on insight content
+      List<String> actionSteps;
+      if (insight.actionSteps.isNotEmpty) {
+        actionSteps = insight.actionSteps;
+      } else {
+        actionSteps = _generateContextualActionSteps(
+          insight.title,
+          insight.description,
+          insight.type,
+          isRecommendation: false,
+        );
+      }
+
+      // DEBUG: Log converted action steps
+      Logger.aiService('DEBUG: Converted SmartInsight action steps: $actionSteps');
+
       insights.add(SmartInsight(
         id: 'ai_insight_${now.millisecondsSinceEpoch}_$i',
         title: '🤖 ${insight.title}',
@@ -248,13 +268,34 @@ class _InsightsScreenState extends State<InsightsScreen>
         priority: AlertPriority.medium,
         createdAt: now,
         confidence: 0.8,
-        actionSteps: insight.actionSteps.isNotEmpty ? insight.actionSteps : null,
+        actionSteps: actionSteps,
       ));
     }
 
     // Convert AI recommendations
     for (int i = 0; i < aiResult.recommendations.length; i++) {
       final rec = aiResult.recommendations[i];
+
+      // DEBUG: Log original action steps
+      Logger.aiService('DEBUG: Original AI recommendation action steps: ${rec.actionSteps}');
+
+      // Generate meaningful action steps based on recommendation content
+      List<String> actionSteps;
+      if (rec.actionSteps.isNotEmpty) {
+        actionSteps = rec.actionSteps;
+      } else {
+        actionSteps = _generateContextualActionSteps(
+          rec.title,
+          rec.description,
+          ai_service.InsightType.neutral, // Default type for recommendations
+          isRecommendation: true,
+          priority: rec.priority,
+        );
+      }
+
+      // DEBUG: Log converted action steps
+      Logger.aiService('DEBUG: Converted recommendation action steps: $actionSteps');
+
       insights.add(SmartInsight(
         id: 'ai_rec_${now.millisecondsSinceEpoch}_$i',
         title: '💡 ${rec.title}',
@@ -265,11 +306,178 @@ class _InsightsScreenState extends State<InsightsScreen>
             : AlertPriority.medium,
         createdAt: now,
         confidence: 0.8,
-        actionSteps: rec.actionSteps.isNotEmpty ? rec.actionSteps : null,
+        actionSteps: actionSteps,
       ));
     }
 
     return insights;
+  }
+
+  /// Generate contextual action steps based on content
+  List<String> _generateContextualActionSteps(
+      String title,
+      String description,
+      ai_service.InsightType type, {
+        bool isRecommendation = false,
+        ai_service.RecommendationPriority? priority,
+      }) {
+    final titleLower = title.toLowerCase();
+    final descLower = description.toLowerCase();
+
+    // Sleep-related action steps
+    if (titleLower.contains('sleep') || descLower.contains('sleep')) {
+      return isRecommendation ? [
+        'Set a consistent bedtime tonight',
+        'Create a 30-minute wind-down routine',
+        'Avoid screens 1 hour before bed',
+        'Track sleep quality for one week',
+        'Optimize your bedroom for better sleep',
+      ] : [
+        'Track your sleep schedule for a week',
+        'Notice how sleep quality affects next-day mood',
+        'Identify what helps you sleep better',
+        'Plan to prioritize sleep consistency',
+      ];
+    }
+
+    // Exercise/activity-related action steps
+    if (titleLower.contains('exercise') || titleLower.contains('activity') ||
+        descLower.contains('exercise') || descLower.contains('activity')) {
+      return isRecommendation ? [
+        'Start with 15 minutes of movement today',
+        'Choose an activity you genuinely enjoy',
+        'Schedule exercise at the same time daily',
+        'Track how activity affects your mood',
+        'Build up duration gradually',
+      ] : [
+        'Notice which activities boost your mood most',
+        'Track your energy levels before and after activity',
+        'Plan more of the activities that help you feel good',
+        'Consider trying new forms of movement',
+      ];
+    }
+
+    // Stress-related action steps
+    if (titleLower.contains('stress') || descLower.contains('stress')) {
+      return isRecommendation ? [
+        'Practice 5-minute deep breathing daily',
+        'Identify your top 3 stress triggers',
+        'Plan specific responses to stressful situations',
+        'Schedule regular stress-relief activities',
+        'Consider talking to someone about your stress',
+      ] : [
+        'Notice what triggers stress for you',
+        'Track stress patterns throughout your day',
+        'Identify which stress-relief methods work best',
+        'Plan to use stress management tools proactively',
+      ];
+    }
+
+    // Morning/time-based action steps
+    if (titleLower.contains('morning') || descLower.contains('morning')) {
+      return isRecommendation ? [
+        'Create a consistent morning routine',
+        'Get sunlight within 30 minutes of waking',
+        'Plan important tasks for morning hours',
+        'Try a protein-rich breakfast',
+        'Avoid checking phone for first 30 minutes',
+      ] : [
+        'Notice what makes your mornings feel good',
+        'Track which morning activities boost your mood',
+        'Plan to schedule challenging tasks in mornings',
+        'Consider what evening prep helps your mornings',
+      ];
+    }
+
+    // Social-related action steps
+    if (titleLower.contains('social') || descLower.contains('social') ||
+        titleLower.contains('friend') || descLower.contains('friend')) {
+      return isRecommendation ? [
+        'Reach out to one supportive person today',
+        'Schedule regular check-ins with friends',
+        'Join one activity where you can meet people',
+        'Practice saying no to draining social events',
+        'Balance social time with alone time',
+      ] : [
+        'Notice which social interactions energize you',
+        'Track how different social activities affect your mood',
+        'Identify the people who make you feel good',
+        'Plan to spend more time with supportive people',
+      ];
+    }
+
+    // Weather-related action steps
+    if (titleLower.contains('weather') || descLower.contains('weather')) {
+      return isRecommendation ? [
+        'Create a cozy indoor environment for bad weather',
+        'Plan mood-boosting indoor activities',
+        'Use a light therapy lamp during dark days',
+        'Schedule outdoor time when weather is good',
+        'Prepare comfort strategies for challenging weather',
+      ] : [
+        'Track how different weather affects your mood',
+        'Notice which weather conditions challenge you most',
+        'Plan specific strategies for difficult weather days',
+        'Consider light therapy or vitamin D supplements',
+      ];
+    }
+
+    // General action steps based on type and priority
+    if (isRecommendation) {
+      switch (priority) {
+        case ai_service.RecommendationPriority.high:
+          return [
+            'Start implementing this today',
+            'Set aside dedicated time for this change',
+            'Track your progress daily',
+            'Adjust your approach based on what works',
+            'Ask for support if you need help with this',
+          ];
+        case ai_service.RecommendationPriority.low:
+          return [
+            'Consider trying this when you have time',
+            'Start with small 5-minute experiments',
+            'Notice how it affects your wellbeing',
+            'Build it into your routine gradually',
+          ];
+        default: // medium
+          return [
+            'Plan to start this within the next few days',
+            'Set a specific time to try this change',
+            'Monitor how it affects your mood',
+            'Be consistent for best results',
+            'Celebrate small wins along the way',
+          ];
+      }
+    } else {
+      // Action steps for insights based on type
+      switch (type) {
+        case ai_service.InsightType.positive:
+          return [
+            'Celebrate this positive pattern you\'ve identified',
+            'Think about what makes this pattern successful',
+            'Plan to repeat the behaviors that create this positive outcome',
+            'Share this success with someone who supports you',
+            'Use this strength during more challenging times',
+          ];
+        case ai_service.InsightType.negative:
+          return [
+            'Notice early warning signs when this pattern starts',
+            'Prepare alternative responses for these situations',
+            'Be patient and kind with yourself about this pattern',
+            'Ask for support when you notice this happening',
+            'Remember that awareness is the first step to change',
+          ];
+        default: // neutral
+          return [
+            'Observe this pattern more closely in your daily life',
+            'Keep track of when and why this occurs',
+            'Consider what factors influence this pattern',
+            'Experiment with small changes to see what helps',
+            'Be curious rather than judgmental about this pattern',
+          ];
+      }
+    }
   }
   
   Future<void> _showApiKeyDialog() async {
@@ -2043,6 +2251,7 @@ class InsightsAIAnalysis {
         'title': i.title,
         'description': i.description,
         'type': i.type.name,
+        'actionSteps': i.actionSteps,
       })
           .toList(),
       'recommendations': result.recommendations
@@ -2069,6 +2278,9 @@ class InsightsAIAnalysis {
         description: i['description'],
         type: ai_service.InsightType.values
             .firstWhere((t) => t.name == i['type']),
+        actionSteps: i['actionSteps'] != null
+            ? List<String>.from(i['actionSteps'])
+            : [],
       ))
           .toList(),
       recommendations: (json['result']['recommendations'] as List)
