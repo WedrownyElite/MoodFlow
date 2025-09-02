@@ -10,6 +10,7 @@ class MoodDataExport {
   final NotificationSettingsExport notificationSettings;
   final Map<String, dynamic> userPreferences;
   final List<Map<String, dynamic>> savedAnalyses;
+  final Map<String, dynamic> smartInsightsData;
 
   MoodDataExport({
     required this.appVersion,
@@ -20,6 +21,7 @@ class MoodDataExport {
     required this.notificationSettings,
     required this.userPreferences,
     required this.savedAnalyses,
+    required this.smartInsightsData,
   });
 
   Map<String, dynamic> toJson() => {
@@ -32,6 +34,7 @@ class MoodDataExport {
         'notificationSettings': notificationSettings.toJson(),
         'userPreferences': userPreferences,
         'savedAnalyses': savedAnalyses,
+        'smartInsightsData': smartInsightsData,
       };
 
   factory MoodDataExport.fromJson(Map<String, dynamic> json) => MoodDataExport(
@@ -51,6 +54,7 @@ class MoodDataExport {
         userPreferences: json['userPreferences'] ?? {},
         savedAnalyses:
             List<Map<String, dynamic>>.from(json['savedAnalyses'] ?? []),
+        smartInsightsData: Map<String, dynamic>.from(json['smartInsightsData'] ?? {}),
       );
 }
 

@@ -34,7 +34,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _loadInsights();
     _checkApiKey();
   }
@@ -207,130 +207,6 @@ class _InsightsScreenState extends State<InsightsScreen>
     return insights;
   }
 
-  List<String> _generateActionStepsFromRecommendation(String description) {
-    final steps = <String>[];
-
-    // Clean the description first
-    String cleanDesc = description.trim();
-
-    // Handle bullet points with • or -
-    if (cleanDesc.contains('•')) {
-      steps.addAll(cleanDesc
-          .split('•')
-          .map((step) => step.trim())
-          .where((step) => step.isNotEmpty && step.length > 5)
-          .map((step) => step.replaceAll(RegExp(r'\s+'), ' ').trim())
-          .take(5));
-    }
-    // Handle numbered lists
-    else if (cleanDesc.contains(RegExp(r'\d+\.'))) {
-      steps.addAll(cleanDesc
-          .split(RegExp(r'\d+\.'))
-          .map((step) => step.trim())
-          .where((step) => step.isNotEmpty && step.length > 5)
-          .map((step) => step.replaceAll(RegExp(r'\s+'), ' ').trim())
-          .take(5));
-    }
-    // Handle dashes
-    else if (cleanDesc.contains('-') && cleanDesc.split('-').length > 2) {
-      steps.addAll(cleanDesc
-          .split('-')
-          .map((step) => step.trim())
-          .where((step) => step.isNotEmpty && step.length > 5)
-          .map((step) => step.replaceAll(RegExp(r'\s+'), ' ').trim())
-          .take(5));
-    }
-
-    // If we got good steps, clean them up and return
-    if (steps.isNotEmpty) {
-      final cleanedSteps = steps
-          .map((step) {
-        // Remove any trailing punctuation and clean up
-        step = step.replaceAll(RegExp(r'[.,:;]+$'), '').trim();
-        // Ensure first letter is capitalized
-        if (step.isNotEmpty) {
-          step = step[0].toUpperCase() + step.substring(1);
-        }
-        return step;
-      })
-          .where((step) => step.length >= 10 && step.length <= 80) // Reasonable length
-          .toList();
-
-      if (cleanedSteps.length >= 3) {
-        return cleanedSteps.take(5).toList();
-      }
-    }
-
-    // Fallback: Generate context-aware action steps
-    return _generateContextAwareActionSteps(cleanDesc);
-  }
-
-  List<String> _generateContextAwareActionSteps(String description) {
-    final lowerDesc = description.toLowerCase();
-    final steps = <String>[];
-
-    if (lowerDesc.contains('sleep') || lowerDesc.contains('bedtime') || lowerDesc.contains('wake')) {
-      steps.addAll([
-        'Set a consistent bedtime and wake time',
-        'Create a relaxing pre-sleep routine',
-        'Limit screen time 1 hour before bed',
-        'Keep bedroom cool, dark, and quiet',
-        'Avoid caffeine 6 hours before bedtime'
-      ]);
-    } else if (lowerDesc.contains('exercise') || lowerDesc.contains('activity') || lowerDesc.contains('movement')) {
-      steps.addAll([
-        'Schedule 20-30 minutes of daily movement',
-        'Choose activities you genuinely enjoy',
-        'Start with gentle walks if beginning',
-        'Track your activity to build the habit',
-        'Find an exercise buddy for motivation'
-      ]);
-    } else if (lowerDesc.contains('morning') || lowerDesc.contains('start') && lowerDesc.contains('day')) {
-      steps.addAll([
-        'Wake up at the same time daily',
-        'Get sunlight exposure within first hour',
-        'Start with 5 minutes of deep breathing',
-        'Eat a nutritious breakfast',
-        'Set 3 positive intentions for the day'
-      ]);
-    } else if (lowerDesc.contains('stress') || lowerDesc.contains('work') || lowerDesc.contains('overwhelm')) {
-      steps.addAll([
-        'Practice 5-minute breathing exercises',
-        'Take short breaks every 90 minutes',
-        'Identify your main stress triggers',
-        'Use time-blocking for important tasks',
-        'End workday with a transition ritual'
-      ]);
-    } else if (lowerDesc.contains('social') || lowerDesc.contains('friends') || lowerDesc.contains('family')) {
-      steps.addAll([
-        'Schedule regular check-ins with loved ones',
-        'Join a group activity or class',
-        'Practice active listening in conversations',
-        'Share your feelings with trusted friends',
-        'Plan one social activity per week'
-      ]);
-    } else if (lowerDesc.contains('weather') || lowerDesc.contains('indoor') || lowerDesc.contains('light')) {
-      steps.addAll([
-        'Use a light therapy lamp for 20 minutes',
-        'Plan engaging indoor activities',
-        'Keep curtains open during the day',
-        'Spend time near windows when possible',
-        'Create a cozy, bright indoor environment'
-      ]);
-    } else {
-      // Generic wellness steps
-      steps.addAll([
-        'Track patterns in your daily routine',
-        'Make one small positive change daily',
-        'Focus on progress, not perfection',
-        'Celebrate small wins along the way',
-        'Be patient and kind with yourself'
-      ]);
-    }
-
-    return steps.take(5).toList();
-  }
-
   Future<void> _showApiKeyDialog() async {
     final controller = TextEditingController();
     bool isValidating = false;
@@ -497,6 +373,7 @@ class _InsightsScreenState extends State<InsightsScreen>
           isScrollable: true,
           tabs: const [
             Tab(icon: Icon(Icons.lightbulb, size: 20), text: 'Smart Insights'),
+            Tab(icon: Icon(Icons.history, size: 20), text: 'AI History'),
             Tab(icon: Icon(Icons.trending_up, size: 20), text: 'Predictive'),
             Tab(icon: Icon(Icons.analytics, size: 20), text: 'Patterns'),
             Tab(icon: Icon(Icons.assessment, size: 20), text: 'Summary'),
@@ -514,11 +391,82 @@ class _InsightsScreenState extends State<InsightsScreen>
                 _buildPredictiveTab(),
                 _buildPatternsTab(),
                 _buildSummaryTab(),
+                _buildHistoryTab(),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHistoryTab() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: SmartInsightsService.exportInsightsData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return _buildEmptyState(
+            icon: Icons.history,
+            title: 'No insight history yet',
+            subtitle: 'Past insights will appear here as you use the app',
+          );
+        }
+
+        final insightsData = snapshot.data!;
+        final insights = insightsData['insights'] as List<dynamic>? ?? [];
+
+        if (insights.isEmpty) {
+          return _buildEmptyState(
+            icon: Icons.history,
+            title: 'No insight history yet',
+            subtitle: 'Past insights will appear here as you use the app',
+          );
+        }
+
+        // Group insights by date
+        final groupedInsights = <String, List<dynamic>>{};
+        for (final insightJson in insights) {
+          final insight = SmartInsight.fromJson(insightJson);
+          final dateKey = DateFormat('yyyy-MM-dd').format(insight.createdAt);
+          groupedInsights.putIfAbsent(dateKey, () => []).add(insightJson);
+        }
+
+        // Sort dates in descending order
+        final sortedDates = groupedInsights.keys.toList()
+          ..sort((a, b) => b.compareTo(a));
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: sortedDates.length,
+          itemBuilder: (context, index) {
+            final dateKey = sortedDates[index];
+            final dateInsights = groupedInsights[dateKey]!;
+            final date = DateTime.parse(dateKey);
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              child: ExpansionTile(
+                title: Text(
+                  DateFormat('MMMM d, yyyy').format(date),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text('${dateInsights.length} insights'),
+                children: dateInsights.map<Widget>((insightJson) {
+                  final insight = SmartInsight.fromJson(insightJson);
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: _buildInsightCard(insight),
+                  );
+                }).toList(),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
