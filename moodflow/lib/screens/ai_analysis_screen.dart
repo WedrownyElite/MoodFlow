@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/ai/mood_analysis_service.dart';
 import '../widgets/date_range_picker_dialog.dart';
+import '../services/utils/ai_coach_helper.dart';
 
 class AIAnalysisScreen extends StatefulWidget {
   const AIAnalysisScreen({super.key});
@@ -378,6 +379,11 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.smart_toy),
+            onPressed: () => AiCoachHelper.openAiCoach(context),
+            tooltip: 'AI Coach',
+          ),
           IconButton(
             icon: const Icon(Icons.info_outline),
             onPressed: _showDisclaimer,

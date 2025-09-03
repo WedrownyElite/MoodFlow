@@ -1,12 +1,7 @@
-// lib/screens/insights_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../services/utils/logger.dart';
 import '../services/insights/smart_insights_service.dart';
-import '../services/ai/mood_analysis_service.dart' as ai_service;
-import '../widgets/ai_coach_widget.dart';
+import '../services/utils/ai_coach_helper.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -23,25 +18,11 @@ class _InsightsScreenState extends State<InsightsScreen>
   bool _isLoading = false;
   bool _isGenerating = false;
 
-  bool _hasApiKey = false;
-  bool _isGeneratingAI = false;
-  bool _showAIOptions = false;
-
-  // AI data selection options (same as AI analysis screen)
-  bool _includeMoodData = true;
-  bool _includeWeatherData = false;
-  bool _includeSleepData = false;
-  bool _includeActivityData = false;
-  bool _includeWorkStressData = false;
-
-  static const String _savedAIInsightsKey = 'saved_insights_ai_analyses';
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadInsights();
-    _checkApiKey();
   }
 
   @override
@@ -75,13 +56,6 @@ class _InsightsScreenState extends State<InsightsScreen>
     }
   }
 
-  Future<void> _checkApiKey() async {
-    final hasKey = await ai_service.MoodAnalysisService.hasValidApiKey();
-    setState(() {
-      _hasApiKey = hasKey;
-    });
-  }
-
   Future<void> _generateNewInsights() async {
     setState(() => _isGenerating = true);
 
@@ -112,465 +86,6 @@ class _InsightsScreenState extends State<InsightsScreen>
     }
   }
 
-  Future<void> _generateAIInsights() async {
-    if (!_hasApiKey) {
-      _showApiKeyDialog();
-      return;
-    }
-
-    setState(() => _isGeneratingAI = true);
-
-    try {
-      final startDate = DateTime.now().subtract(const Duration(days: 30));
-      final endDate = DateTime.now();
-
-      final aiResult = await ai_service.MoodAnalysisService.analyzeMoodTrendsWithOptions(
-        startDate: startDate,
-        endDate: endDate,
-        includeMoodData: _includeMoodData,
-        includeWeatherData: _includeWeatherData,
-        includeSleepData: _includeSleepData,
-        includeActivityData: _includeActivityData,
-        includeWorkStressData: _includeWorkStressData,
-      );
-
-      if (aiResult.success) {
-        // Save the AI analysis result to insights history (separate from AI analysis screen)
-        await _saveInsightsAIAnalysis(aiResult);
-
-        // Convert AI insights to SmartInsights and merge
-        final smartInsights = await SmartInsightsService.loadInsights();
-        final enhancedInsights = _convertAIInsightsToSmart(aiResult);
-
-        final allInsights = [...enhancedInsights, ...smartInsights];
-        setState(() {
-          _insights = allInsights;
-          _isGeneratingAI = false;
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Generated ${enhancedInsights.length} AI-powered insights!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        throw Exception(aiResult.error ?? 'AI analysis failed');
-      }
-    } catch (e) {
-      setState(() => _isGeneratingAI = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('AI analysis failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  /// Save AI analysis result to insights screen history (separate storage)
-  Future<void> _saveInsightsAIAnalysis(ai_service.MoodAnalysisResult aiResult) async {
-    if (!aiResult.success) return;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final existingAnalyses = await _getInsightsAIAnalyses();
-
-      final savedAnalysis = InsightsAIAnalysis(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        createdAt: DateTime.now(),
-        startDate: DateTime.now().subtract(const Duration(days: 30)),
-        endDate: DateTime.now(),
-        result: aiResult,
-      );
-
-      existingAnalyses.insert(0, savedAnalysis); // Add to beginning
-
-      // Keep only last 20 analyses
-      final limitedAnalyses = existingAnalyses.take(20).toList();
-
-      final jsonData = limitedAnalyses.map((analysis) => analysis.toJson()).toList();
-      await prefs.setString(_savedAIInsightsKey, jsonEncode(jsonData));
-    } catch (e) {
-      Logger.smartInsightService('Error saving insights AI analysis: $e');
-    }
-  }
-
-  /// Get saved AI analyses from insights screen
-  Future<List<InsightsAIAnalysis>> _getInsightsAIAnalyses() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_savedAIInsightsKey);
-
-      if (jsonString == null) return [];
-
-      final jsonList = jsonDecode(jsonString) as List<dynamic>;
-      return jsonList.map((json) => InsightsAIAnalysis.fromJson(json)).toList();
-    } catch (e) {
-      return [];
-    }
-  }
-
-  /// Delete an insights AI analysis
-  Future<void> _deleteInsightsAIAnalysis(String analysisId) async {
-    try {
-      final analyses = await _getInsightsAIAnalyses();
-      analyses.removeWhere((analysis) => analysis.id == analysisId);
-
-      final prefs = await SharedPreferences.getInstance();
-      final jsonData = analyses.map((analysis) => analysis.toJson()).toList();
-      await prefs.setString(_savedAIInsightsKey, jsonEncode(jsonData));
-    } catch (e) {
-      Logger.smartInsightService('Error deleting insights AI analysis: $e');
-    }
-  }
-
-  List<SmartInsight> _convertAIInsightsToSmart(ai_service.MoodAnalysisResult aiResult) {
-    final insights = <SmartInsight>[];
-    final now = DateTime.now();
-
-    // Convert AI insights
-    for (int i = 0; i < aiResult.insights.length; i++) {
-      final insight = aiResult.insights[i];
-
-      // DEBUG: Log original action steps
-      Logger.aiService('DEBUG: Original AI insight action steps: ${insight.actionSteps}');
-
-      // Generate meaningful action steps based on insight content
-      List<String> actionSteps;
-      if (insight.actionSteps.isNotEmpty) {
-        actionSteps = insight.actionSteps;
-      } else {
-        actionSteps = _generateContextualActionSteps(
-          insight.title,
-          insight.description,
-          insight.type,
-          isRecommendation: false,
-        );
-      }
-
-      // DEBUG: Log converted action steps
-      Logger.aiService('DEBUG: Converted SmartInsight action steps: $actionSteps');
-
-      insights.add(SmartInsight(
-        id: 'ai_insight_${now.millisecondsSinceEpoch}_$i',
-        title: '🤖 ${insight.title}',
-        description: insight.description,
-        type: insight.type == ai_service.InsightType.positive
-            ? InsightType.achievement
-            : insight.type == ai_service.InsightType.negative
-            ? InsightType.concern
-            : InsightType.pattern,
-        priority: AlertPriority.medium,
-        createdAt: now,
-        confidence: 0.8,
-        actionSteps: actionSteps,
-      ));
-    }
-
-    // Convert AI recommendations
-    for (int i = 0; i < aiResult.recommendations.length; i++) {
-      final rec = aiResult.recommendations[i];
-
-      // DEBUG: Log original action steps
-      Logger.aiService('DEBUG: Original AI recommendation action steps: ${rec.actionSteps}');
-
-      // Generate meaningful action steps based on recommendation content
-      List<String> actionSteps;
-      if (rec.actionSteps.isNotEmpty) {
-        actionSteps = rec.actionSteps;
-      } else {
-        actionSteps = _generateContextualActionSteps(
-          rec.title,
-          rec.description,
-          ai_service.InsightType.neutral, // Default type for recommendations
-          isRecommendation: true,
-          priority: rec.priority,
-        );
-      }
-
-      // DEBUG: Log converted action steps
-      Logger.aiService('DEBUG: Converted recommendation action steps: $actionSteps');
-
-      insights.add(SmartInsight(
-        id: 'ai_rec_${now.millisecondsSinceEpoch}_$i',
-        title: '💡 ${rec.title}',
-        description: rec.description,
-        type: InsightType.suggestion,
-        priority: rec.priority == ai_service.RecommendationPriority.high
-            ? AlertPriority.high
-            : AlertPriority.medium,
-        createdAt: now,
-        confidence: 0.8,
-        actionSteps: actionSteps,
-      ));
-    }
-
-    return insights;
-  }
-
-  /// Generate contextual action steps based on content
-  List<String> _generateContextualActionSteps(
-      String title,
-      String description,
-      ai_service.InsightType type, {
-        bool isRecommendation = false,
-        ai_service.RecommendationPriority? priority,
-      }) {
-    final titleLower = title.toLowerCase();
-    final descLower = description.toLowerCase();
-
-    // Sleep-related action steps
-    if (titleLower.contains('sleep') || descLower.contains('sleep')) {
-      return isRecommendation ? [
-        'Set a consistent bedtime tonight',
-        'Create a 30-minute wind-down routine',
-        'Avoid screens 1 hour before bed',
-        'Track sleep quality for one week',
-        'Optimize your bedroom for better sleep',
-      ] : [
-        'Track your sleep schedule for a week',
-        'Notice how sleep quality affects next-day mood',
-        'Identify what helps you sleep better',
-        'Plan to prioritize sleep consistency',
-      ];
-    }
-
-    // Exercise/activity-related action steps
-    if (titleLower.contains('exercise') || titleLower.contains('activity') ||
-        descLower.contains('exercise') || descLower.contains('activity')) {
-      return isRecommendation ? [
-        'Start with 15 minutes of movement today',
-        'Choose an activity you genuinely enjoy',
-        'Schedule exercise at the same time daily',
-        'Track how activity affects your mood',
-        'Build up duration gradually',
-      ] : [
-        'Notice which activities boost your mood most',
-        'Track your energy levels before and after activity',
-        'Plan more of the activities that help you feel good',
-        'Consider trying new forms of movement',
-      ];
-    }
-
-    // Stress-related action steps
-    if (titleLower.contains('stress') || descLower.contains('stress')) {
-      return isRecommendation ? [
-        'Practice 5-minute deep breathing daily',
-        'Identify your top 3 stress triggers',
-        'Plan specific responses to stressful situations',
-        'Schedule regular stress-relief activities',
-        'Consider talking to someone about your stress',
-      ] : [
-        'Notice what triggers stress for you',
-        'Track stress patterns throughout your day',
-        'Identify which stress-relief methods work best',
-        'Plan to use stress management tools proactively',
-      ];
-    }
-
-    // Morning/time-based action steps
-    if (titleLower.contains('morning') || descLower.contains('morning')) {
-      return isRecommendation ? [
-        'Create a consistent morning routine',
-        'Get sunlight within 30 minutes of waking',
-        'Plan important tasks for morning hours',
-        'Try a protein-rich breakfast',
-        'Avoid checking phone for first 30 minutes',
-      ] : [
-        'Notice what makes your mornings feel good',
-        'Track which morning activities boost your mood',
-        'Plan to schedule challenging tasks in mornings',
-        'Consider what evening prep helps your mornings',
-      ];
-    }
-
-    // Social-related action steps
-    if (titleLower.contains('social') || descLower.contains('social') ||
-        titleLower.contains('friend') || descLower.contains('friend')) {
-      return isRecommendation ? [
-        'Reach out to one supportive person today',
-        'Schedule regular check-ins with friends',
-        'Join one activity where you can meet people',
-        'Practice saying no to draining social events',
-        'Balance social time with alone time',
-      ] : [
-        'Notice which social interactions energize you',
-        'Track how different social activities affect your mood',
-        'Identify the people who make you feel good',
-        'Plan to spend more time with supportive people',
-      ];
-    }
-
-    // Weather-related action steps
-    if (titleLower.contains('weather') || descLower.contains('weather')) {
-      return isRecommendation ? [
-        'Create a cozy indoor environment for bad weather',
-        'Plan mood-boosting indoor activities',
-        'Use a light therapy lamp during dark days',
-        'Schedule outdoor time when weather is good',
-        'Prepare comfort strategies for challenging weather',
-      ] : [
-        'Track how different weather affects your mood',
-        'Notice which weather conditions challenge you most',
-        'Plan specific strategies for difficult weather days',
-        'Consider light therapy or vitamin D supplements',
-      ];
-    }
-
-    // General action steps based on type and priority
-    if (isRecommendation) {
-      switch (priority) {
-        case ai_service.RecommendationPriority.high:
-          return [
-            'Start implementing this today',
-            'Set aside dedicated time for this change',
-            'Track your progress daily',
-            'Adjust your approach based on what works',
-            'Ask for support if you need help with this',
-          ];
-        case ai_service.RecommendationPriority.low:
-          return [
-            'Consider trying this when you have time',
-            'Start with small 5-minute experiments',
-            'Notice how it affects your wellbeing',
-            'Build it into your routine gradually',
-          ];
-        default: // medium
-          return [
-            'Plan to start this within the next few days',
-            'Set a specific time to try this change',
-            'Monitor how it affects your mood',
-            'Be consistent for best results',
-            'Celebrate small wins along the way',
-          ];
-      }
-    } else {
-      // Action steps for insights based on type
-      switch (type) {
-        case ai_service.InsightType.positive:
-          return [
-            'Celebrate this positive pattern you\'ve identified',
-            'Think about what makes this pattern successful',
-            'Plan to repeat the behaviors that create this positive outcome',
-            'Share this success with someone who supports you',
-            'Use this strength during more challenging times',
-          ];
-        case ai_service.InsightType.negative:
-          return [
-            'Notice early warning signs when this pattern starts',
-            'Prepare alternative responses for these situations',
-            'Be patient and kind with yourself about this pattern',
-            'Ask for support when you notice this happening',
-            'Remember that awareness is the first step to change',
-          ];
-        default: // neutral
-          return [
-            'Observe this pattern more closely in your daily life',
-            'Keep track of when and why this occurs',
-            'Consider what factors influence this pattern',
-            'Experiment with small changes to see what helps',
-            'Be curious rather than judgmental about this pattern',
-          ];
-      }
-    }
-  }
-  
-  Future<void> _showApiKeyDialog() async {
-    final controller = TextEditingController();
-    bool isValidating = false;
-
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Enter OpenAI API Key'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('To use AI insights, you need an OpenAI API key:'),
-              const SizedBox(height: 8),
-              const Text(
-                'https://platform.openai.com/api-keys',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(
-                  labelText: 'API Key',
-                  hintText: 'sk-...',
-                  border: OutlineInputBorder(),
-                ),
-                obscureText: true,
-                enabled: !isValidating,
-              ),
-              if (isValidating) ...[
-                const SizedBox(height: 12),
-                const Row(
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 8),
-                    Text('Validating API key...'),
-                  ],
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: isValidating ? null : () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: isValidating ? null : () async {
-                if (controller.text.trim().isEmpty) return;
-                setDialogState(() => isValidating = true);
-
-                final isValid = await ai_service.MoodAnalysisService.validateAndSaveApiKey(
-                    controller.text.trim()
-                );
-
-                if (!context.mounted) return;
-
-                if (isValid) {
-                  Navigator.of(context).pop(true);
-                } else {
-                  setDialogState(() => isValidating = false);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Invalid API key. Please try again.'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (result == true) {
-      _checkApiKey();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -581,62 +96,23 @@ class _InsightsScreenState extends State<InsightsScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.smart_toy),
-            onPressed: _openAiCoach,
+            onPressed: () => AiCoachHelper.openAiCoach(context),
             tooltip: 'AI Coach',
           ),
-          if (_hasApiKey)
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'ai_insights') {
-                  setState(() => _showAIOptions = !_showAIOptions);
-                } else if (value == 'regular_insights') {
-                  _generateNewInsights();
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'ai_insights',
-                  child: Row(
-                    children: [
-                      Icon(
-                        _isGeneratingAI ? Icons.hourglass_bottom : Icons.psychology,
-                        color: Theme.of(context).iconTheme.color,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(_showAIOptions ? 'Hide AI Options' : 'AI Insights'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'regular_insights',
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.refresh,
-                        color: Theme.of(context).iconTheme.color,
-                      ),
-                      SizedBox(width: 8),
-                      Text('Refresh Insights'),
-                    ],
-                  ),
-                ),
-              ],
+          IconButton(
+            icon: _isGenerating
+                ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
             )
-          else
-            IconButton(
-              icon: _isGenerating
-                  ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-                  : const Icon(Icons.psychology),
-              onPressed: _isGenerating ? null : _generateNewInsights,
-              tooltip: 'Generate insights',
-            ),
+                : const Icon(Icons.psychology),
+            onPressed: _isGenerating ? null : _generateNewInsights,
+            tooltip: 'Generate insights',
+          ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -644,24 +120,21 @@ class _InsightsScreenState extends State<InsightsScreen>
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.white,
           isScrollable: true,
-          tabs: const [
-            Tab(icon: Icon(Icons.lightbulb, size: 20), text: 'Smart Insights'),
-            Tab(icon: Icon(Icons.history, size: 20), text: 'AI History'),
-            Tab(icon: Icon(Icons.trending_up, size: 20), text: 'Predictive'),
-            Tab(icon: Icon(Icons.analytics, size: 20), text: 'Patterns'),
-            Tab(icon: Icon(Icons.assessment, size: 20), text: 'Summary'),
-          ],
+            tabs: const [
+              Tab(icon: Icon(Icons.lightbulb, size: 20), text: 'Smart Insights'),
+              Tab(icon: Icon(Icons.trending_up, size: 20), text: 'Predictive'),
+              Tab(icon: Icon(Icons.analytics, size: 20), text: 'Patterns'),
+              Tab(icon: Icon(Icons.assessment, size: 20), text: 'Summary'),
+            ]
         ),
       ),
       body: Column(
         children: [
-          if (_showAIOptions) _buildAIOptionsPanel(),
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
                 _buildSmartInsightsTab(),
-                _buildHistoryTab(),
                 _buildPredictiveTab(),
                 _buildPatternsTab(),
                 _buildSummaryTab(),
@@ -672,255 +145,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       ),
     );
   }
-
-  Widget _buildHistoryTab() {
-    return FutureBuilder<List<InsightsAIAnalysis>>(
-      future: _getInsightsAIAnalyses(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.history,
-            title: 'No AI analysis history yet',
-            subtitle: 'Past AI analyses will appear here as you generate them',
-            actionText: 'Generate AI Insights',
-            onAction: () => _generateAIInsights(),
-          );
-        }
-
-        final savedAnalyses = snapshot.data!;
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            setState(() {}); // Trigger rebuild
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: savedAnalyses.length,
-            itemBuilder: (context, index) {
-              final analysis = savedAnalyses[index];
-              return _buildSavedAnalysisCard(analysis);
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSavedAnalysisCard(InsightsAIAnalysis analysis) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ExpansionTile(
-        title: Text(
-          'Analysis from ${DateFormat('MMM d, y').format(analysis.createdAt)}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          '${DateFormat('MMM d').format(analysis.startDate)} - ${DateFormat('MMM d, y').format(analysis.endDate)} • ${DateFormat('h:mm a').format(analysis.createdAt)}',
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Convert AI results back to Smart Insights and display them properly
-                ...(_convertAIInsightsToSmart(analysis.result).map((insight) =>
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildInsightCard(insight),
-                    )
-                )),
-
-                // Delete button
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton.icon(
-                      onPressed: () async {
-                        await _deleteInsightsAIAnalysis(analysis.id);
-                        setState(() {}); // Refresh the list
-                      },
-                      icon: const Icon(Icons.delete, size: 16, color: Colors.red),
-                      label: const Text('Delete',
-                          style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
   
-  Widget _buildAIOptionsPanel() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                  Icons.psychology,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Theme.of(context).primaryColor
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'AI-Powered Insights',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-              IconButton(
-                onPressed: () => setState(() => _showAIOptions = false),
-                icon: const Icon(Icons.close, size: 20),
-                tooltip: 'Close',
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildDataSelectionRow(),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              icon: _isGeneratingAI
-                  ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-                  : const Icon(Icons.auto_awesome),
-              label: Text(_isGeneratingAI ? 'Analyzing...' : 'Generate AI Insights'),
-              onPressed: _isGeneratingAI ? null : _generateAIInsights,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.blue.shade600
-                    : Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDataSelectionRow() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Include in analysis:',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            _buildCompactCheckbox('Moods', Icons.sentiment_satisfied, _includeMoodData,
-                    (value) => setState(() => _includeMoodData = value ?? true)),
-            _buildCompactCheckbox('Weather', Icons.wb_sunny, _includeWeatherData,
-                    (value) => setState(() => _includeWeatherData = value ?? false)),
-            _buildCompactCheckbox('Sleep', Icons.bedtime, _includeSleepData,
-                    (value) => setState(() => _includeSleepData = value ?? false)),
-            _buildCompactCheckbox('Activity', Icons.fitness_center, _includeActivityData,
-                    (value) => setState(() => _includeActivityData = value ?? false)),
-            _buildCompactCheckbox('Work Stress', Icons.work, _includeWorkStressData,
-                    (value) => setState(() => _includeWorkStressData = value ?? false)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCompactCheckbox(String label, IconData icon, bool value, ValueChanged<bool?> onChanged) {
-    return InkWell(
-      onTap: () => onChanged(!value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: value
-              ? (Theme.of(context).brightness == Brightness.dark
-              ? Colors.blue.shade800.withValues(alpha: 0.3)
-              : Theme.of(context).primaryColor.withValues(alpha: 0.1))
-              : null,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: value
-                ? (Theme.of(context).brightness == Brightness.dark
-                ? Colors.blue.shade600
-                : Theme.of(context).primaryColor)
-                : (Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade600
-                : Colors.grey.shade400),
-          ),
-        ),
-
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-                icon,
-                size: 14,
-                color: value
-                    ? (Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Theme.of(context).primaryColor)
-                    : (Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade400
-                    : Colors.grey.shade600)
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: value
-                    ? (Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Theme.of(context).primaryColor)
-                    : (Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade300
-                    : Colors.grey.shade600),
-              ),
-            ),
-            const SizedBox(width: 2),
-            Icon(
-              value ? Icons.check_circle : Icons.radio_button_unchecked,
-              size: 12,
-              color: value
-                  ? (Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Theme.of(context).primaryColor)
-                  : (Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade500
-                  : Colors.grey.shade400),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildSmartInsightsTab() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -932,7 +157,7 @@ class _InsightsScreenState extends State<InsightsScreen>
     ).toList();
 
     if (actionableInsights.isEmpty) {
-      return _buildEmptyStateWithAIOptions();
+      return _buildEmptyState();
     }
 
     return RefreshIndicator(
@@ -947,8 +172,14 @@ class _InsightsScreenState extends State<InsightsScreen>
       ),
     );
   }
-  
-  Widget _buildEmptyStateWithAIOptions() {
+
+  Widget _buildEmptyState({
+    IconData? icon,
+    String? title,
+    String? subtitle,
+    String? actionText,
+    VoidCallback? onAction,
+  }) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -956,13 +187,13 @@ class _InsightsScreenState extends State<InsightsScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.lightbulb_outline,
+              icon ?? Icons.lightbulb_outline,
               size: 80,
               color: Colors.grey.shade400,
             ),
             const SizedBox(height: 16),
             Text(
-              'Smart Insights Loading...',
+              title ?? 'Smart Insights Loading...',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -971,7 +202,7 @@ class _InsightsScreenState extends State<InsightsScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Keep logging your moods to unlock personalized insights!',
+              subtitle ?? 'Keep logging your moods to unlock personalized insights!',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -980,16 +211,10 @@ class _InsightsScreenState extends State<InsightsScreen>
             ),
             const SizedBox(height: 24),
 
-            // Show AI options if user has API key
-            if (_hasApiKey) ...[
-              _buildAIOptionsPanel(),
-              const SizedBox(height: 16),
-            ],
-
             ElevatedButton.icon(
               icon: const Icon(Icons.psychology),
               label: const Text('Generate Insights'),
-              onPressed: _generateNewInsights,
+              onPressed: onAction ?? _generateNewInsights,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
@@ -1680,60 +905,6 @@ class _InsightsScreenState extends State<InsightsScreen>
     );
   }
 
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    String? actionText,
-    VoidCallback? onAction,
-  }) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 80,
-              color: Colors.grey.shade400,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade500,
-              ),
-            ),
-            if (actionText != null && onAction != null) ...[
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.psychology),
-                label: Text(actionText),
-                onPressed: onAction,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   // Helper methods for UI components
   Widget _buildPriorityBadge(AlertPriority priority) {
     Color color;
@@ -2188,112 +1359,4 @@ class _InsightsScreenState extends State<InsightsScreen>
       ),
     );
   }
-
-  void _openAiCoach() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 8),
-                height: 4,
-                width: 40,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).dividerColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const Expanded(child: AiCoachWidget()),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Data class for AI analyses generated from insights screen
-class InsightsAIAnalysis {
-  final String id;
-  final DateTime createdAt;
-  final DateTime startDate;
-  final DateTime endDate;
-  final ai_service.MoodAnalysisResult result;
-
-  InsightsAIAnalysis({
-    required this.id,
-    required this.createdAt,
-    required this.startDate,
-    required this.endDate,
-    required this.result,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'createdAt': createdAt.toIso8601String(),
-    'startDate': startDate.toIso8601String(),
-    'endDate': endDate.toIso8601String(),
-    'result': {
-      'success': result.success,
-      'insights': result.insights
-          .map((i) => {
-        'title': i.title,
-        'description': i.description,
-        'type': i.type.name,
-        'actionSteps': i.actionSteps,
-      })
-          .toList(),
-      'recommendations': result.recommendations
-          .map((r) => {
-        'title': r.title,
-        'description': r.description,
-        'priority': r.priority.name,
-        'actionSteps': r.actionSteps,
-      })
-          .toList(),
-    },
-  };
-
-  factory InsightsAIAnalysis.fromJson(Map<String, dynamic> json) => InsightsAIAnalysis(
-    id: json['id'],
-    createdAt: DateTime.parse(json['createdAt']),
-    startDate: DateTime.parse(json['startDate']),
-    endDate: DateTime.parse(json['endDate']),
-    result: ai_service.MoodAnalysisResult(
-      success: json['result']['success'],
-      insights: (json['result']['insights'] as List)
-          .map((i) => ai_service.MoodInsight(
-        title: i['title'],
-        description: i['description'],
-        type: ai_service.InsightType.values
-            .firstWhere((t) => t.name == i['type']),
-        actionSteps: i['actionSteps'] != null
-            ? List<String>.from(i['actionSteps'])
-            : [],
-      ))
-          .toList(),
-      recommendations: (json['result']['recommendations'] as List)
-          .map((r) => ai_service.MoodRecommendation(
-        title: r['title'],
-        description: r['description'],
-        priority: ai_service.RecommendationPriority.values
-            .firstWhere((p) => p.name == r['priority']),
-        actionSteps: r['actionSteps'] != null
-            ? List<String>.from(r['actionSteps'])
-            : [],
-      ))
-          .toList(),
-    ),
-  );
 }
