@@ -4,6 +4,13 @@ import '../services/ai/mood_analysis_service.dart';
 import '../widgets/date_range_picker_dialog.dart';
 import '../services/utils/ai_coach_helper.dart';
 
+enum AnalysisType {
+  deepDive,
+  comparative,
+  predictive,
+  behavioral
+}
+
 class AIAnalysisScreen extends StatefulWidget {
   const AIAnalysisScreen({super.key});
 
@@ -164,7 +171,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
     }
   }
 
-  Future<void> _performAnalysis() async {
+  Future<void> _performAnalysis(AnalysisType analysisType) async {
     // Check if at least mood data is selected
     if (!_includeMoodData) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -181,9 +188,116 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
       _analysisResult = null;
     });
 
-    final result = await MoodAnalysisService.analyzeMoodTrendsWithOptions(
-      startDate: _startDate,
-      endDate: _endDate,
+    MoodAnalysisResult result;
+
+    switch (analysisType) {
+      case AnalysisType.deepDive:
+        result = await MoodAnalysisService.performDeepDiveAnalysis(
+          startDate: _startDate,
+          endDate: _endDate,
+          includeMoodData: _includeMoodData,
+          includeWeatherData: _includeWeatherData,
+          includeSleepData: _includeSleepData,
+          includeActivityData: _includeActivityData,
+          includeWorkStressData: _includeWorkStressData,
+        );
+        break;
+      case AnalysisType.comparative:
+        result = await _performComparativeAnalysis();
+        break;
+      case AnalysisType.predictive:
+        result = await MoodAnalysisService.performPredictiveAnalysis(
+          startDate: _startDate,
+          endDate: _endDate,
+        );
+        break;
+      case AnalysisType.behavioral:
+        result = await MoodAnalysisService.performBehavioralAnalysis(
+          startDate: _startDate,
+          endDate: _endDate,
+        );
+        break;
+    }
+
+    setState(() {
+      _analysisResult = result;
+      _isAnalyzing = false;
+    });
+
+    // Save successful analysis
+    if (result.success) {
+      await MoodAnalysisService.saveAnalysisResult(result, _startDate, _endDate);
+      await _loadSavedAnalyses();
+    }
+  }
+
+  Future<void> _showComparativeAnalysisDialog() async {
+    final result = await showDialog<Map<String, DateTime>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Compare Time Periods'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Select two time periods to compare your mood patterns:'),
+            const SizedBox(height: 16),
+            ListTile(
+              title: const Text('This Month vs Last Month'),
+              trailing: const Icon(Icons.arrow_forward),
+              onTap: () {
+                final now = DateTime.now();
+                final thisMonth = DateTime(now.year, now.month, 1);
+                final lastMonth = DateTime(now.year, now.month - 1, 1);
+                Navigator.of(context).pop({
+                  'period1Start': lastMonth,
+                  'period1End': thisMonth.subtract(const Duration(days: 1)),
+                  'period2Start': thisMonth,
+                  'period2End': now,
+                });
+              },
+            ),
+            ListTile(
+              title: const Text('Last 30 Days vs Previous 30 Days'),
+              trailing: const Icon(Icons.arrow_forward),
+              onTap: () {
+                final now = DateTime.now();
+                final period2Start = now.subtract(const Duration(days: 30));
+                final period1Start = now.subtract(const Duration(days: 60));
+                Navigator.of(context).pop({
+                  'period1Start': period1Start,
+                  'period1End': period2Start.subtract(const Duration(days: 1)),
+                  'period2Start': period2Start,
+                  'period2End': now,
+                });
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      await _performComparativeAnalysisWithPeriods(result);
+    }
+  }
+
+  Future<void> _performComparativeAnalysisWithPeriods(Map<String, DateTime> periods) async {
+    setState(() {
+      _isAnalyzing = true;
+      _analysisResult = null;
+    });
+
+    final result = await MoodAnalysisService.performComparativeAnalysis(
+      period1Start: periods['period1Start']!,
+      period1End: periods['period1End']!,
+      period2Start: periods['period2Start']!,
+      period2End: periods['period2End']!,
       includeMoodData: _includeMoodData,
       includeWeatherData: _includeWeatherData,
       includeSleepData: _includeSleepData,
@@ -196,12 +310,19 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
       _isAnalyzing = false;
     });
 
-    // Save successful analysis
     if (result.success) {
-      await MoodAnalysisService.saveAnalysisResult(
-          result, _startDate, _endDate);
-      await _loadSavedAnalyses(); // Refresh the history
+      await MoodAnalysisService.saveAnalysisResult(result, _startDate, _endDate);
+      await _loadSavedAnalyses();
     }
+  }
+
+  Future<MoodAnalysisResult> _performComparativeAnalysis() async {
+    return MoodAnalysisResult(
+      success: false,
+      error: 'Use comparative analysis dialog instead',
+      insights: [],
+      recommendations: [],
+    );
   }
 
   Future<void> _loadSavedAnalyses() async {
@@ -271,6 +392,11 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Text(
+              'AI Analysis provides deep psychological insights and behavioral recommendations beyond basic pattern detection.',
+              style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
             const Text(
               'Data to Include in Analysis',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
@@ -581,29 +707,45 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
           if (_hasValidKey) ...[
             Padding(
               padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: _isAnalyzing
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Icon(Icons.psychology),
-                  label:
-                      Text(_isAnalyzing ? 'Analyzing...' : 'Analyze My Moods'),
-                  onPressed: _isAnalyzing ? null : _performAnalysis,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Column(
+                children: [
+                  // Quick Analysis Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: _isAnalyzing
+                          ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                          : const Icon(Icons.psychology),
+                      label: Text(_isAnalyzing ? 'Analyzing...' : 'Deep Dive Analysis'),
+                      onPressed: _isAnalyzing ? null : () async => await _performAnalysis(AnalysisType.deepDive),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  // Comparative Analysis Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.compare_arrows),
+                      label: const Text('Compare Time Periods'),
+                      onPressed: _isAnalyzing ? null : () => _showComparativeAnalysisDialog(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -715,7 +857,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _performAnalysis,
+              onPressed: () => _performAnalysis(AnalysisType.deepDive),
               child: const Text('Try Again'),
             ),
           ],

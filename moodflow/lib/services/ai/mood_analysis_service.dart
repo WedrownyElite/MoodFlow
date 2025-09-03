@@ -109,6 +109,359 @@ class MoodAnalysisService {
     }
   }
 
+  /// Perform deep dive analysis with conversational insights
+  static Future<MoodAnalysisResult> performDeepDiveAnalysis({
+    required DateTime startDate,
+    required DateTime endDate,
+    bool includeMoodData = true,
+    bool includeWeatherData = false,
+    bool includeSleepData = false,
+    bool includeActivityData = false,
+    bool includeWorkStressData = false,
+  }) async {
+    try {
+      final analysisData = await _gatherSelectedData(
+        startDate,
+        endDate,
+        includeMoodData: includeMoodData,
+        includeWeatherData: includeWeatherData,
+        includeSleepData: includeSleepData,
+        includeActivityData: includeActivityData,
+        includeWorkStressData: includeWorkStressData,
+      );
+
+      if (analysisData.isEmpty) {
+        return MoodAnalysisResult(
+          success: false,
+          error: 'No data found for the selected types and date range.',
+          insights: [],
+          recommendations: [],
+        );
+      }
+
+      final analysisPrompt = _buildDeepDivePrompt(
+        analysisData,
+        startDate,
+        endDate,
+      );
+
+      final aiResponse = await _sendToOpenAI(analysisPrompt);
+      return _parseAIResponse(aiResponse);
+    } catch (e) {
+      return MoodAnalysisResult(
+        success: false,
+        error: 'Deep dive analysis failed: ${e.toString()}',
+        insights: [],
+        recommendations: [],
+      );
+    }
+  }
+
+  /// Perform comparative analysis between two time periods
+  static Future<MoodAnalysisResult> performComparativeAnalysis({
+    required DateTime period1Start,
+    required DateTime period1End,
+    required DateTime period2Start,
+    required DateTime period2End,
+    bool includeMoodData = true,
+    bool includeWeatherData = false,
+    bool includeSleepData = false,
+    bool includeActivityData = false,
+    bool includeWorkStressData = false,
+  }) async {
+    try {
+      final period1Data = await _gatherSelectedData(
+        period1Start,
+        period1End,
+        includeMoodData: includeMoodData,
+        includeWeatherData: includeWeatherData,
+        includeSleepData: includeSleepData,
+        includeActivityData: includeActivityData,
+        includeWorkStressData: includeWorkStressData,
+      );
+
+      final period2Data = await _gatherSelectedData(
+        period2Start,
+        period2End,
+        includeMoodData: includeMoodData,
+        includeWeatherData: includeWeatherData,
+        includeSleepData: includeSleepData,
+        includeActivityData: includeActivityData,
+        includeWorkStressData: includeWorkStressData,
+      );
+
+      if (period1Data.isEmpty || period2Data.isEmpty) {
+        return MoodAnalysisResult(
+          success: false,
+          error: 'Insufficient data in one or both time periods for comparison.',
+          insights: [],
+          recommendations: [],
+        );
+      }
+
+      final analysisPrompt = _buildComparativePrompt(
+        period1Data,
+        period2Data,
+        period1Start,
+        period1End,
+        period2Start,
+        period2End,
+      );
+
+      final aiResponse = await _sendToOpenAI(analysisPrompt);
+      return _parseAIResponse(aiResponse);
+    } catch (e) {
+      return MoodAnalysisResult(
+        success: false,
+        error: 'Comparative analysis failed: ${e.toString()}',
+        insights: [],
+        recommendations: [],
+      );
+    }
+  }
+
+  /// Perform predictive analysis (placeholder for future implementation)
+  static Future<MoodAnalysisResult> performPredictiveAnalysis({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      // For now, redirect to deep dive analysis
+      return await performDeepDiveAnalysis(
+        startDate: startDate,
+        endDate: endDate,
+        includeMoodData: true,
+        includeWeatherData: true,
+        includeSleepData: true,
+        includeActivityData: true,
+        includeWorkStressData: true,
+      );
+    } catch (e) {
+      return MoodAnalysisResult(
+        success: false,
+        error: 'Predictive analysis failed: ${e.toString()}',
+        insights: [],
+        recommendations: [],
+      );
+    }
+  }
+
+  /// Perform behavioral analysis (placeholder for future implementation)
+  static Future<MoodAnalysisResult> performBehavioralAnalysis({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      return await performDeepDiveAnalysis(
+        startDate: startDate,
+        endDate: endDate,
+        includeMoodData: true,
+        includeWeatherData: false,
+        includeSleepData: true,
+        includeActivityData: true,
+        includeWorkStressData: true,
+      );
+    } catch (e) {
+      return MoodAnalysisResult(
+        success: false,
+        error: 'Behavioral analysis failed: ${e.toString()}',
+        insights: [],
+        recommendations: [],
+      );
+    }
+  }
+
+  /// Build deep dive analysis prompt
+  static String _buildDeepDivePrompt(
+      List<EnhancedDayAnalysis> analysisData,
+      DateTime startDate,
+      DateTime endDate,
+      ) {
+    final buffer = StringBuffer();
+
+    buffer.writeln('Please provide a DEEP DIVE psychological analysis of this mood tracking data.');
+    buffer.writeln('Go beyond surface patterns - analyze the underlying psychological themes.');
+    buffer.writeln('');
+    buffer.writeln('DATE RANGE: ${_formatDate(startDate)} to ${_formatDate(endDate)}');
+    buffer.writeln('');
+
+    // Add data summary
+    buffer.writeln('DATA OVERVIEW:');
+    buffer.writeln('- Total days analyzed: ${analysisData.length}');
+
+    // Calculate summary stats
+    final allMoods = <double>[];
+    for (final day in analysisData) {
+      for (final mood in day.segments.values) {
+        allMoods.add(mood.rating);
+      }
+    }
+
+    if (allMoods.isNotEmpty) {
+      final avgMood = allMoods.reduce((a, b) => a + b) / allMoods.length;
+      final minMood = allMoods.reduce((a, b) => a < b ? a : b);
+      final maxMood = allMoods.reduce((a, b) => a > b ? a : b);
+
+      buffer.writeln('- Average mood: ${avgMood.toStringAsFixed(1)}/10');
+      buffer.writeln('- Mood range: ${minMood.toStringAsFixed(1)} - ${maxMood.toStringAsFixed(1)}');
+      buffer.writeln('- Volatility: ${(maxMood - minMood).toStringAsFixed(1)} points');
+    }
+
+    buffer.writeln('');
+    buffer.writeln('DETAILED DAILY DATA:');
+
+    // Include detailed daily data
+    for (final day in analysisData) {
+      buffer.writeln('${_formatDate(day.date)}:');
+
+      // Mood data
+      for (int segment = 0; segment < 3; segment++) {
+        final segmentData = day.segments[segment];
+        if (segmentData != null) {
+          final segmentName = ['Morning', 'Midday', 'Evening'][segment];
+          buffer.writeln('  $segmentName: ${segmentData.rating}/10');
+          if (segmentData.note.isNotEmpty) {
+            buffer.writeln('    Note: "${segmentData.note}"');
+          }
+        }
+      }
+
+      // Correlation data if available
+      if (day.correlationData != null) {
+        final corr = day.correlationData!;
+        if (corr.sleepQuality != null) {
+          buffer.writeln('  Sleep Quality: ${corr.sleepQuality}/10');
+        }
+        if (corr.exerciseLevel != null) {
+          buffer.writeln('  Exercise: ${corr.exerciseLevel!.name}');
+        }
+        if (corr.workStress != null) {
+          buffer.writeln('  Work Stress: ${corr.workStress}/10');
+        }
+      }
+      buffer.writeln('');
+    }
+
+    buffer.writeln('ANALYSIS REQUIREMENTS:');
+    buffer.writeln('1. PSYCHOLOGICAL THEMES: Identify deeper psychological patterns');
+    buffer.writeln('2. BEHAVIORAL CYCLES: Analyze recurring behavioral patterns');
+    buffer.writeln('3. EMOTIONAL REGULATION: Assess emotional regulation strategies');
+    buffer.writeln('4. RESILIENCE FACTORS: Identify what builds or undermines resilience');
+    buffer.writeln('5. PERSONALIZED INTERVENTIONS: Suggest specific, actionable interventions');
+    buffer.writeln('');
+
+    buffer.writeln('Provide insights that are:');
+    buffer.writeln('- Psychologically informed (not just statistical)');
+    buffer.writeln('- Highly specific to this person\'s patterns');
+    buffer.writeln('- Include concrete, measurable action steps');
+    buffer.writeln('- Address both immediate tactics and longer-term strategies');
+    buffer.writeln('');
+
+    buffer.writeln('Format as JSON with this structure:');
+    buffer.writeln('{');
+    buffer.writeln('  "insights": [');
+    buffer.writeln('    {');
+    buffer.writeln('      "title": "Psychological Theme Title",');
+    buffer.writeln('      "description": "Deep psychological analysis (2-3 sentences)",');
+    buffer.writeln('      "type": "positive|negative|neutral",');
+    buffer.writeln('      "actionSteps": ["Specific action 1", "Specific action 2", "Specific action 3"]');
+    buffer.writeln('    }');
+    buffer.writeln('  ],');
+    buffer.writeln('  "recommendations": [');
+    buffer.writeln('    {');
+    buffer.writeln('      "title": "Intervention Strategy",');
+    buffer.writeln('      "description": "Evidence-based recommendation with rationale",');
+    buffer.writeln('      "priority": "high|medium|low",');
+    buffer.writeln('      "actionSteps": ["Step 1 with timeline", "Step 2 with timeline", "Step 3 with timeline"]');
+    buffer.writeln('    }');
+    buffer.writeln('  ]');
+    buffer.writeln('}');
+
+    return buffer.toString();
+  }
+
+  /// Build comparative analysis prompt
+  static String _buildComparativePrompt(
+      List<EnhancedDayAnalysis> period1Data,
+      List<EnhancedDayAnalysis> period2Data,
+      DateTime period1Start,
+      DateTime period1End,
+      DateTime period2Start,
+      DateTime period2End,
+      ) {
+    final buffer = StringBuffer();
+
+    buffer.writeln('Compare these two time periods and provide insights on changes, improvements, or concerns.');
+    buffer.writeln('');
+    buffer.writeln('PERIOD 1 (Earlier): ${_formatDate(period1Start)} to ${_formatDate(period1End)}');
+    buffer.writeln('PERIOD 2 (Later): ${_formatDate(period2Start)} to ${_formatDate(period2End)}');
+    buffer.writeln('');
+
+    // Calculate averages for both periods
+    final period1Moods = <double>[];
+    final period2Moods = <double>[];
+
+    for (final day in period1Data) {
+      for (final mood in day.segments.values) {
+        period1Moods.add(mood.rating);
+      }
+    }
+
+    for (final day in period2Data) {
+      for (final mood in day.segments.values) {
+        period2Moods.add(mood.rating);
+      }
+    }
+
+    if (period1Moods.isNotEmpty && period2Moods.isNotEmpty) {
+      final period1Avg = period1Moods.reduce((a, b) => a + b) / period1Moods.length;
+      final period2Avg = period2Moods.reduce((a, b) => a + b) / period2Moods.length;
+      final change = period2Avg - period1Avg;
+
+      buffer.writeln('SUMMARY COMPARISON:');
+      buffer.writeln('- Period 1 average: ${period1Avg.toStringAsFixed(1)}/10');
+      buffer.writeln('- Period 2 average: ${period2Avg.toStringAsFixed(1)}/10');
+      buffer.writeln('- Change: ${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)} points');
+    }
+
+    buffer.writeln('');
+    buffer.writeln('Focus your analysis on:');
+    buffer.writeln('1. What changed between the periods?');
+    buffer.writeln('2. What strategies were working or not working?');
+    buffer.writeln('3. Specific recommendations to build on improvements or address declines');
+    buffer.writeln('4. Actionable steps for the next period');
+
+    // Include abbreviated data for both periods
+    buffer.writeln('');
+    buffer.writeln('PERIOD 1 DATA SAMPLE:');
+    for (final day in period1Data.take(5)) {
+      _appendDayData(buffer, day);
+    }
+
+    buffer.writeln('');
+    buffer.writeln('PERIOD 2 DATA SAMPLE:');
+    for (final day in period2Data.take(5)) {
+      _appendDayData(buffer, day);
+    }
+
+    buffer.writeln('');
+    buffer.writeln('Respond in the same JSON format as before, focusing on comparative insights.');
+
+    return buffer.toString();
+  }
+
+  /// Helper method to append day data to buffer
+  static void _appendDayData(StringBuffer buffer, EnhancedDayAnalysis day) {
+    buffer.writeln('${_formatDate(day.date)}:');
+    for (int segment = 0; segment < 3; segment++) {
+      final segmentData = day.segments[segment];
+      if (segmentData != null) {
+        final segmentName = ['Morning', 'Midday', 'Evening'][segment];
+        buffer.writeln('  $segmentName: ${segmentData.rating}/10');
+      }
+    }
+  }
+
   /// Gather mood data for analysis
   static Future<List<DayMoodAnalysis>> _gatherMoodData(
       DateTime startDate, DateTime endDate) async {
