@@ -317,9 +317,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
   }
 
   Future<MoodAnalysisResult> _performComparativeAnalysis() async {
+    await _showComparativeAnalysisDialog();
     return MoodAnalysisResult(
-      success: false,
-      error: 'Use comparative analysis dialog instead',
+      success: true,
       insights: [],
       recommendations: [],
     );
@@ -394,7 +394,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
           children: [
             const Text(
               'AI Analysis provides deep psychological insights and behavioral recommendations beyond basic pattern detection.',
-              style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.grey),
+              style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.blueGrey),
             ),
             const SizedBox(height: 12),
             const Text(
@@ -402,9 +402,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Select which types of data to include:',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade700),
             ),
             const SizedBox(height: 8),
 
@@ -481,7 +481,12 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade300
+                            : Colors.blueGrey.shade600
+                    ),
                   ),
                 ],
               ),
@@ -590,22 +595,18 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
                 // Insights section
                 if (analysis.result.insights.isNotEmpty) ...[
                   const Text('Key Insights',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  ...analysis.result.insights
-                      .map((insight) => _buildInsightCard(insight)),
+                  ...analysis.result.insights.map((insight) => _buildHistoryInsightCard(insight)),
                   const SizedBox(height: 16),
                 ],
 
                 // Recommendations section
                 if (analysis.result.recommendations.isNotEmpty) ...[
                   const Text('Recommendations',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  ...analysis.result.recommendations
-                      .map((rec) => _buildRecommendationCard(rec)),
+                  ...analysis.result.recommendations.map((rec) => _buildHistoryRecommendationCard(rec)),
                 ],
 
                 // Delete button
@@ -615,20 +616,254 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
                   children: [
                     TextButton.icon(
                       onPressed: () async {
-                        await MoodAnalysisService.deleteSavedAnalysis(
-                            analysis.id);
+                        await MoodAnalysisService.deleteSavedAnalysis(analysis.id);
                         await _loadSavedAnalyses();
                       },
-                      icon:
-                          const Icon(Icons.delete, size: 16, color: Colors.red),
-                      label: const Text('Delete',
-                          style: TextStyle(color: Colors.red)),
+                      icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                      label: const Text('Delete', style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryInsightCard(MoodInsight insight) {
+    Color color;
+    IconData icon;
+
+    switch (insight.type) {
+      case InsightType.positive:
+        color = Colors.green;
+        icon = Icons.trending_up;
+        break;
+      case InsightType.negative:
+        color = Colors.red;
+        icon = Icons.trending_down;
+        break;
+      case InsightType.neutral:
+        color = Colors.blue;
+        icon = Icons.insights;
+        break;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  insight.title,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            insight.description,
+            style: const TextStyle(fontSize: 13),
+          ),
+
+          // Show action steps if they exist
+          if (insight.actionSteps.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.checklist, size: 14, color: color),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Action Steps:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  ...insight.actionSteps.map((step) => Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('• ', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+                        Expanded(
+                          child: Text(
+                            step,
+                            style: const TextStyle(fontSize: 12, height: 1.2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryRecommendationCard(MoodRecommendation recommendation) {
+    Color color;
+    IconData icon;
+
+    switch (recommendation.priority) {
+      case RecommendationPriority.high:
+        color = Colors.red;
+        icon = Icons.priority_high;
+        break;
+      case RecommendationPriority.medium:
+        color = Colors.orange;
+        icon = Icons.star;
+        break;
+      case RecommendationPriority.low:
+        color = Colors.blue;
+        icon = Icons.lightbulb;
+        break;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  recommendation.title,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  recommendation.priority.name.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            recommendation.description,
+            style: const TextStyle(fontSize: 13),
+          ),
+
+          // Show action steps if they exist
+          if (recommendation.actionSteps.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.assignment_turned_in, size: 14, color: color),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Action Plan:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  ...recommendation.actionSteps.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final step = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 14,
+                            height: 14,
+                            margin: const EdgeInsets.only(right: 6),
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(7),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${index + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              step,
+                              style: const TextStyle(fontSize: 12, height: 1.2),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -709,7 +944,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Quick Analysis Button
+                  // Deep Analysis Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -726,9 +961,12 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
                       label: Text(_isAnalyzing ? 'Analyzing...' : 'Deep Dive Analysis'),
                       onPressed: _isAnalyzing ? null : () async => await _performAnalysis(AnalysisType.deepDive),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.indigo.shade600
+                            : Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 3,
                       ),
                     ),
                   ),
@@ -855,10 +1093,26 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.grey),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'This might be due to:\n• API rate limits\n• Invalid API key\n• Network issues\n• Insufficient mood data',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => _performAnalysis(AnalysisType.deepDive),
-              child: const Text('Try Again'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton(
+                  onPressed: () => _showApiKeyDialog(),
+                  child: const Text('Check API Key'),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () => _performAnalysis(AnalysisType.deepDive),
+                  child: const Text('Try Again'),
+                ),
+              ],
             ),
           ],
         ),
@@ -923,30 +1177,78 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: color, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
                     insight.title,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    insight.description,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
+            const SizedBox(height: 8),
+            Text(
+              insight.description,
+              style: const TextStyle(fontSize: 14),
+            ),
+
+            // ALWAYS show action steps if they exist
+            if (insight.actionSteps.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.checklist, size: 16, color: color),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Action Steps:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...insight.actionSteps.map((step) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('• ', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+                          Expanded(
+                            child: Text(
+                              step,
+                              style: const TextStyle(fontSize: 13, height: 1.3),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -976,54 +1278,115 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          recommendation.title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border:
-                              Border.all(color: color.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          recommendation.priority.name.toUpperCase(),
+            Row(
+              children: [
+                Icon(icon, color: color, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    recommendation.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    recommendation.priority.name.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              recommendation.description,
+              style: const TextStyle(fontSize: 14),
+            ),
+
+            // ALWAYS show action steps if they exist
+            if (recommendation.actionSteps.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.assignment_turned_in, size: 16, color: color),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Action Plan:',
                           style: TextStyle(
-                            fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: color,
+                            fontSize: 14,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    recommendation.description,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...recommendation.actionSteps.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final step = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 18,
+                              height: 18,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(9),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${index + 1}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                step,
+                                style: const TextStyle(fontSize: 13, height: 1.3),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

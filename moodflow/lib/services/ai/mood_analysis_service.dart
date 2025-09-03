@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../data/mood_data_service.dart';
@@ -291,9 +292,50 @@ class MoodAnalysisService {
 
     // Calculate summary stats
     final allMoods = <double>[];
+    final userNotes = <String>[];
+    final mentionedActivities = <String>[];
+    final sleepIssues = <String>[];
+    final stressFactors = <String>[];
+
     for (final day in analysisData) {
       for (final mood in day.segments.values) {
         allMoods.add(mood.rating);
+
+        // Extract user notes for personalization
+        if (mood.note.isNotEmpty) {
+          userNotes.add(mood.note.toLowerCase());
+
+          // Look for activity mentions
+          if (mood.note.toLowerCase().contains('rock climbing') ||
+              mood.note.toLowerCase().contains('climbing')) {
+            mentionedActivities.add('rock climbing');
+          }
+          if (mood.note.toLowerCase().contains('running') ||
+              mood.note.toLowerCase().contains('run')) {
+            mentionedActivities.add('running');
+          }
+          if (mood.note.toLowerCase().contains('walk')) {
+            mentionedActivities.add('walking/nature walks');
+          }
+          if (mood.note.toLowerCase().contains('nature')) {
+            mentionedActivities.add('nature activities');
+          }
+
+          // Look for sleep issues
+          if (mood.note.toLowerCase().contains('woke up late') ||
+              mood.note.toLowerCase().contains('tired') ||
+              mood.note.toLowerCase().contains('sleep')) {
+            sleepIssues.add(mood.note);
+          }
+
+          // Look for stress factors
+          if (mood.note.toLowerCase().contains('work') ||
+              mood.note.toLowerCase().contains('stress') ||
+              mood.note.toLowerCase().contains('customers') ||
+              mood.note.toLowerCase().contains('employees')) {
+            stressFactors.add(mood.note);
+          }
+        }
       }
     }
 
@@ -307,21 +349,32 @@ class MoodAnalysisService {
       buffer.writeln('- Volatility: ${(maxMood - minMood).toStringAsFixed(1)} points');
     }
 
-    buffer.writeln('');
-    buffer.writeln('DETAILED DAILY DATA:');
+    // Add personalization context
+    if (mentionedActivities.isNotEmpty) {
+      buffer.writeln('- USER\'S PREFERRED ACTIVITIES: ${mentionedActivities.toSet().join(', ')}');
+    }
+    if (sleepIssues.isNotEmpty) {
+      buffer.writeln('- SLEEP CHALLENGES: User mentions sleep issues like waking up late, tiredness');
+    }
+    if (stressFactors.isNotEmpty) {
+      buffer.writeln('- WORK STRESS FACTORS: Work-related stress from customers, staffing issues');
+    }
 
-    // Include detailed daily data
+    buffer.writeln('');
+    buffer.writeln('DETAILED DAILY DATA WITH USER NOTES:');
+
+    // Include detailed daily data with emphasis on notes
     for (final day in analysisData) {
       buffer.writeln('${_formatDate(day.date)}:');
 
-      // Mood data
+      // Mood data with notes
       for (int segment = 0; segment < 3; segment++) {
         final segmentData = day.segments[segment];
         if (segmentData != null) {
           final segmentName = ['Morning', 'Midday', 'Evening'][segment];
           buffer.writeln('  $segmentName: ${segmentData.rating}/10');
           if (segmentData.note.isNotEmpty) {
-            buffer.writeln('    Note: "${segmentData.note}"');
+            buffer.writeln('    USER NOTE: "${segmentData.note}"');
           }
         }
       }
@@ -342,40 +395,53 @@ class MoodAnalysisService {
       buffer.writeln('');
     }
 
-    buffer.writeln('ANALYSIS REQUIREMENTS:');
-    buffer.writeln('1. PSYCHOLOGICAL THEMES: Identify deeper psychological patterns');
-    buffer.writeln('2. BEHAVIORAL CYCLES: Analyze recurring behavioral patterns');
-    buffer.writeln('3. EMOTIONAL REGULATION: Assess emotional regulation strategies');
-    buffer.writeln('4. RESILIENCE FACTORS: Identify what builds or undermines resilience');
-    buffer.writeln('5. PERSONALIZED INTERVENTIONS: Suggest specific, actionable interventions');
+    buffer.writeln('ANALYSIS REQUIREMENTS - PERSONALIZED APPROACH:');
+    buffer.writeln('1. COMPREHENSIVE CORRELATIONS: Find ALL meaningful correlations');
+    buffer.writeln('2. PERSONALIZED BEHAVIORAL TRIGGERS: Use the user\'s actual notes to identify specific triggers');
+    buffer.writeln('3. TAILORED MOOD STABILIZATION: Base strategies on user\'s mentioned preferences and challenges');
+    buffer.writeln('4. EVIDENCE-BASED BUT PERSONALIZED: Adapt general recommendations to this user\'s lifestyle');
+    buffer.writeln('5. SPECIFIC ACTION PLANS: Reference user\'s mentioned activities, sleep patterns, work situation');
     buffer.writeln('');
 
-    buffer.writeln('Provide insights that are:');
-    buffer.writeln('- Psychologically informed (not just statistical)');
-    buffer.writeln('- Highly specific to this person\'s patterns');
-    buffer.writeln('- Include concrete, measurable action steps');
-    buffer.writeln('- Address both immediate tactics and longer-term strategies');
+    buffer.writeln('CRITICAL PERSONALIZATION INSTRUCTIONS:');
+    buffer.writeln('- If user mentions rock climbing, suggest related activities like bouldering, outdoor climbing, climbing gyms');
+    buffer.writeln('- If user mentions running/walking, suggest trail running, hiking, park walks, nature trails');
+    buffer.writeln('- If user mentions sleep issues like "woke up late", suggest specific sleep hygiene tactics');
+    buffer.writeln('- If user mentions work stress with customers/staffing, suggest workplace-specific coping strategies');
+    buffer.writeln('- Use user\'s own language and references from their notes where appropriate');
+    buffer.writeln('- Make action steps specific to their mentioned lifestyle, not generic advice');
     buffer.writeln('');
 
     buffer.writeln('Format as JSON with this structure:');
     buffer.writeln('{');
     buffer.writeln('  "insights": [');
     buffer.writeln('    {');
-    buffer.writeln('      "title": "Psychological Theme Title",');
-    buffer.writeln('      "description": "Deep psychological analysis (2-3 sentences)",');
+    buffer.writeln('      "title": "Personalized Insight Title",');
+    buffer.writeln('      "description": "Analysis referencing user\'s specific notes and patterns",');
     buffer.writeln('      "type": "positive|negative|neutral",');
-    buffer.writeln('      "actionSteps": ["Specific action 1", "Specific action 2", "Specific action 3"]');
+    buffer.writeln('      "actionSteps": ["Specific action referencing user preferences", "Another personalized step", "Third tailored action"]');
     buffer.writeln('    }');
     buffer.writeln('  ],');
     buffer.writeln('  "recommendations": [');
     buffer.writeln('    {');
-    buffer.writeln('      "title": "Intervention Strategy",');
-    buffer.writeln('      "description": "Evidence-based recommendation with rationale",');
+    buffer.writeln('      "title": "Tailored Intervention Strategy",');
+    buffer.writeln('      "description": "Recommendation adapted to user\'s mentioned lifestyle",');
     buffer.writeln('      "priority": "high|medium|low",');
-    buffer.writeln('      "actionSteps": ["Step 1 with timeline", "Step 2 with timeline", "Step 3 with timeline"]');
+    buffer.writeln('      "actionSteps": ["Step 1 using user\'s preferred activities", "Step 2 addressing their specific challenges", "Step 3 with timeline and user context"]');
     buffer.writeln('    }');
     buffer.writeln('  ]');
     buffer.writeln('}');
+
+    buffer.writeln('');
+    buffer.writeln('EXAMPLES OF PERSONALIZED ACTION STEPS:');
+    buffer.writeln('Instead of: "Establish consistent sleep schedule"');
+    buffer.writeln('Say: "Set phone alarm for 9 AM (earlier than your mentioned 11 AM wake-ups) and place alarm across room"');
+    buffer.writeln('');
+    buffer.writeln('Instead of: "Try physical activities"');
+    buffer.writeln('Say: "Schedule rock climbing sessions 2x/week, try bouldering on rest days, explore new climbing routes"');
+    buffer.writeln('');
+    buffer.writeln('Instead of: "Manage work stress"');
+    buffer.writeln('Say: "Practice 5-minute breathing exercises between difficult customers, suggest staffing solutions to management"');
 
     return buffer.toString();
   }
@@ -391,25 +457,66 @@ class MoodAnalysisService {
       ) {
     final buffer = StringBuffer();
 
+    // Determine what these periods actually represent
+    final period1Name = _getPeriodName(period1Start, period1End, period2Start, period2End, isEarlier: true);
+    final period2Name = _getPeriodName(period1Start, period1End, period2Start, period2End, isEarlier: false);
+
     buffer.writeln('Compare these two time periods and provide insights on changes, improvements, or concerns.');
+    buffer.writeln('IMPORTANT: Use the actual period names, not "Period 1" and "Period 2"');
     buffer.writeln('');
-    buffer.writeln('PERIOD 1 (Earlier): ${_formatDate(period1Start)} to ${_formatDate(period1End)}');
-    buffer.writeln('PERIOD 2 (Later): ${_formatDate(period2Start)} to ${_formatDate(period2End)}');
+    buffer.writeln('EARLIER PERIOD ($period1Name): ${_formatDate(period1Start)} to ${_formatDate(period1End)}');
+    buffer.writeln('RECENT PERIOD ($period2Name): ${_formatDate(period2Start)} to ${_formatDate(period2End)}');
     buffer.writeln('');
 
-    // Calculate averages for both periods
+    // Calculate averages and collect detailed notes
     final period1Moods = <double>[];
     final period2Moods = <double>[];
+    final period1Notes = <String>[];
+    final period2Notes = <String>[];
+    final period1Activities = <String>[];
+    final period2Activities = <String>[];
+    final period1Challenges = <String>[];
+    final period2Challenges = <String>[];
 
+    // Analyze Period 1 (earlier)
     for (final day in period1Data) {
       for (final mood in day.segments.values) {
         period1Moods.add(mood.rating);
+        if (mood.note.isNotEmpty) {
+          period1Notes.add(mood.note);
+
+          // Categorize notes
+          final note = mood.note.toLowerCase();
+          if (note.contains('climbing') || note.contains('running') || note.contains('walk') ||
+              note.contains('exercise') || note.contains('gym') || note.contains('nature')) {
+            period1Activities.add(mood.note);
+          }
+          if (note.contains('stress') || note.contains('tired') || note.contains('late') ||
+              note.contains('work') || note.contains('customers') || note.contains('difficult')) {
+            period1Challenges.add(mood.note);
+          }
+        }
       }
     }
 
+    // Analyze Period 2 (recent)
     for (final day in period2Data) {
       for (final mood in day.segments.values) {
         period2Moods.add(mood.rating);
+        if (mood.note.isNotEmpty) {
+          period2Notes.add(mood.note);
+
+          // Categorize notes
+          final note = mood.note.toLowerCase();
+          if (note.contains('climbing') || note.contains('running') || note.contains('walk') ||
+              note.contains('exercise') || note.contains('gym') || note.contains('nature')) {
+            period2Activities.add(mood.note);
+          }
+          if (note.contains('stress') || note.contains('tired') || note.contains('late') ||
+              note.contains('work') || note.contains('customers') || note.contains('difficult')) {
+            period2Challenges.add(mood.note);
+          }
+        }
       }
     }
 
@@ -417,48 +524,120 @@ class MoodAnalysisService {
       final period1Avg = period1Moods.reduce((a, b) => a + b) / period1Moods.length;
       final period2Avg = period2Moods.reduce((a, b) => a + b) / period2Moods.length;
       final change = period2Avg - period1Avg;
+      final changeDirection = change >= 0 ? 'IMPROVEMENT' : 'DECLINE';
 
       buffer.writeln('SUMMARY COMPARISON:');
-      buffer.writeln('- Period 1 average: ${period1Avg.toStringAsFixed(1)}/10');
-      buffer.writeln('- Period 2 average: ${period2Avg.toStringAsFixed(1)}/10');
-      buffer.writeln('- Change: ${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)} points');
+      buffer.writeln('- $period1Name average: ${period1Avg.toStringAsFixed(1)}/10');
+      buffer.writeln('- $period2Name average: ${period2Avg.toStringAsFixed(1)}/10');
+      buffer.writeln('- Overall change: ${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)} points ($changeDirection)');
+      buffer.writeln('- $period1Name days logged: ${period1Data.length}');
+      buffer.writeln('- $period2Name days logged: ${period2Data.length}');
     }
 
     buffer.writeln('');
-    buffer.writeln('Focus your analysis on:');
-    buffer.writeln('1. What changed between the periods?');
-    buffer.writeln('2. What strategies were working or not working?');
-    buffer.writeln('3. Specific recommendations to build on improvements or address declines');
-    buffer.writeln('4. Actionable steps for the next period');
-
-    // Include abbreviated data for both periods
+    buffer.writeln('DETAILED NOTE ANALYSIS FOR ROOT CAUSE IDENTIFICATION:');
     buffer.writeln('');
-    buffer.writeln('PERIOD 1 DATA SAMPLE:');
-    for (final day in period1Data.take(5)) {
-      _appendDayData(buffer, day);
+    buffer.writeln('$period1Name - ACTIVITIES MENTIONED:');
+    if (period1Activities.isNotEmpty) {
+      for (final activity in period1Activities.take(5)) {
+        buffer.writeln('- "$activity"');
+      }
+    } else {
+      buffer.writeln('- No specific activities mentioned');
     }
 
     buffer.writeln('');
-    buffer.writeln('PERIOD 2 DATA SAMPLE:');
-    for (final day in period2Data.take(5)) {
-      _appendDayData(buffer, day);
+    buffer.writeln('$period1Name - CHALLENGES/STRESSORS:');
+    if (period1Challenges.isNotEmpty) {
+      for (final challenge in period1Challenges.take(5)) {
+        buffer.writeln('- "$challenge"');
+      }
+    } else {
+      buffer.writeln('- No specific challenges mentioned');
     }
 
     buffer.writeln('');
-    buffer.writeln('Respond in the same JSON format as before, focusing on comparative insights.');
+    buffer.writeln('$period2Name - ACTIVITIES MENTIONED:');
+    if (period2Activities.isNotEmpty) {
+      for (final activity in period2Activities.take(5)) {
+        buffer.writeln('- "$activity"');
+      }
+    } else {
+      buffer.writeln('- No specific activities mentioned');
+    }
+
+    buffer.writeln('');
+    buffer.writeln('$period2Name - CHALLENGES/STRESSORS:');
+    if (period2Challenges.isNotEmpty) {
+      for (final challenge in period2Challenges.take(5)) {
+        buffer.writeln('- "$challenge"');
+      }
+    } else {
+      buffer.writeln('- No specific challenges mentioned');
+    }
+
+    buffer.writeln('');
+    buffer.writeln('CRITICAL ANALYSIS REQUIREMENTS:');
+    buffer.writeln('1. ALWAYS use "$period1Name" and "$period2Name" - NEVER use "Period 1" or "Period 2"');
+    buffer.writeln('2. IDENTIFY ROOT CAUSES: Based on the user notes, explain WHY mood changed');
+    buffer.writeln('3. SPECIFIC EVIDENCE: Quote or reference specific user notes that show the cause');
+    buffer.writeln('4. ACTIONABLE INSIGHTS: Don\'t ask user to identify factors - YOU identify them from their notes');
+    buffer.writeln('5. CONCRETE RECOMMENDATIONS: Based on what worked or didn\'t work in their own words');
+    buffer.writeln('');
+
+    buffer.writeln('RESPONSE FORMAT - Use actual period names in titles and descriptions:');
+    buffer.writeln('{');
+    buffer.writeln('  "insights": [');
+    buffer.writeln('    {');
+    buffer.writeln('      "title": "Why Your Mood Improved in $period2Name" (or declined),');
+    buffer.writeln('      "description": "Based on your notes, the improvement appears linked to [specific factors from notes]. In $period1Name you mentioned [specific challenges], while $period2Name shows [specific positive changes].",');
+    buffer.writeln('      "type": "positive|negative|neutral",');
+    buffer.writeln('      "actionSteps": ["Continue the specific activities you mentioned in $period2Name", "Avoid the patterns that caused issues in $period1Name", "Build on what clearly worked"]');
+    buffer.writeln('    }');
+    buffer.writeln('  ],');
+    buffer.writeln('  "recommendations": [');
+    buffer.writeln('    {');
+    buffer.writeln('      "title": "Build on Your $period2Name Success Pattern",');
+    buffer.writeln('      "description": "Your notes show that [specific successful strategies] led to better moods in $period2Name",');
+    buffer.writeln('      "priority": "high|medium|low",');
+    buffer.writeln('      "actionSteps": ["Specifically continue [activity they mentioned]", "Maintain the schedule that worked in $period2Name", "Apply $period2Name strategies to future challenges"]');
+    buffer.writeln('    }');
+    buffer.writeln('  ]');
+    buffer.writeln('}');
 
     return buffer.toString();
   }
 
-  /// Helper method to append day data to buffer
-  static void _appendDayData(StringBuffer buffer, EnhancedDayAnalysis day) {
-    buffer.writeln('${_formatDate(day.date)}:');
-    for (int segment = 0; segment < 3; segment++) {
-      final segmentData = day.segments[segment];
-      if (segmentData != null) {
-        final segmentName = ['Morning', 'Midday', 'Evening'][segment];
-        buffer.writeln('  $segmentName: ${segmentData.rating}/10');
+  static String _getPeriodName(DateTime period1Start, DateTime period1End,
+      DateTime period2Start, DateTime period2End, {required bool isEarlier}) {
+    final now = DateTime.now();
+    final targetStart = isEarlier ? period1Start : period2Start;
+    final targetEnd = isEarlier ? period1End : period2End;
+
+    // Check if it's a monthly comparison
+    final daysDiff = targetEnd.difference(targetStart).inDays;
+    final daysFromNow = now.difference(targetEnd).inDays;
+
+    if (daysDiff >= 25 && daysDiff <= 35) { // Monthly comparison
+      if (daysFromNow <= 5) {
+        return 'This Month';
+      } else if (daysFromNow <= 35) {
+        return 'Last Month';
+      } else if (daysFromNow <= 65) {
+        return 'Two Months Ago';
+      } else {
+        return DateFormat('MMMM yyyy').format(targetStart);
       }
+    } else if (daysDiff >= 28 && daysDiff <= 32) { // 30-day comparison
+      if (daysFromNow <= 2) {
+        return 'Last 30 Days';
+      } else if (daysFromNow <= 32) {
+        return 'Previous 30 Days';
+      } else {
+        return '30 Days ending ${DateFormat('MMM d').format(targetEnd)}';
+      }
+    } else { // Custom range
+      return '${DateFormat('MMM d').format(targetStart)} - ${DateFormat('MMM d').format(targetEnd)}';
     }
   }
 
@@ -801,6 +980,9 @@ class MoodAnalysisService {
   /// Parse AI response into structured result
   static MoodAnalysisResult _parseAIResponse(String aiResponse) {
     try {
+      Logger.aiService('🔍 Raw AI Response Length: ${aiResponse.length} chars');
+      Logger.aiService('🔍 Raw AI Response Preview: ${aiResponse.substring(0, math.min(200, aiResponse.length))}...');
+
       // Clean up the response to extract JSON
       String cleanedResponse = aiResponse.trim();
 
@@ -808,8 +990,66 @@ class MoodAnalysisService {
       int startIndex = cleanedResponse.indexOf('{');
       int endIndex = cleanedResponse.lastIndexOf('}');
 
-      if (startIndex != -1 && endIndex != -1) {
-        cleanedResponse = cleanedResponse.substring(startIndex, endIndex + 1);
+      if (startIndex == -1 || endIndex == -1) {
+        Logger.aiService('❌ No JSON found in AI response');
+        return MoodAnalysisResult(
+          success: false,
+          error: 'AI response contained no valid JSON data',
+          insights: [],
+          recommendations: [],
+        );
+      }
+
+      cleanedResponse = cleanedResponse.substring(startIndex, endIndex + 1);
+      Logger.aiService('🔍 Cleaned JSON: ${cleanedResponse.substring(0, math.min(300, cleanedResponse.length))}...');
+
+      // Fix malformed comparative analysis responses
+      if (cleanedResponse.contains('"insights": {') && !cleanedResponse.contains('"insights": [')) {
+        Logger.aiService('⚠️ Detected malformed comparative analysis response, attempting to fix...');
+
+        // Try to convert the malformed object structure to the expected array structure
+        try {
+          final tempParsed = jsonDecode(cleanedResponse) as Map<String, dynamic>;
+
+          if (tempParsed['insights'] is Map) {
+            final insightsMap = tempParsed['insights'] as Map<String, dynamic>;
+            final insightsArray = <Map<String, dynamic>>[];
+
+            // Convert each key-value pair to a proper insight object
+            insightsMap.forEach((key, value) {
+              insightsArray.add({
+                'title': _formatTitle(key),
+                'description': value.toString(),
+                'type': _determineInsightType(value.toString()),
+                'actionSteps': _generateComparativeActionSteps(key, value.toString()),
+              });
+            });
+
+            tempParsed['insights'] = insightsArray;
+
+            // If recommendations is also malformed, fix it too
+            if (tempParsed['recommendations'] is Map) {
+              final recMap = tempParsed['recommendations'] as Map<String, dynamic>;
+              final recArray = <Map<String, dynamic>>[];
+
+              recMap.forEach((key, value) {
+                recArray.add({
+                  'title': _formatTitle(key),
+                  'description': value.toString(),
+                  'priority': 'medium',
+                  'actionSteps': _generateComparativeActionSteps(key, value.toString()),
+                });
+              });
+
+              tempParsed['recommendations'] = recArray;
+            }
+
+            cleanedResponse = jsonEncode(tempParsed);
+            Logger.aiService('✅ Successfully converted malformed response to proper format');
+          }
+        } catch (e) {
+          Logger.aiService('❌ Failed to fix malformed response: $e');
+        }
       }
 
       final parsed = jsonDecode(cleanedResponse) as Map<String, dynamic>;
@@ -817,23 +1057,22 @@ class MoodAnalysisService {
       final insights = <MoodInsight>[];
       final recommendations = <MoodRecommendation>[];
 
-      // Parse insights with action steps validation
+      // Parse insights with enhanced action steps validation
       if (parsed['insights'] is List) {
         for (int i = 0; i < (parsed['insights'] as List).length; i++) {
           final insight = parsed['insights'][i];
 
-          // Ensure action steps exist, if not, generate appropriate ones
-          List<String> actionSteps;
+          List<String> actionSteps = [];
           if (insight['actionSteps'] is List && (insight['actionSteps'] as List).isNotEmpty) {
             actionSteps = List<String>.from(insight['actionSteps']);
-          } else {
-            // Generate contextual action steps based on insight content
-            actionSteps = _generateInsightActionSteps(
-                insight['title'] ?? '',
-                insight['description'] ?? '',
-                insight['type'] ?? 'neutral'
-            );
           }
+
+          // Enhanced validation and generation
+          actionSteps = _validateAndEnhanceActionSteps(
+              actionSteps,
+              insight['title'] ?? '',
+              insight['description'] ?? ''
+          );
 
           insights.add(MoodInsight(
             title: insight['title'] ?? 'Insight',
@@ -844,23 +1083,22 @@ class MoodAnalysisService {
         }
       }
 
-      // Parse recommendations with action steps validation
+      // Parse recommendations with enhanced action steps validation
       if (parsed['recommendations'] is List) {
         for (int i = 0; i < (parsed['recommendations'] as List).length; i++) {
           final rec = parsed['recommendations'][i];
 
-          // Ensure action steps exist, if not, generate appropriate ones
-          List<String> actionSteps;
+          List<String> actionSteps = [];
           if (rec['actionSteps'] is List && (rec['actionSteps'] as List).isNotEmpty) {
             actionSteps = List<String>.from(rec['actionSteps']);
-          } else {
-            // Generate contextual action steps based on recommendation content
-            actionSteps = _generateRecommendationActionSteps(
-                rec['title'] ?? '',
-                rec['description'] ?? '',
-                rec['priority'] ?? 'medium'
-            );
           }
+
+          // Enhanced validation and generation
+          actionSteps = _validateAndEnhanceActionSteps(
+              actionSteps,
+              rec['title'] ?? '',
+              rec['description'] ?? ''
+          );
 
           recommendations.add(MoodRecommendation(
             title: rec['title'] ?? 'Recommendation',
@@ -890,153 +1128,148 @@ class MoodAnalysisService {
     }
   }
 
-  /// Generate contextual action steps for insights
-  static List<String> _generateInsightActionSteps(String title, String description, String type) {
-    // Default action steps based on insight type
-    final defaultSteps = <String>[];
-
-    final titleLower = title.toLowerCase();
-    final descLower = description.toLowerCase();
-
-    if (titleLower.contains('sleep') || descLower.contains('sleep')) {
-      defaultSteps.addAll([
-        'Track your sleep schedule for a week',
-        'Aim for consistent bedtime and wake time',
-        'Create a relaxing bedtime routine',
-        'Monitor how sleep affects your next day mood',
-      ]);
-    } else if (titleLower.contains('morning') || descLower.contains('morning')) {
-      defaultSteps.addAll([
-        'Plan important tasks for your morning hours',
-        'Try a 10-minute morning routine',
-        'Get sunlight exposure within first hour of waking',
-        'Eat a protein-rich breakfast',
-      ]);
-    } else if (titleLower.contains('exercise') || descLower.contains('exercise')) {
-      defaultSteps.addAll([
-        'Schedule 20-30 minutes of activity daily',
-        'Choose activities you actually enjoy',
-        'Start small and build consistency',
-        'Track how exercise impacts your mood',
-      ]);
-    } else if (titleLower.contains('stress') || descLower.contains('stress')) {
-      defaultSteps.addAll([
-        'Identify your main stress triggers',
-        'Practice deep breathing when stressed',
-        'Plan stress-relief activities',
-        'Consider talking to someone about stressors',
-      ]);
-    } else if (titleLower.contains('social') || descLower.contains('social')) {
-      defaultSteps.addAll([
-        'Schedule regular time with supportive people',
-        'Join activities that interest you',
-        'Practice saying no to draining social obligations',
-        'Balance social time with alone time',
-      ]);
-    } else {
-      // Generic action steps based on type
-      switch (type) {
-        case 'positive':
-          defaultSteps.addAll([
-            'Identify what makes this pattern successful',
-            'Plan to repeat positive behaviors',
-            'Share this success with someone supportive',
-            'Use this strength during challenging times',
-          ]);
-          break;
-        case 'negative':
-          defaultSteps.addAll([
-            'Notice when this pattern starts to happen',
-            'Prepare alternative responses',
-            'Ask for support when you notice this pattern',
-            'Be patient and kind with yourself',
-          ]);
-          break;
-        default:
-          defaultSteps.addAll([
-            'Observe this pattern in your daily life',
-            'Keep track of when it occurs',
-            'Consider what influences this pattern',
-            'Experiment with small changes',
-          ]);
-      }
+  static String _formatTitle(String key) {
+    switch (key.toLowerCase()) {
+      case 'changes':
+        return 'Period-to-Period Changes';
+      case 'improvements':
+        return 'Positive Improvements';
+      case 'concerns':
+        return 'Areas of Concern';
+      case 'patterns':
+        return 'Emerging Patterns';
+      default:
+        return key.split('_').map((word) =>
+        word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1)
+        ).join(' ');
     }
-
-    return defaultSteps.take(4).toList();
   }
 
-  /// Generate contextual action steps for recommendations
-  static List<String> _generateRecommendationActionSteps(String title, String description, String priority) {
-    final defaultSteps = <String>[];
+  static String _determineInsightType(String description) {
+    final lower = description.toLowerCase();
+    if (lower.contains('improvement') || lower.contains('better') ||
+        lower.contains('increased') || lower.contains('positive')) {
+      return 'positive';
+    } else if (lower.contains('decline') || lower.contains('worse') ||
+        lower.contains('decreased') || lower.contains('concern')) {
+      return 'negative';
+    }
+    return 'neutral';
+  }
 
-    final titleLower = title.toLowerCase();
-    final descLower = description.toLowerCase();
+  static List<String> _generateComparativeActionSteps(String category, String description) {
+    final lower = description.toLowerCase();
 
-    if (titleLower.contains('sleep') || descLower.contains('sleep')) {
-      defaultSteps.addAll([
-        'Set a consistent bedtime tonight',
-        'Create a calming bedtime routine',
-        'Avoid screens 1 hour before bed',
-        'Track sleep quality for one week',
-      ]);
-    } else if (titleLower.contains('exercise') || titleLower.contains('activity')) {
-      defaultSteps.addAll([
-        'Start with 10-15 minutes of activity today',
-        'Choose something you find enjoyable',
-        'Schedule it at the same time each day',
-        'Track how it affects your mood',
-      ]);
-    } else if (titleLower.contains('routine') || titleLower.contains('habit')) {
-      defaultSteps.addAll([
-        'Start with one small change',
-        'Practice it for just 5 minutes daily',
-        'Set a reminder or cue for the habit',
-        'Celebrate small wins along the way',
-      ]);
-    } else if (titleLower.contains('social') || titleLower.contains('connect')) {
-      defaultSteps.addAll([
-        'Reach out to one person today',
-        'Schedule regular check-ins',
-        'Join a group or activity you\'d enjoy',
-        'Be open about your feelings with trusted people',
-      ]);
-    } else if (titleLower.contains('stress') || titleLower.contains('manage')) {
-      defaultSteps.addAll([
-        'Try a 5-minute breathing exercise today',
-        'Identify your main stress triggers',
-        'Plan specific responses to stressful situations',
-        'Schedule regular stress-relief activities',
-      ]);
+    if (lower.contains('improvement') || lower.contains('better') || lower.contains('increased')) {
+      return [
+        'Continue the specific activities and routines that led to this improvement',
+        'Identify the exact timing and conditions when you felt best',
+        'Document what was different about your better days for future reference',
+        'Build on this positive momentum by expanding successful strategies'
+      ];
+    } else if (lower.contains('decline') || lower.contains('worse') || lower.contains('decreased')) {
+      return [
+        'Review what changed between periods that may have caused this decline',
+        'Return to the successful strategies from your better period',
+        'Address any new stressors or challenges that emerged',
+        'Implement preventive measures to avoid similar future declines'
+      ];
+    } else if (lower.contains('climbing') || lower.contains('exercise') || lower.contains('activity')) {
+      return [
+        'Maintain the exercise routine that correlated with better moods',
+        'Schedule regular climbing/activity sessions as mood stabilizers',
+        'Use physical activity as a proactive mood management tool',
+        'Track which types of activities have the strongest mood impact'
+      ];
+    } else if (lower.contains('sleep') || lower.contains('tired') || lower.contains('late')) {
+      return [
+        'Address the sleep patterns that improved/worsened between periods',
+        'Set consistent wake times based on your better period',
+        'Create evening routines that support the sleep schedule that worked',
+        'Monitor how sleep timing affects next-day mood and energy'
+      ];
     } else {
-      // Generic action steps based on priority
-      switch (priority) {
-        case 'high':
-          defaultSteps.addAll([
-            'Start implementing this today',
-            'Set aside dedicated time for this',
-            'Track your progress daily',
-            'Adjust your approach as needed',
-          ]);
-          break;
-        case 'low':
-          defaultSteps.addAll([
-            'Consider trying this when you have time',
-            'Start with small experiments',
-            'Notice how it affects your wellbeing',
-            'Build it into your routine gradually',
-          ]);
-          break;
-        default: // medium
-          defaultSteps.addAll([
-            'Plan to start this within the next few days',
-            'Set a specific time to try it',
-            'Monitor how it affects your mood',
-            'Be consistent for best results',
-          ]);
+      return [
+        'Monitor this pattern for consistency and identify contributing factors',
+        'Note any external circumstances that influenced this change',
+        'Test specific interventions to see what affects this trend',
+        'Keep detailed records of what works best for your unique situation'
+      ];
+    }
+  }
+
+  /// Enhanced validation for action steps
+  static List<String> _validateAndEnhanceActionSteps(List<String> actionSteps, String title, String description) {
+    Logger.aiService('🔍 Validating action steps for "$title": ${actionSteps.length} steps provided');
+    Logger.aiService('🔍 Action steps: $actionSteps');
+
+    if (actionSteps.isEmpty) {
+      Logger.aiService('⚠️ No action steps provided, generating personalized fallback');
+      // Generate based on keywords in title and description
+      final combined = '${title.toLowerCase()} ${description.toLowerCase()}';
+
+      if (combined.contains('sleep') || combined.contains('tired') || combined.contains('woke up late')) {
+        return [
+          'Set a consistent alarm for 9 AM and place it across the room to avoid snoozing',
+          'Create a wind-down routine 1 hour before desired bedtime (no screens, dim lights)',
+          'Track which activities help you fall asleep faster vs. keep you awake',
+          'Use the "can\'t sleep" time productively - read, journal, or plan tomorrow instead of frustration'
+        ];
+      } else if (combined.contains('rock climbing') || combined.contains('climbing')) {
+        return [
+          'Book 2 climbing sessions per week at your preferred gym or outdoor spots',
+          'Try bouldering on easier days when you need movement but less intensity',
+          'Explore new climbing routes or techniques to maintain motivation and challenge',
+          'Connect with climbing community - find climbing partners or join climbing groups'
+        ];
+      } else if (combined.contains('running') || combined.contains('walk') || combined.contains('nature')) {
+        return [
+          'Plan specific running/walking routes in natural settings you enjoy',
+          'Try trail running or hiking to combine cardio with nature time',
+          'Schedule "nature walks" during lunch breaks or after work for stress relief',
+          'Explore new parks, trails, or nature areas in your region monthly'
+        ];
+      } else if (combined.contains('work') || combined.contains('stress') || combined.contains('customers')) {
+        return [
+          'Practice the 4-7-8 breathing technique between difficult customer interactions',
+          'Document staffing concerns and present solutions to management proactively',
+          'Create micro-breaks: 30 seconds of deep breathing every hour during busy shifts',
+          'Develop 2-3 go-to phrases for de-escalating customer tensions'
+        ];
+      } else if (combined.contains('morning') || combined.contains('woke up late')) {
+        return [
+          'Set out everything needed for morning routine the night before',
+          'Create a motivating morning playlist or podcast to play immediately upon waking',
+          'Schedule something enjoyable for mornings (like planning that rock climbing session)',
+          'Use the "5-minute rule" - commit to just 5 minutes of morning activity to build momentum'
+        ];
+      } else {
+        return [
+          'Implement this insight gradually, starting with just one small change',
+          'Track progress weekly using your mood logging to see what works',
+          'Adjust the approach based on your personal results after 2-3 weeks',
+          'Build on your existing strengths and interests rather than forcing new habits'
+        ];
       }
     }
 
-    return defaultSteps.take(4).toList();
+    // Validate existing action steps and ensure they're specific enough
+    final validSteps = actionSteps
+        .where((step) => step.trim().isNotEmpty && step.length > 15)
+        .take(4)
+        .toList();
+
+    // If validated steps are too generic, enhance them
+    final enhancedSteps = validSteps.map((step) {
+      if (step.toLowerCase().contains('consistent sleep') && !step.contains('9 AM') && !step.contains('11 AM')) {
+        return 'Set a consistent wake time of 9 AM (earlier than your mentioned 11 AM wake-ups) using an alarm across the room';
+      } else if (step.toLowerCase().contains('explore') && step.toLowerCase().contains('activities') && !step.contains('climbing')) {
+        return 'Try activities similar to rock climbing: bouldering, outdoor climbing routes, or climbing gym classes';
+      }
+      return step;
+    }).toList();
+
+    return enhancedSteps;
   }
 
   /// Enhanced analysis that combines AI with local pattern detection
@@ -1334,6 +1567,7 @@ class SavedAnalysis {
                     'title': i.title,
                     'description': i.description,
                     'type': i.type.name,
+                    'actionSteps': i.actionSteps,
                   })
               .toList(),
           'recommendations': result.recommendations
@@ -1341,6 +1575,7 @@ class SavedAnalysis {
                     'title': r.title,
                     'description': r.description,
                     'priority': r.priority.name,
+                    'actionSteps': r.actionSteps,
                   })
               .toList(),
         },
@@ -1355,19 +1590,23 @@ class SavedAnalysis {
           success: json['result']['success'],
           insights: (json['result']['insights'] as List)
               .map((i) => MoodInsight(
-                    title: i['title'],
-                    description: i['description'],
-                    type: InsightType.values
-                        .firstWhere((t) => t.name == i['type']),
-                  ))
+            title: i['title'],
+            description: i['description'],
+            type: InsightType.values.firstWhere((t) => t.name == i['type']),
+            actionSteps: i['actionSteps'] != null
+                ? List<String>.from(i['actionSteps'])
+                : [],
+          ))
               .toList(),
           recommendations: (json['result']['recommendations'] as List)
               .map((r) => MoodRecommendation(
-                    title: r['title'],
-                    description: r['description'],
-                    priority: RecommendationPriority.values
-                        .firstWhere((p) => p.name == r['priority']),
-                  ))
+            title: r['title'],
+            description: r['description'],
+            priority: RecommendationPriority.values.firstWhere((p) => p.name == r['priority']),
+            actionSteps: r['actionSteps'] != null
+                ? List<String>.from(r['actionSteps'])
+                : [],
+          ))
               .toList(),
         ),
       );
