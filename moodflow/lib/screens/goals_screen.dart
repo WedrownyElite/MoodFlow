@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/data/mood_analytics_service.dart';
 import '../widgets/goal_card.dart';
 import '../widgets/create_goal_dialog.dart';
+import '../services/utils/ai_coach_helper.dart';
 
 class GoalsScreen extends StatefulWidget {
   final String? highlightGoalId;
@@ -117,6 +118,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.smart_toy),
+            onPressed: () => AiCoachHelper.openAiCoach(context),
+            tooltip: 'AI Coach',
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _createGoal,

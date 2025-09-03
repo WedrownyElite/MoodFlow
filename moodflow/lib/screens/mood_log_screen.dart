@@ -9,6 +9,7 @@ import '../widgets/animated_mood_slider.dart';
 import '../services/notifications/enhanced_notification_service.dart';
 import 'correlation_screen.dart';
 import '../services/utils/logger.dart';
+import '../services/utils/ai_coach_helper.dart';
 
 class MoodLogScreen extends StatefulWidget {
   final bool useCustomGradient;
@@ -631,6 +632,13 @@ class _MoodLogScreenState extends State<MoodLogScreen>
         title: const Text('Log Mood'),
         leading: BackButton(color: Colors.white),
         systemOverlayStyle: SystemUiOverlayStyle.light,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.smart_toy),
+            onPressed: () => AiCoachHelper.openAiCoach(context),
+            tooltip: 'AI Coach',
+          ),
+        ]
       ),
       body: Stack(
         children: [

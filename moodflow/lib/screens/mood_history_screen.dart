@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/data/mood_data_service.dart';
 import '../widgets/edit_mood_dialog.dart';
+import '../services/utils/ai_coach_helper.dart';
 
 class MoodHistoryScreen extends StatefulWidget {
   const MoodHistoryScreen({super.key});
@@ -225,6 +226,11 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.smart_toy),
+            onPressed: () => AiCoachHelper.openAiCoach(context),
+            tooltip: 'AI Coach',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadMoodHistory,

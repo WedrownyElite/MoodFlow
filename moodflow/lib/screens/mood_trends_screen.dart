@@ -6,6 +6,7 @@ import '../widgets/mood_heatmap.dart';
 import '../widgets/mood_statistics_cards.dart';
 import '../widgets/date_range_picker_dialog.dart';
 import '../services/utils/logger.dart';
+import '../services/utils/ai_coach_helper.dart';
 
 enum TimeRange { week, month, quarter, year, all, custom }
 
@@ -240,6 +241,11 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen>
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.smart_toy),
+            onPressed: () => AiCoachHelper.openAiCoach(context),
+            tooltip: 'AI Coach',
+          ),
           IconButton(
             icon: const Icon(Icons.help_outline),
             onPressed: _showStreakInfoDialog,

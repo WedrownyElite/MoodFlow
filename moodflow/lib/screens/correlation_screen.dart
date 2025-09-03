@@ -6,6 +6,7 @@ import 'dart:async';
 import '../services/data/correlation_data_service.dart';
 import '../widgets/weather_api_setup_dialog.dart';
 import '../services/insights/smart_insights_service.dart';
+import '../services/utils/ai_coach_helper.dart';
 
 class CorrelationScreen extends StatefulWidget {
   final DateTime? initialDate;
@@ -237,6 +238,11 @@ class _CorrelationScreenState extends State<CorrelationScreen>
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.smart_toy),
+            onPressed: () => AiCoachHelper.openAiCoach(context),
+            tooltip: 'AI Coach',
+          ),
           IconButton(
             icon: const Icon(Icons.calendar_today),
             onPressed: _selectDate,
