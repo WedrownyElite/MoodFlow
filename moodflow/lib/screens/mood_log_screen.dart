@@ -634,11 +634,14 @@ class _MoodLogScreenState extends State<MoodLogScreen>
         systemOverlayStyle: SystemUiOverlayStyle.light,
         actions: [
           IconButton(
-            icon: const Icon(Icons.smart_toy),
+            icon: Icon(
+              Icons.smart_toy,
+              color: widget.useCustomGradient ? Colors.white : null,
+            ),
             onPressed: () => AiCoachHelper.openAiCoach(context),
             tooltip: 'AI Coach',
           ),
-        ]
+        ],
       ),
       body: Stack(
         children: [

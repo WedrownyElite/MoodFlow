@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mood_flow/screens/correlation_screen.dart';
 import 'package:mood_flow/screens/insights_screen.dart';
 import '../services/animation/blur_transition_service.dart';
@@ -12,6 +13,7 @@ import 'settings_screen.dart';
 import 'ai_analysis_screen.dart';
 import 'backup_export_screen.dart';
 import '../services/backup/startup_restore_service.dart';
+import '../services/utils/ai_coach_helper.dart';
 
 class MainMenuScreen extends StatefulWidget {
   final ThemeMode themeMode;
@@ -43,10 +45,8 @@ class _MainMenuScreenState extends State<MainMenuScreen>
       duration: const Duration(milliseconds: 300),
     );
 
-    // Check for notification permission on app start
     _checkNotificationPermission();
 
-    // ADDED: Check for cloud backup restore on app start
     _checkForCloudRestore();
   }
 
@@ -67,7 +67,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
     if (!mounted) return;
 
     final shouldAsk =
-        await EnhancedNotificationService.shouldAskForPermission();
+    await EnhancedNotificationService.shouldAskForPermission();
     if (shouldAsk) {
       _showNotificationPermissionDialog();
     }
@@ -84,7 +84,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content:
-              Text('🔔 Notifications enabled! You\'ll get helpful reminders.'),
+          Text('🔔 Notifications enabled! You\'ll get helpful reminders.'),
           backgroundColor: Colors.green,
         ),
       );
@@ -101,13 +101,13 @@ class _MainMenuScreenState extends State<MainMenuScreen>
     final brightness = widget.themeMode == ThemeMode.system
         ? MediaQuery.platformBrightnessOf(context)
         : (widget.themeMode == ThemeMode.dark
-            ? Brightness.dark
-            : Brightness.light);
+        ? Brightness.dark
+        : Brightness.light);
 
     return brightness == Brightness.dark
         ? const LinearGradient(colors: [Colors.black87, Colors.grey])
         : const LinearGradient(
-            colors: [Colors.blueAccent, Colors.lightBlueAccent]);
+        colors: [Colors.blueAccent, Colors.lightBlueAccent]);
   }
 
   Future<void> _navigateWithBlur(Widget destination) async {
@@ -137,13 +137,37 @@ class _MainMenuScreenState extends State<MainMenuScreen>
     final gradient = _getBackgroundGradient(context);
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.smart_toy,
+              color: widget.useCustomGradient ? Colors.white : Colors.white,
+            ),
+            onPressed: () => AiCoachHelper.openAiCoach(context),
+            tooltip: 'AI Coach',
+          ),
+        ],
+      ),
       body: Container(
         decoration: BoxDecoration(gradient: gradient),
         child: SafeArea(
+          top: false,
           child: BlurTransitionWidget(
             blurService: _blurService,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: EdgeInsets.only(
+                left: 16.0,
+                right: 16.0,
+                top: MediaQuery.of(context).padding.top + kToolbarHeight,
+                bottom: 16.0,
+              ),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -152,59 +176,55 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                     _buildPrimaryButton(
                       'Log Mood',
                       Icons.edit_note,
-                      () => _navigateToMoodLog(),
+                          () => _navigateToMoodLog(),
                     ),
 
                     const SizedBox(height: 24),
 
-                    // Quick access grid (3x2)
+                    // Quick access grid (3x2) - Updated layout
                     Row(
                       children: [
                         Expanded(
                             child: _buildQuickButton(
                                 'History',
                                 Icons.history,
-                                () => _navigateWithBlur(
+                                    () => _navigateWithBlur(
                                     const MoodHistoryScreen()))),
                         const SizedBox(width: 12),
                         Expanded(
                             child: _buildQuickButton(
                                 'Trends',
                                 Icons.show_chart,
-                                () => _navigateWithBlur(
+                                    () => _navigateWithBlur(
                                     const MoodTrendsScreen()))),
+                        const SizedBox(width: 12),
+                        Expanded(
+                            child: _buildQuickButton('Goals', Icons.flag,
+                                    () => _navigateWithBlur(const GoalsScreen()))),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(
-                            child: _buildQuickButton('Goals', Icons.flag,
-                                () => _navigateWithBlur(const GoalsScreen()))),
-                        const SizedBox(width: 12),
                         Expanded(
                             child: _buildQuickButton(
                                 'AI Analysis',
                                 Icons.psychology,
-                                () => _navigateWithBlur(
+                                    () => _navigateWithBlur(
                                     const AIAnalysisScreen()))),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
+                        const SizedBox(width: 12),
                         Expanded(
                             child: _buildQuickButton(
                                 'Insights',
-                                Icons.psychology,
-                                () =>
+                                Icons.lightbulb,
+                                    () =>
                                     _navigateWithBlur(const InsightsScreen()))),
                         const SizedBox(width: 12),
                         Expanded(
                             child: _buildQuickButton(
                                 'Factors',
                                 Icons.analytics,
-                                () => _navigateWithBlur(const CorrelationScreen(
+                                    () => _navigateWithBlur(const CorrelationScreen(
                                     initialTabIndex: 0)))),
                       ],
                     ),
@@ -218,21 +238,21 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                         _buildSecondaryButton(
                             'Backup',
                             Icons.cloud_upload,
-                            () =>
+                                () =>
                                 _navigateWithBlur(const BackupExportScreen())),
                         _buildSecondaryButton(
                             'Settings',
                             Icons.settings,
-                            () => _navigateWithScale(
-                                  SettingsScreen(
-                                    themeMode: widget.themeMode,
-                                    useCustomGradient: widget.useCustomGradient,
-                                    onThemeModeChanged:
-                                        widget.onThemeModeChanged,
-                                    onUseCustomGradientChanged:
-                                        widget.onUseCustomGradientChanged,
-                                  ),
-                                )),
+                                () => _navigateWithScale(
+                              SettingsScreen(
+                                themeMode: widget.themeMode,
+                                useCustomGradient: widget.useCustomGradient,
+                                onThemeModeChanged:
+                                widget.onThemeModeChanged,
+                                onUseCustomGradientChanged:
+                                widget.onUseCustomGradientChanged,
+                              ),
+                            )),
                       ],
                     ),
                   ],
@@ -251,8 +271,8 @@ class _MainMenuScreenState extends State<MainMenuScreen>
     final brightness = widget.themeMode == ThemeMode.system
         ? MediaQuery.platformBrightnessOf(context)
         : (widget.themeMode == ThemeMode.dark
-            ? Brightness.dark
-            : Brightness.light);
+        ? Brightness.dark
+        : Brightness.light);
 
     await _blurService.executeTransition(() async {
       Navigator.pushNamed(
@@ -280,7 +300,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
           backgroundColor: Theme.of(context).primaryColor,
           foregroundColor: Colors.white,
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
     );
@@ -294,7 +314,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.all(12),
         ),
         child: Column(

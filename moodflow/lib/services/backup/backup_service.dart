@@ -7,7 +7,6 @@ import '../notifications/enhanced_notification_service.dart';
 import '../data/correlation_data_service.dart';
 import '../utils/logger.dart';
 import '../ai/mood_analysis_service.dart';
-import '../insights/smart_insights_service.dart';
 
 class BackupService {
   static const String _lastBackupKey = 'last_backup_date';
@@ -98,14 +97,6 @@ class BackupService {
       Logger.backupService('Error loading saved analyses: $e');
     }
 
-    // Get smart insights data
-    Map<String, dynamic> smartInsightsData = {};
-    try {
-      smartInsightsData = await SmartInsightsService.exportInsightsData();
-    } catch (e) {
-      Logger.backupService('Error loading smart insights: $e');
-    }
-
     return MoodDataExport(
       appVersion: '1.0.0',
       exportDate: DateTime.now(),
@@ -115,7 +106,6 @@ class BackupService {
       notificationSettings: notificationExport,
       userPreferences: userPreferences,
       savedAnalyses: savedAnalyses,
-      smartInsightsData: smartInsightsData,
     );
   }
 
@@ -190,15 +180,6 @@ class BackupService {
         }
       } catch (e) {
         Logger.backupService('Failed to import saved analyses: $e');
-      }
-
-      // Import smart insights data
-      try {
-        if (exportData.smartInsightsData.isNotEmpty) {
-          await SmartInsightsService.importInsightsData(exportData.smartInsightsData);
-        }
-      } catch (e) {
-        Logger.backupService('Failed to import smart insights: $e');
       }
 
       // Import correlation data
@@ -369,7 +350,6 @@ class BackupService {
       notificationSettings: notificationSettings,
       userPreferences: userPreferences,
       savedAnalyses: [],
-      smartInsightsData: {},
     );
   }
 
