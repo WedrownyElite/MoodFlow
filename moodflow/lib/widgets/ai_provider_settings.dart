@@ -31,7 +31,26 @@ class _AIProviderSettingsState extends State<AIProviderSettings> {
   }
 
   @override
+  void didUpdateWidget(AIProviderSettings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update state when widget properties change
+    if (oldWidget.currentProvider != widget.currentProvider ||
+        oldWidget.currentModel != widget.currentModel) {
+      setState(() {
+        _selectedProvider = widget.currentProvider;
+        _selectedModel = widget.currentModel;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Ensure the selected model is valid for the current provider
+    final availableModels = AIProviderService.availableModels[_selectedProvider]!;
+    if (!availableModels.contains(_selectedModel)) {
+      _selectedModel = availableModels.first;
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -65,27 +84,29 @@ class _AIProviderSettingsState extends State<AIProviderSettings> {
               }).toList(),
               onChanged: (provider) {
                 if (provider != null) {
+                  final newModel = AIProviderService.availableModels[provider]!.first;
                   setState(() {
                     _selectedProvider = provider;
-                    _selectedModel = AIProviderService.availableModels[provider]!.first;
+                    _selectedModel = newModel;
                   });
-                  widget.onProviderChanged(provider, _selectedModel);
+                  widget.onProviderChanged(provider, newModel);
                 }
               },
             ),
             const SizedBox(height: 16),
 
-            // Model selection
+            // Model selection with cost indicators
             DropdownButtonFormField<String>(
               initialValue: _selectedModel,
               decoration: const InputDecoration(
                 labelText: 'Model',
                 border: OutlineInputBorder(),
+                helperText: '🆓 = Free tier, 💰 = Paid model',
               ),
-              items: AIProviderService.availableModels[_selectedProvider]!.map((model) {
+              items: availableModels.map((model) {
                 return DropdownMenuItem(
                   value: model,
-                  child: Text(AIProviderService.getModelDisplayName(model)),
+                  child: Text(AIProviderService.getModelDisplayNameWithCost(_selectedProvider, model)),
                 );
               }).toList(),
               onChanged: (model) {
@@ -155,58 +176,112 @@ class _AIProviderSettingsState extends State<AIProviderSettings> {
 
     if (!mounted) return;
 
+    bool isValidating = false;
+
     final result = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('${AIProviderService.getProviderDisplayName(provider)} API Key'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'API Key',
-            border: OutlineInputBorder(),
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (builderContext, setDialogState) => AlertDialog(
+          title: Text('${AIProviderService.getProviderDisplayName(provider)} API Key'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Enter your ${AIProviderService.getProviderDisplayName(provider)} API key.',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'One key works for all ${AIProviderService.getProviderDisplayName(provider)} models (subject to your plan limits).',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  labelText: 'API Key',
+                  border: const OutlineInputBorder(),
+                  hintText: provider == AIProvider.openai ? 'sk-...' : 'Enter your API key',
+                ),
+                obscureText: true,
+                enabled: !isValidating,
+              ),
+              if (isValidating) ...[
+                const SizedBox(height: 12),
+                const Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('Validating API key...'),
+                  ],
+                ),
+              ],
+            ],
           ),
-          obscureText: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (controller.text.isNotEmpty) {
-                final isValid = await AIProviderService.validateApiKey(
-                  provider,
-                  controller.text,
-                );
+          actions: [
+            TextButton(
+              onPressed: isValidating ? null : () => Navigator.pop(builderContext, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isValidating
+                  ? null
+                  : () async {
+                final keyText = controller.text.trim();
+                if (keyText.isEmpty) return;
 
-                if (!dialogContext.mounted) return;
+                setDialogState(() => isValidating = true);
 
-                if (isValid) {
-                  await AIProviderService.saveApiKey(provider, controller.text);
-                  if (dialogContext.mounted) {
-                    Navigator.pop(dialogContext, true);
+                try {
+                  final isValid = await AIProviderService.validateApiKey(provider, keyText);
+
+                  if (!builderContext.mounted) return;
+
+                  if (isValid) {
+                    await AIProviderService.saveApiKey(provider, keyText);
+                    if (builderContext.mounted) {
+                      Navigator.pop(builderContext, true);
+                    }
+                  } else {
+                    if (builderContext.mounted) {
+                      setDialogState(() => isValidating = false);
+                      ScaffoldMessenger.of(builderContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Invalid API key for ${AIProviderService.getProviderDisplayName(provider)}. Please check and try again.',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
-                } else {
-                  if (dialogContext.mounted) {
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      const SnackBar(
-                        content: Text('Invalid API key'),
+                } catch (e) {
+                  if (builderContext.mounted) {
+                    setDialogState(() => isValidating = false);
+                    ScaffoldMessenger.of(builderContext).showSnackBar(
+                      SnackBar(
+                        content: Text('Error validating API key: ${e.toString()}'),
                         backgroundColor: Colors.red,
                       ),
                     );
                   }
                 }
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
       ),
     );
 
     if (result == true && mounted) {
-      setState(() {}); // Refresh the UI
+      setState(() {}); // Refresh the UI to show updated API key status
     }
   }
 }

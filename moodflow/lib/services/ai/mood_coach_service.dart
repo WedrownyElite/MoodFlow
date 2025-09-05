@@ -173,7 +173,7 @@ I can help you understand your mood patterns, provide wellness suggestions, and 
       final messages = _buildChatMessages(systemPrompt, conversationHistory, message);
 
       // Call AI API for main response
-      final aiResponse = await _callOpenAI(messages, maxWordCount: maxWordCount);
+      final aiResponse = await _callAI(messages, maxWordCount: maxWordCount);
 
       // Generate follow-up suggestions using AI
       final suggestions = await _generateAISuggestions(message, aiResponse, moodContext);
@@ -208,25 +208,100 @@ I can help you understand your mood patterns, provide wellness suggestions, and 
     }
   }
 
-  // Call OpenAI API for main response
-  static Future<String> _callOpenAI(List<Map<String, String>> messages, {int? maxWordCount}) async {
+  // Call AI API for main response with model validation
+  static Future<String> _callAI(List<Map<String, String>> messages, {int? maxWordCount}) async {
     final provider = await getSelectedProvider();
     final model = await getSelectedModel();
+    final apiKey = await AIProviderService.getApiKey(provider);
+
+    if (apiKey == null) {
+      throw Exception('No API key found for ${AIProviderService.getProviderDisplayName(provider)}');
+    }
+
+    // Check model access for paid models
+    if (AIProviderService.isModelPaid(provider, model)) {
+      final accessResult = await AIProviderService.validateModelAccess(provider, model, apiKey);
+      if (!accessResult.hasAccess) {
+        // Auto-switch to free model if available
+        final freeModels = AIProviderService.availableModels[provider]!
+            .where((m) => !AIProviderService.isModelPaid(provider, m))
+            .toList();
+
+        if (freeModels.isNotEmpty) {
+          final freeModel = freeModels.first;
+          Logger.aiService('⚠️ Switching to free model: $freeModel');
+          await setSelectedModel(freeModel);
+
+          // Use the free model instead
+          final maxTokens = maxWordCount != null ? (maxWordCount * 1.5).round() : 600;
+          final response = await AIProviderService.sendMessage(
+            provider: provider,
+            model: freeModel,
+            messages: messages,
+            maxTokens: maxTokens,
+            temperature: 0.7,
+          );
+
+          if (response == null) {
+            throw Exception('AI service returned null response');
+          }
+
+          return '$response\n\n📝 Note: Switched to ${AIProviderService.getModelDisplayName(freeModel)} (free tier) due to quota limits.';
+        } else {
+          throw Exception(accessResult.reason);
+        }
+      }
+    }
 
     final maxTokens = maxWordCount != null ? (maxWordCount * 1.5).round() : 600;
 
-    final response = await AIProviderService.sendMessage(
-      provider: provider,
-      model: model,
-      messages: messages,
-      maxTokens: maxTokens,
-      temperature: 0.7,
-    );
+    try {
+      final response = await AIProviderService.sendMessage(
+        provider: provider,
+        model: model,
+        messages: messages,
+        maxTokens: maxTokens,
+        temperature: 0.7,
+      );
 
-    if (response == null) {
-      throw Exception('AI service returned null response');
+      if (response == null) {
+        throw Exception('AI service returned null response');
+      }
+      return response;
+    } catch (e) {
+      // Handle quota/billing errors gracefully
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('insufficient_quota') ||
+          errorStr.contains('billing') ||
+          errorStr.contains('quota')) {
+
+        // Try to auto-switch to free model
+        final freeModels = AIProviderService.availableModels[provider]!
+            .where((m) => !AIProviderService.isModelPaid(provider, m))
+            .toList();
+
+        if (freeModels.isNotEmpty) {
+          final freeModel = freeModels.first;
+          Logger.aiService('⚠️ Auto-switching to free model due to quota: $freeModel');
+          await setSelectedModel(freeModel);
+
+          final response = await AIProviderService.sendMessage(
+            provider: provider,
+            model: freeModel,
+            messages: messages,
+            maxTokens: maxTokens,
+            temperature: 0.7,
+          );
+
+          if (response == null) {
+            throw Exception('AI service returned null response');
+          }
+
+          return '$response\n\n📝 Note: Automatically switched to ${AIProviderService.getModelDisplayName(freeModel)} due to quota limits. You can upgrade your ${AIProviderService.getProviderDisplayName(provider)} plan for access to premium models.';
+        }
+      }
+      rethrow;
     }
-    return response;
   }
 
   /// Build comprehensive mood data context for ChatGPT

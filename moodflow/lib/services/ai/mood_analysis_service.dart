@@ -37,7 +37,7 @@ class MoodAnalysisService {
       final analysisPrompt = _buildAnalysisPrompt(moodData, startDate, endDate);
 
       // 3. Send to OpenAI API
-      final aiResponse = await _sendToOpenAI(analysisPrompt);
+      final aiResponse = await _sendToAI(analysisPrompt);
 
       // 4. Parse AI response
       return _parseAIResponse(aiResponse);
@@ -95,7 +95,7 @@ class MoodAnalysisService {
       );
 
       // 3. Send to OpenAI API
-      final aiResponse = await _sendToOpenAI(analysisPrompt);
+      final aiResponse = await _sendToAI(analysisPrompt);
 
       // 4. Parse AI response
       return _parseAIResponse(aiResponse);
@@ -145,7 +145,7 @@ class MoodAnalysisService {
         endDate,
       );
 
-      final aiResponse = await _sendToOpenAI(analysisPrompt);
+      final aiResponse = await _sendToAI(analysisPrompt);
       return _parseAIResponse(aiResponse);
     } catch (e) {
       return MoodAnalysisResult(
@@ -208,7 +208,7 @@ class MoodAnalysisService {
         period2End,
       );
 
-      final aiResponse = await _sendToOpenAI(analysisPrompt);
+      final aiResponse = await _sendToAI(analysisPrompt);
       return _parseAIResponse(aiResponse);
     } catch (e) {
       return MoodAnalysisResult(
@@ -938,10 +938,37 @@ class MoodAnalysisService {
     return buffer.toString();
   }
 
-  /// Send analysis request to OpenAI
-  static Future<String> _sendToOpenAI(String prompt) async {
+  /// Send analysis request to AI with model validation
+  static Future<String> _sendToAI(String prompt) async {
     final provider = await getSelectedProvider();
     final model = await getSelectedModel();
+
+    // Check if user has access to the selected model
+    final apiKey = await AIProviderService.getApiKey(provider);
+    if (apiKey == null) {
+      throw Exception('No API key found for ${AIProviderService.getProviderDisplayName(provider)}');
+    }
+
+    // Validate model access before sending the actual request
+    if (AIProviderService.isModelPaid(provider, model)) {
+      final accessResult = await AIProviderService.validateModelAccess(provider, model, apiKey);
+      if (!accessResult.hasAccess) {
+        // Suggest a free alternative model
+        final freeModels = AIProviderService.availableModels[provider]!
+            .where((m) => !AIProviderService.isModelPaid(provider, m))
+            .toList();
+
+        if (freeModels.isNotEmpty) {
+          throw Exception(
+              '${accessResult.reason}\n\n'
+                  'Try switching to a free model like "${AIProviderService.getModelDisplayName(freeModels.first)}" '
+                  'in the AI Provider Settings.'
+          );
+        } else {
+          throw Exception(accessResult.reason);
+        }
+      }
+    }
 
     final messages = [
       {
@@ -954,19 +981,44 @@ class MoodAnalysisService {
       },
     ];
 
-    final response = await AIProviderService.sendMessage(
-      provider: provider,
-      model: model,
-      messages: messages,
-      maxTokens: 1500,
-      temperature: 0.7,
-    );
+    try {
+      final response = await AIProviderService.sendMessage(
+        provider: provider,
+        model: model,
+        messages: messages,
+        maxTokens: 1500,
+        temperature: 0.7,
+      );
 
-    if (response == null) {
-      throw Exception('AI service returned null response');
+      if (response == null) {
+        throw Exception('AI service returned null response');
+      }
+
+      return response;
+    } catch (e) {
+      // Handle specific model access errors
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('insufficient_quota') ||
+          errorStr.contains('billing') ||
+          errorStr.contains('quota')) {
+
+        // Suggest free alternatives
+        final freeModels = AIProviderService.availableModels[provider]!
+            .where((m) => !AIProviderService.isModelPaid(provider, m))
+            .toList();
+
+        if (freeModels.isNotEmpty) {
+          throw Exception(
+              'The model "$model" requires a paid plan. '
+                  'Try switching to "${AIProviderService.getModelDisplayName(freeModels.first)}" '
+                  'which is available on the free tier.'
+          );
+        } else {
+          throw Exception('This model requires a paid ${AIProviderService.getProviderDisplayName(provider)} plan.');
+        }
+      }
+      rethrow;
     }
-
-    return response;
   }
 
   /// Parse AI response into structured result

@@ -592,16 +592,6 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                 ),
               ),
               const PopupMenuItem(
-                value: 'api_key',
-                child: Row(
-                  children: [
-                    Icon(Icons.key, size: 16),
-                    SizedBox(width: 8),
-                    Text('Change API Key'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
                 value: 'disable',
                 child: Row(
                   children: [
@@ -620,6 +610,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
 
   Widget _buildDataSelectionPanel() {
     return Container(
+      constraints: const BoxConstraints(maxHeight: 300),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
@@ -627,7 +618,8 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
             : Colors.blue.shade50,
         border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
       ),
-      child: Column(
+      child: SingleChildScrollView(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
           Row(
@@ -695,7 +687,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
           ),
 
           const SizedBox(height: 16),
-
+ 
           Row(
             children: [
               Icon(Icons.storage, size: 16, color: Colors.grey.shade600),
@@ -759,6 +751,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
             ),
           ],
       ),
+    ),
     );
   }
 

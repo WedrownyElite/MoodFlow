@@ -76,109 +76,6 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
     });
   }
 
-  Future<void> _showApiKeyDialog() async {
-    final controller = TextEditingController();
-    bool isValidating = false;
-
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Enter OpenAI API Key'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'To use AI analysis, you need an OpenAI API key. Get one free at:',
-                style: TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'https://platform.openai.com/api-keys',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(
-                  labelText: 'API Key',
-                  hintText: 'sk-...',
-                  border: OutlineInputBorder(),
-                ),
-                obscureText: true,
-                enabled: !isValidating,
-              ),
-              if (isValidating) ...[
-                const SizedBox(height: 12),
-                const Row(
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 8),
-                    Text('Validating API key...'),
-                  ],
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed:
-                  isValidating ? null : () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: isValidating
-                  ? null
-                  : () async {
-                      if (controller.text.trim().isEmpty) return;
-
-                      setDialogState(() => isValidating = true);
-
-                      final isValid =
-                          await MoodAnalysisService.validateAndSaveApiKey(
-                              controller.text.trim());
-
-                      // Check if the dialog is still mounted before using context
-                      if (!context.mounted) return;
-
-                      if (isValid) {
-                        Navigator.of(context).pop(true);
-                      } else {
-                        setDialogState(() => isValidating = false);
-                        // Show error in the same context (dialog context)
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Invalid API key. Please check and try again.'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    // Check if the widget is still mounted before proceeding
-    if (!mounted) return;
-
-    if (result == true) {
-      _checkApiKey();
-    }
-  }
-
   Future<void> _selectDateRange() async {
     final result = await showDialog<Map<String, DateTime>>(
       context: context,
@@ -545,11 +442,6 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
             icon: const Icon(Icons.info_outline),
             onPressed: _showDisclaimer,
           ),
-          if (_hasValidKey)
-            IconButton(
-              icon: const Icon(Icons.key),
-              onPressed: _showApiKeyDialog,
-            ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -1134,10 +1026,6 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                OutlinedButton(
-                  onPressed: () => _showApiKeyDialog(),
-                  child: const Text('Check API Key'),
-                ),
                 const SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: () => _performAnalysis(AnalysisType.deepDive),
