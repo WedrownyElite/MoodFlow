@@ -2,6 +2,8 @@
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
 import '../services/ai/mood_coach_service.dart';
+import '../services/ai/ai_provider_service.dart';
+import '../widgets/ai_provider_settings.dart';
 
 class AiCoachWidget extends StatefulWidget {
   const AiCoachWidget({super.key});
@@ -29,6 +31,9 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
   bool _includeActivityData = false;
   bool _includeWorkStressData = false;
 
+  AIProvider _selectedProvider = AIProvider.openai;
+  String _selectedModel = '';
+
   @override
   void initState() {
     super.initState();
@@ -48,7 +53,13 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
     final isEnabled = await MoodCoachService.isCoachEnabled();
     final disclaimerAccepted = await MoodCoachService.isDisclaimerAccepted();
     final hasApiKey = await MoodCoachService.hasValidApiKey();
-
+    final provider = await MoodCoachService.getSelectedProvider();
+    final model = await MoodCoachService.getSelectedModel();
+    setState(() {
+      _selectedProvider = provider;
+      _selectedModel = model;
+    });
+    
     setState(() {
       _isEnabled = isEnabled;
       _disclaimerAccepted = disclaimerAccepted;
@@ -68,6 +79,23 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
         }
       }
     }
+  }
+
+  void _onProviderChanged(AIProvider provider, String model) async {
+    await MoodCoachService.setSelectedProvider(provider);
+    await MoodCoachService.setSelectedModel(model);
+    setState(() {
+      _selectedProvider = provider;
+      _selectedModel = model;
+    });
+    await _checkApiKey();
+  }
+
+  Future<void> _checkApiKey() async {
+    final hasKey = await MoodCoachService.hasValidApiKey();
+    setState(() {
+      _hasApiKey = hasKey;
+    });
   }
 
   Future<void> _loadConversationHistory() async {
@@ -236,51 +264,29 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
               color: Colors.orange.shade600,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'OpenAI API Key Required',
-              style: TextStyle(
+            Text(
+              'API Key Required for ${AIProviderService.getProviderDisplayName(_selectedProvider)}',
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             const Text(
-              'To use the AI Mood Coach, you need to provide your own OpenAI API key. This ensures your conversations remain private and under your control.',
+              'To use the AI Mood Coach, you need to provide your own API key. This ensures your conversations remain private and under your control.',
               textAlign: TextAlign.center,
               style: TextStyle(height: 1.4),
             ),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.info, size: 16, color: Colors.blue.shade700),
-                      const SizedBox(width: 8),
-                      Text(
-                        'How to get your API key:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('1. Visit platform.openai.com/api-keys'),
-                  const Text('2. Sign in or create an account'),
-                  const Text('3. Create a new API key'),
-                  const Text('4. Copy and paste it below'),
-                ],
-              ),
+
+            // AI Provider Settings
+            AIProviderSettings(
+              title: 'AI Provider Configuration',
+              currentProvider: _selectedProvider,
+              currentModel: _selectedModel,
+              onProviderChanged: _onProviderChanged,
             ),
+
             const SizedBox(height: 20),
             Row(
               children: [
@@ -293,7 +299,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _showApiKeyDialog,
+                    onPressed: () => _showProviderApiKeyDialog(_selectedProvider),
                     icon: const Icon(Icons.add_circle),
                     label: const Text('Add API Key'),
                     style: ElevatedButton.styleFrom(
@@ -342,7 +348,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Get personalized insights and have authentic conversations about your mood patterns. Powered by ChatGPT for genuine, helpful responses.',
+              'Get personalized insights and have authentic conversations about your mood patterns. Choose from multiple AI providers for the best experience.',
               textAlign: TextAlign.center,
               style: TextStyle(height: 1.4),
             ),
@@ -363,38 +369,36 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
     );
   }
 
-  Future<void> _showApiKeyDialog() async {
+  Future<void> _showProviderApiKeyDialog(AIProvider provider) async {
     final controller = TextEditingController();
+    final existingKey = await AIProviderService.getApiKey(provider);
+    if (existingKey != null) {
+      controller.text = existingKey;
+    }
+
     bool isValidating = false;
+
+    if (!mounted) return;
 
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Enter OpenAI API Key'),
+        builder: (builderContext, setDialogState) => AlertDialog(
+          title: Text('${AIProviderService.getProviderDisplayName(provider)} API Key'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'To use the AI Coach, you need an OpenAI API key:',
-                style: TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'https://platform.openai.com/api-keys',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue),
+              Text(
+                'Enter your ${AIProviderService.getProviderDisplayName(provider)} API key:',
+                style: const TextStyle(fontSize: 14),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: controller,
                 decoration: const InputDecoration(
                   labelText: 'API Key',
-                  hintText: 'sk-...',
                   border: OutlineInputBorder(),
                 ),
                 obscureText: true,
@@ -418,7 +422,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
           ),
           actions: [
             TextButton(
-              onPressed: isValidating ? null : () => Navigator.of(context).pop(false),
+              onPressed: isValidating ? null : () => Navigator.of(builderContext).pop(false),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
@@ -429,21 +433,38 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
 
                 setDialogState(() => isValidating = true);
 
-                final isValid = await MoodCoachService.validateAndSaveApiKey(
-                    controller.text.trim());
+                try {
+                  final isValid = await AIProviderService.validateApiKey(
+                      provider, controller.text.trim());
 
-                if (!context.mounted) return;
+                  if (!builderContext.mounted) return;
 
-                if (isValid) {
-                  Navigator.of(context).pop(true);
-                } else {
-                  setDialogState(() => isValidating = false);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Invalid API key. Please check and try again.'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  if (isValid) {
+                    await AIProviderService.saveApiKey(provider, controller.text.trim());
+                    if (builderContext.mounted) {
+                      Navigator.of(builderContext).pop(true);
+                    }
+                  } else {
+                    if (builderContext.mounted) {
+                      setDialogState(() => isValidating = false);
+                      ScaffoldMessenger.of(builderContext).showSnackBar(
+                        const SnackBar(
+                          content: Text('Invalid API key. Please check and try again.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (builderContext.mounted) {
+                    setDialogState(() => isValidating = false);
+                    ScaffoldMessenger.of(builderContext).showSnackBar(
+                      const SnackBar(
+                        content: Text('Error validating API key. Please try again.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
               },
               child: const Text('Save'),
@@ -454,10 +475,8 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
     );
 
     if (result == true && mounted) {
-      setState(() {
-        _hasApiKey = true;
-      });
-      _initializeCoach();
+      await _checkApiKey();
+      await _initializeCoach();
     }
   }
 
@@ -500,7 +519,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
                   ),
                 ),
                 Text(
-                  'Powered by ChatGPT • Not professional advice',
+                  'Powered by ${AIProviderService.getProviderDisplayName(_selectedProvider)} • Not professional advice',
                   style: TextStyle(
                     fontSize: 11,
                     color: Theme.of(context).brightness == Brightness.dark
@@ -558,7 +577,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
               } else if (value == 'disable') {
                 _disableCoach();
               } else if (value == 'api_key') {
-                _showApiKeyDialog();
+                _showProviderApiKeyDialog(_selectedProvider);
               }
             },
             itemBuilder: (context) => [
@@ -609,8 +628,8 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
         border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             children: [
               Icon(Icons.tune, size: 16, color: Colors.grey.shade600),
@@ -730,7 +749,15 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
             _includeWorkStressData,
                 (value) => setState(() => _includeWorkStressData = value ?? false),
           ),
-        ],
+
+            const SizedBox(height: 16),
+            AIProviderSettings(
+              title: 'AI Provider Settings',
+              currentProvider: _selectedProvider,
+              currentModel: _selectedModel,
+              onProviderChanged: _onProviderChanged,
+            ),
+          ],
       ),
     );
   }
@@ -1339,7 +1366,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
               const Text('• You understand this is AI-generated content, not professional advice'),
               const Text('• You will seek professional help for serious mental health concerns'),
               const Text('• You use this tool as a supplement to, not replacement for, proper care'),
-              const Text('• Your data is sent to OpenAI for processing (see their privacy policy)'),
+              const Text('• Your data is sent to the selected AI provider for processing (see their privacy policy)'),
             ],
           ),
         ),

@@ -1,18 +1,17 @@
 import 'dart:convert';
 import 'dart:math' as math;
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../data/mood_data_service.dart';
 import '../data/correlation_data_service.dart';
 import '../insights/smart_insights_service.dart'  as smartinsights;
 import '../utils/logger.dart';
+import '../ai/ai_provider_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MoodAnalysisService {
   // Store API key securely
-  static String _openaiApiKey = '';
-
-  static const String _baseUrl = 'https://api.openai.com/v1/chat/completions';
+  static const String _selectedProviderKey = 'analysis_selected_provider';
+  static const String _selectedModelKey = 'analysis_selected_model';
 
   static const String _savedAnalysesKey = 'saved_ai_analyses';
 
@@ -941,40 +940,33 @@ class MoodAnalysisService {
 
   /// Send analysis request to OpenAI
   static Future<String> _sendToOpenAI(String prompt) async {
-    // Get API key from storage
-    _openaiApiKey = await _getStoredApiKey();
+    final provider = await getSelectedProvider();
+    final model = await getSelectedModel();
 
-    final response = await http.post(
-      Uri.parse(_baseUrl),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_openaiApiKey',
+    final messages = [
+      {
+        'role': 'system',
+        'content': 'You are a helpful mood analysis assistant. Analyze mood tracking data and provide insights and recommendations. Always respond with valid JSON in the requested format.',
       },
-      body: jsonEncode({
-        'model': 'gpt-3.5-turbo',
-        'messages': [
-          {
-            'role': 'system',
-            'content':
-                'You are a helpful mood analysis assistant. Analyze mood tracking data and provide insights and recommendations. Always respond with valid JSON in the requested format.',
-          },
-          {
-            'role': 'user',
-            'content': prompt,
-          },
-        ],
-        'max_tokens': 1500,
-        'temperature': 0.7,
-      }),
+      {
+        'role': 'user',
+        'content': prompt,
+      },
+    ];
+
+    final response = await AIProviderService.sendMessage(
+      provider: provider,
+      model: model,
+      messages: messages,
+      maxTokens: 1500,
+      temperature: 0.7,
     );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['choices'][0]['message']['content'] as String;
-    } else {
-      throw Exception(
-          'OpenAI API error: ${response.statusCode} - ${response.body}');
+    if (response == null) {
+      throw Exception('AI service returned null response');
     }
+
+    return response;
   }
 
   /// Parse AI response into structured result
@@ -1369,44 +1361,48 @@ class MoodAnalysisService {
 
   /// Check if a valid API key exists
   static Future<bool> hasValidApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    final apiKey = prefs.getString('openai_api_key');
-    return apiKey != null && apiKey.isNotEmpty;
+    final provider = await getSelectedProvider();
+    return await AIProviderService.hasValidApiKey(provider);
   }
 
   /// Validate and save API key
   static Future<bool> validateAndSaveApiKey(String apiKey) async {
-    try {
-      // Test the API key with a simple request
-      final response = await http.post(
-        Uri.parse(_baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
-        body: jsonEncode({
-          'model': 'gpt-3.5-turbo',
-          'messages': [
-            {
-              'role': 'user',
-              'content': 'Test',
-            },
-          ],
-          'max_tokens': 5,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        // Valid key, save it
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('openai_api_key', apiKey);
-        return true;
-      } else {
-        return false;
-      }
-    } catch (e) {
-      return false;
+    final provider = await getSelectedProvider();
+    final isValid = await AIProviderService.validateApiKey(provider, apiKey);
+    if (isValid) {
+      await AIProviderService.saveApiKey(provider, apiKey);
     }
+    return isValid;
+  }
+
+  static Future<AIProvider> getSelectedProvider() async {
+    final prefs = await SharedPreferences.getInstance();
+    final providerName = prefs.getString(_selectedProviderKey);
+    if (providerName != null) {
+      try {
+        return AIProvider.values.firstWhere((p) => p.name == providerName);
+      } catch (e) {
+        return AIProvider.openai;
+      }
+    }
+    return AIProvider.openai;
+  }
+
+  static Future<void> setSelectedProvider(AIProvider provider) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_selectedProviderKey, provider.name);
+  }
+
+  static Future<String> getSelectedModel() async {
+    final prefs = await SharedPreferences.getInstance();
+    final provider = await getSelectedProvider();
+    final model = prefs.getString(_selectedModelKey);
+    return model ?? AIProviderService.availableModels[provider]!.first;
+  }
+
+  static Future<void> setSelectedModel(String model) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_selectedModelKey, model);
   }
 
   /// Save analysis result with timestamp
@@ -1459,12 +1455,6 @@ class MoodAnalysisService {
 
     final jsonData = analyses.map((analysis) => analysis.toJson()).toList();
     await prefs.setString(_savedAnalysesKey, jsonEncode(jsonData));
-  }
-
-  /// Get stored API key
-  static Future<String> _getStoredApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('openai_api_key') ?? '';
   }
 }
 

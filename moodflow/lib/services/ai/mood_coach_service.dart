@@ -1,20 +1,19 @@
 ﻿import 'dart:convert';
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import '../data/mood_data_service.dart';
 import '../data/correlation_data_service.dart';
 import '../data/mood_trends_service.dart';
 import '../utils/logger.dart';
+import '../ai/ai_provider_service.dart';
 
 class MoodCoachService {
   static const String _enabledKey = 'ai_coach_enabled';
   static const String _conversationHistoryKey = 'coach_conversation_history';
   static const String _disclaimerAcceptedKey = 'coach_disclaimer_accepted';
-  static const String _openaiApiKeyKey = 'openai_api_key';
+  static const String _selectedProviderKey = 'coach_selected_provider';
+  static const String _selectedModelKey = 'coach_selected_model';
   static const int _maxHistoryLength = 20; // Keep last 20 messages
-
-  static const String _baseUrl = 'https://api.openai.com/v1/chat/completions';
 
   /// Check if coach is enabled and properly configured
   static Future<bool> isCoachEnabled() async {
@@ -32,69 +31,48 @@ class MoodCoachService {
 
   /// Check if we have a valid API key stored
   static Future<bool> hasValidApiKey() async {
-    return await _hasValidApiKey();
+    final provider = await getSelectedProvider();
+    return await AIProviderService.hasValidApiKey(provider);
   }
 
   /// Validate and save API key (reuse from MoodAnalysisService)
   static Future<bool> validateAndSaveApiKey(String apiKey) async {
-    try {
-      // Test the API key with a simple request using available models
-      final models = ['gpt-4o-mini', 'gpt-3.5-turbo'];
-
-      for (final model in models) {
-        try {
-          final response = await http.post(
-            Uri.parse(_baseUrl),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $apiKey',
-            },
-            body: jsonEncode({
-              'model': model,
-              'messages': [
-                {
-                  'role': 'user',
-                  'content': 'Test',
-                },
-              ],
-              'max_tokens': 5,
-            }),
-          );
-
-          if (response.statusCode == 200) {
-            // Valid key, save it
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString(_openaiApiKeyKey, apiKey);
-            Logger.aiService('✅ OpenAI API key validated and saved (using model: $model)');
-            return true;
-          } else if (response.statusCode == 401) {
-            // Invalid API key
-            Logger.aiService('❌ API key validation failed: Invalid key');
-            return false;
-          } else if (response.statusCode == 403 && model == models.first) {
-            // Model not available, try next one
-            Logger.aiService('⚠️ Model $model not available during validation, trying fallback...');
-            continue;
-          } else {
-            Logger.aiService('❌ API key validation failed: ${response.statusCode}');
-            return false;
-          }
-        } catch (e) {
-          if (model == models.last) {
-            // Last model failed
-            Logger.aiService('❌ API key validation error: $e');
-            return false;
-          }
-          // Try next model
-          continue;
-        }
-      }
-
-      return false;
-    } catch (e) {
-      Logger.aiService('❌ API key validation error: $e');
-      return false;
+    final provider = await getSelectedProvider();
+    final isValid = await AIProviderService.validateApiKey(provider, apiKey);
+    if (isValid) {
+      await AIProviderService.saveApiKey(provider, apiKey);
     }
+    return isValid;
+  }
+
+  static Future<AIProvider> getSelectedProvider() async {
+    final prefs = await SharedPreferences.getInstance();
+    final providerName = prefs.getString(_selectedProviderKey);
+    if (providerName != null) {
+      try {
+        return AIProvider.values.firstWhere((p) => p.name == providerName);
+      } catch (e) {
+        return AIProvider.openai;
+      }
+    }
+    return AIProvider.openai;
+  }
+
+  static Future<void> setSelectedProvider(AIProvider provider) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_selectedProviderKey, provider.name);
+  }
+
+  static Future<String> getSelectedModel() async {
+    final prefs = await SharedPreferences.getInstance();
+    final provider = await getSelectedProvider();
+    final model = prefs.getString(_selectedModelKey);
+    return model ?? AIProviderService.availableModels[provider]!.first;
+  }
+
+  static Future<void> setSelectedModel(String model) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_selectedModelKey, model);
   }
 
   /// Enable the AI coach after disclaimer acceptance
@@ -125,19 +103,8 @@ class MoodCoachService {
 
   /// Check if we have a valid OpenAI API key
   static Future<bool> _hasValidApiKey() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final apiKey = prefs.getString(_openaiApiKeyKey);
-      return apiKey != null && apiKey.isNotEmpty;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// Get stored API key
-  static Future<String?> _getApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_openaiApiKeyKey);
+    final provider = await getSelectedProvider();
+    return await AIProviderService.hasValidApiKey(provider);
   }
 
   /// Get welcome message with disclaimer
@@ -205,7 +172,7 @@ I can help you understand your mood patterns, provide wellness suggestions, and 
       final systemPrompt = _buildSystemPrompt(moodContext, maxWordCount);
       final messages = _buildChatMessages(systemPrompt, conversationHistory, message);
 
-      // Call OpenAI API for main response
+      // Call AI API for main response
       final aiResponse = await _callOpenAI(messages, maxWordCount: maxWordCount);
 
       // Generate follow-up suggestions using AI
@@ -239,6 +206,27 @@ I can help you understand your mood patterns, provide wellness suggestions, and 
         isError: true,
       );
     }
+  }
+
+  // Call OpenAI API for main response
+  static Future<String> _callOpenAI(List<Map<String, String>> messages, {int? maxWordCount}) async {
+    final provider = await getSelectedProvider();
+    final model = await getSelectedModel();
+
+    final maxTokens = maxWordCount != null ? (maxWordCount * 1.5).round() : 600;
+
+    final response = await AIProviderService.sendMessage(
+      provider: provider,
+      model: model,
+      messages: messages,
+      maxTokens: maxTokens,
+      temperature: 0.7,
+    );
+
+    if (response == null) {
+      throw Exception('AI service returned null response');
+    }
+    return response;
   }
 
   /// Build comprehensive mood data context for ChatGPT
@@ -432,74 +420,13 @@ Remember: Keep your response to $maxWordCount words maximum. Be helpful but conc
 
     return messages;
   }
-
-  /// Call OpenAI API for authentic ChatGPT response
-  static Future<String> _callOpenAI(List<Map<String, String>> messages, {int? maxWordCount}) async {
-    final apiKey = await _getApiKey();
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('OpenAI API key not configured');
-    }
-
-    // Calculate appropriate max_tokens based on word count (roughly 1.3 tokens per word)
-    final maxTokens = maxWordCount != null ? (maxWordCount * 1.5).round() : 600;
-
-    // Try with gpt-3.5-turbo first (more widely available), then gpt-4o-mini
-    final models = ['gpt-3.5-turbo', 'gpt-4o-mini'];
-
-    for (final model in models) {
-      try {
-        final response = await http.post(
-          Uri.parse(_baseUrl),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $apiKey',
-          },
-          body: jsonEncode({
-            'model': model,
-            'messages': messages,
-            'max_tokens': maxTokens,
-            'temperature': 0.7, // Balanced creativity and consistency
-            'presence_penalty': 0.2, // Encourage varied responses
-            'frequency_penalty': 0.1, // Reduce repetition
-          }),
-        ).timeout(const Duration(seconds: 30));
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          Logger.aiService('✅ Successfully used model: $model');
-          return data['choices'][0]['message']['content'] as String;
-        } else if (response.statusCode == 401) {
-          throw Exception('Invalid API key. Please check your OpenAI API key in settings.');
-        } else if (response.statusCode == 429) {
-          throw Exception('API rate limit exceeded. Please try again in a moment.');
-        } else if (response.statusCode == 403 && model == models.first) {
-          // Model not available, try next one
-          Logger.aiService('⚠️ Model $model not available, trying fallback...');
-          continue;
-        } else {
-          throw Exception('API error: ${response.statusCode} - ${response.body}');
-        }
-      } catch (e) {
-        if (model == models.last) {
-          // Last model failed, rethrow error
-          rethrow;
-        }
-        // Try next model
-        Logger.aiService('⚠️ Model $model failed: $e, trying fallback...');
-        continue;
-      }
-    }
-
-    throw Exception('All AI models failed to respond');
-  }
-
+  
+  /// Generate AI-powered contextual suggestions
   /// Generate AI-powered contextual suggestions
   static Future<List<String>> _generateAISuggestions(
       String userMessage, String aiResponse, String moodContext) async {
     try {
-      final apiKey = await _getApiKey();
-      if (apiKey == null) return [];
-
+      final provider = await getSelectedProvider();
       final suggestionPrompt = '''Based on this mood coaching conversation, suggest 3 helpful follow-up questions the user could ask.
 
 USER ASKED: "$userMessage"
@@ -530,28 +457,19 @@ Examples of BAD prompts (using second person):
 
 Return ONLY a JSON array of exactly 3 strings: ["prompt1", "prompt2", "prompt3"]''';
 
-      final response = await http.post(
-        Uri.parse(_baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
-        body: jsonEncode({
-          'model': 'gpt-3.5-turbo',
-          'messages': [
-            {'role': 'user', 'content': suggestionPrompt},
-          ],
-          'max_tokens': 150,
-          'temperature': 0.9, // Higher creativity for diverse suggestions
-        }),
-      ).timeout(const Duration(seconds: 15));
+      final response = await AIProviderService.sendMessage(
+        provider: provider,
+        model: 'gpt-3.5-turbo', // Fallback model for suggestions
+        messages: [
+          {'role': 'user', 'content': suggestionPrompt},
+        ],
+        maxTokens: 150,
+        temperature: 0.9,
+      );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final content = data['choices'][0]['message']['content'] as String;
-
+      if (response != null) {
         // Extract JSON from response (sometimes AI adds extra text)
-        final jsonMatch = RegExp(r'\[(.*?)\]', dotAll: true).firstMatch(content);
+        final jsonMatch = RegExp(r'\[(.*?)\]', dotAll: true).firstMatch(response);
         if (jsonMatch != null) {
           final jsonString = '[${jsonMatch.group(1)}]';
           final suggestions = jsonDecode(jsonString) as List<dynamic>;

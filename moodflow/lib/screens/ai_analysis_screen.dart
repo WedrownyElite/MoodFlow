@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../services/ai/mood_analysis_service.dart';
 import '../widgets/date_range_picker_dialog.dart';
 import '../services/utils/ai_coach_helper.dart';
+import '../services/ai/ai_provider_service.dart';
+import '../widgets/ai_provider_settings.dart';
 
 enum AnalysisType {
   deepDive,
@@ -35,16 +37,40 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
   bool _includeActivityData = false;
   bool _includeWorkStressData = false;
 
+  AIProvider _selectedProvider = AIProvider.openai;
+  String _selectedModel = '';
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _checkApiKey();
+    _loadAISettings();
     _loadSavedAnalyses();
   }
 
+  Future<void> _loadAISettings() async {
+    final provider = await MoodAnalysisService.getSelectedProvider();
+    final model = await MoodAnalysisService.getSelectedModel();
+    setState(() {
+      _selectedProvider = provider;
+      _selectedModel = model;
+    });
+  }
+
+  void _onProviderChanged(AIProvider provider, String model) async {
+    await MoodAnalysisService.setSelectedProvider(provider);
+    await MoodAnalysisService.setSelectedModel(model);
+    setState(() {
+      _selectedProvider = provider;
+      _selectedModel = model;
+      _analysisResult = null; // Clear previous results
+    });
+  }
+
   Future<void> _checkApiKey() async {
-    final hasKey = await MoodAnalysisService.hasValidApiKey();
+    final provider = await MoodAnalysisService.getSelectedProvider();
+    final hasKey = await AIProviderService.hasValidApiKey(provider);
     setState(() {
       _hasValidKey = hasKey;
     });
@@ -938,6 +964,14 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
           // Data selection card
           _buildDataSelectionCard(),
 
+          // AI Provider Settings
+          AIProviderSettings(
+            title: 'AI Provider Settings',
+            currentProvider: _selectedProvider,
+            currentModel: _selectedModel,
+            onProviderChanged: _onProviderChanged,
+          ),
+
           // Analysis button
           if (_hasValidKey) ...[
             Padding(
@@ -1002,27 +1036,24 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.key,
-              size: 64,
-              color: Colors.grey.shade400,
-            ),
+            Icon(Icons.key, size: 64, color: Colors.grey.shade400),
             const SizedBox(height: 16),
-            const Text(
-              'API Key Required',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Text(
+              'API Key Required for ${AIProviderService.getProviderDisplayName(_selectedProvider)}',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              'To use AI analysis, you need to provide your own OpenAI API key.',
+              'Configure your API key in the settings below to use AI analysis.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade600),
             ),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('Add API Key'),
-              onPressed: _showApiKeyDialog,
+            AIProviderSettings(
+              title: 'AI Provider Configuration',
+              currentProvider: _selectedProvider,
+              currentModel: _selectedModel,
+              onProviderChanged: _onProviderChanged,
             ),
           ],
         ),
