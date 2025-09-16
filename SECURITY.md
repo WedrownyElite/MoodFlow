@@ -6,7 +6,8 @@ Older versions may receive fixes at our discretion, but only the most recent rel
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.2.1   | ✅ Yes             |
+| 1.4.0  | ✅ Yes             |
+| 1.2.1   | ❌ No           |
 | 1.0.0   | ❌ No (Updated and revised) |
 
 ---
