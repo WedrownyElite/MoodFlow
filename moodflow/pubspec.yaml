@@ -21,25 +21,25 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # Notification dependencies
-  flutter_local_notifications: ^19.4.0
-  permission_handler: ^12.0.1
-  timezone: ^0.10.1
+  flutter_local_notifications: ^17.2.3
+  permission_handler: ^11.3.1
+  timezone: ^0.9.4
 
   # Network and API dependencies
-  http: ^1.1.0
+  http: ^1.2.0
   crypto: ^3.0.3
   
   # Correlation dependencies + http
-  geolocator: ^10.1.0
+  geolocator: ^12.0.0
 
   # File handling and storage dependencies
-  path_provider: ^2.1.3
-  file_picker: ^8.0.0+1
+  path_provider: ^2.1.4
+  file_picker: ^8.1.2
 
   # Export dependencies
   pdf: ^3.11.1
   csv: ^6.0.0
-  share_plus: ^9.0.0
+  share_plus: ^10.0.0
 
   # Cloud backup dependencies
   google_sign_in: ^6.2.1
