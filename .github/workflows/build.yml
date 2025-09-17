@@ -1,5 +1,7 @@
 name: Build Flutter App
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -17,13 +19,13 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.22.3'
+        flutter-version: '3.24.5'
         channel: 'stable'
         cache: true
         
-    - name: Navigate to Flutter project
-      run: cd moodflow
-      
+    - name: Disable Flutter analytics
+      run: flutter config --no-analytics
+        
     - run: |
         cd moodflow
         flutter --version
@@ -34,4 +36,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: moodflow-debug
-        path: moodflow/build/app/outputs/flutter-apk/app-debug.apk  # Updated path
+        path: moodflow/build/app/outputs/flutter-apk/app-debug.apk
