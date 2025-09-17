@@ -201,6 +201,7 @@ class CorrelationEntryExport {
   final String? notes;
   final bool autoWeather;
   final Map<String, dynamic>? weatherData;
+  final String? hobbyActivity;
 
   CorrelationEntryExport({
     required this.date,
@@ -218,6 +219,7 @@ class CorrelationEntryExport {
     this.notes,
     this.autoWeather = false,
     this.weatherData,
+    this.hobbyActivity,
   });
 
   factory CorrelationEntryExport.fromCorrelationData(CorrelationData data) {
@@ -256,6 +258,7 @@ class CorrelationEntryExport {
     'notes': notes,
     'autoWeather': autoWeather,
     'weatherData': weatherData,
+    'hobbyActivity': hobbyActivity,
   };
 
   factory CorrelationEntryExport.fromJson(Map<String, dynamic> json) =>
@@ -277,5 +280,6 @@ class CorrelationEntryExport {
         notes: json['notes'],
         autoWeather: json['autoWeather'] ?? false,
         weatherData: json['weatherData'],
+        hobbyActivity: json['hobbyActivity'],
       );
 }

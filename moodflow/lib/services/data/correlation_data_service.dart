@@ -30,6 +30,19 @@ enum SocialActivity {
   date,
 }
 
+enum HobbyActivity {
+  reading,
+  music,
+  gaming,
+  cooking,
+  gardening,
+  art,
+  photography,
+  writing,
+  sports,
+  crafts,
+}
+
 class CorrelationData {
   final DateTime date;
   final WeatherCondition? weather;
@@ -47,6 +60,7 @@ class CorrelationData {
   final bool autoWeather; // Whether weather was fetched automatically
   final Map<String, dynamic>? weatherData; // Store raw weather data
   final String? temperatureUnit;
+  final HobbyActivity? hobbyActivity;
 
   CorrelationData({
     required this.date,
@@ -65,6 +79,7 @@ class CorrelationData {
     this.notes,
     this.autoWeather = false,
     this.weatherData,
+    this.hobbyActivity,
   });
 
   Map<String, dynamic> toJson() => {
@@ -118,6 +133,9 @@ class CorrelationData {
         notes: json['notes'],
         autoWeather: json['autoWeather'] ?? false,
         weatherData: json['weatherData'],
+        hobbyActivity: json['hobbyActivity'] != null
+              ? HobbyActivity.values.firstWhere((e) => e.name == json['hobbyActivity'])
+                : null,
       );
 
   CorrelationData copyWith({
@@ -137,6 +155,7 @@ class CorrelationData {
     String? notes,
     bool? autoWeather,
     Map<String, dynamic>? weatherData,
+    HobbyActivity? hobbyActivity,
   }) =>
       CorrelationData(
         date: date ?? this.date,

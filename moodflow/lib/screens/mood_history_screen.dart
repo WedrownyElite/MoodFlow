@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/data/mood_data_service.dart';
 import '../widgets/edit_mood_dialog.dart';
 import '../services/utils/ai_coach_helper.dart';
+import '../services/data/correlation_data_service.dart';
 
 class MoodHistoryScreen extends StatefulWidget {
   const MoodHistoryScreen({super.key});
@@ -56,8 +57,8 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
       bool hasAnyMood = false;
 
       for (int segment = 0;
-          segment < MoodDataService.timeSegments.length;
-          segment++) {
+      segment < MoodDataService.timeSegments.length;
+      segment++) {
         final moodData = await MoodDataService.loadMood(currentDate, segment);
         if (moodData != null && moodData['rating'] != null) {
           segments.add(SegmentMoodData(
@@ -272,39 +273,39 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _dayMoodData.isEmpty
-                    ? _buildEmptyState()
-                    : NotificationListener<ScrollNotification>(
-                        onNotification: (ScrollNotification scrollInfo) {
-                          if (!_isLoading &&
-                              _hasMoreData &&
-                              scrollInfo.metrics.pixels ==
-                                  scrollInfo.metrics.maxScrollExtent) {
-                            _loadMoodHistory(loadMore: true);
-                          }
-                          return false;
-                        },
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount:
-                              _dayMoodData.length + (_hasMoreData ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == _dayMoodData.length) {
-                              return const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                            }
-
-                            final dayData = _dayMoodData[index];
-                            return DayMoodCard(
-                              dayData: dayData,
-                              onTap: () => _showDayDetail(dayData),
-                            );
-                          },
-                        ),
+                ? _buildEmptyState()
+                : NotificationListener<ScrollNotification>(
+              onNotification: (ScrollNotification scrollInfo) {
+                if (!_isLoading &&
+                    _hasMoreData &&
+                    scrollInfo.metrics.pixels ==
+                        scrollInfo.metrics.maxScrollExtent) {
+                  _loadMoodHistory(loadMore: true);
+                }
+                return false;
+              },
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount:
+                _dayMoodData.length + (_hasMoreData ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == _dayMoodData.length) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
                       ),
+                    );
+                  }
+
+                  final dayData = _dayMoodData[index];
+                  return DayMoodCard(
+                    dayData: dayData,
+                    onTap: () => _showDayDetail(dayData),
+                  );
+                },
+              ),
+            ),
           ),
         ],
       ),
@@ -406,10 +407,150 @@ class DayMoodCard extends StatelessWidget {
   double _getDayAverage() {
     if (dayData.segments.isEmpty) return 5.0;
     final total =
-        dayData.segments.fold(0.0, (sum, segment) => sum + segment.rating);
+    dayData.segments.fold(0.0, (sum, segment) => sum + segment.rating);
     return total / dayData.segments.length;
   }
 
+  Future<List<String>> _buildContextTags(DateTime date) async {
+    final tags = <String>[];
+
+    // Load correlation data for this date
+    final correlationData = await CorrelationDataService.loadCorrelationData(date);
+
+    if (correlationData != null) {
+      // Sleep quality
+      if (correlationData.sleepQuality != null) {
+        if (correlationData.sleepQuality! >= 8) {
+          tags.add('Excellent sleep');
+        } else if (correlationData.sleepQuality! >= 6) {
+          tags.add('Good sleep');
+        } else if (correlationData.sleepQuality! >= 4) {
+          tags.add('Fair sleep');
+        } else {
+          tags.add('Poor sleep');
+        }
+      }
+
+      // Weather
+      if (correlationData.weather != null) {
+        switch (correlationData.weather!) {
+          case WeatherCondition.sunny:
+            tags.add('Sunny');
+            break;
+          case WeatherCondition.cloudy:
+            tags.add('Cloudy');
+            break;
+          case WeatherCondition.rainy:
+            tags.add('Rainy');
+            break;
+          case WeatherCondition.stormy:
+            tags.add('Stormy');
+            break;
+          case WeatherCondition.snowy:
+            tags.add('Snowy');
+            break;
+          case WeatherCondition.foggy:
+            tags.add('Foggy');
+            break;
+        }
+      }
+
+      // Exercise level
+      if (correlationData.exerciseLevel != null) {
+        switch (correlationData.exerciseLevel!) {
+          case ActivityLevel.none:
+            tags.add('No exercise');
+            break;
+          case ActivityLevel.light:
+            tags.add('Light activity');
+            break;
+          case ActivityLevel.moderate:
+            tags.add('Moderate exercise');
+            break;
+          case ActivityLevel.intense:
+            tags.add('Intense workout');
+            break;
+        }
+      }
+
+      // Social activity
+      if (correlationData.socialActivity != null) {
+        switch (correlationData.socialActivity!) {
+          case SocialActivity.friends:
+            tags.add('With friends');
+            break;
+          case SocialActivity.family:
+            tags.add('With family');
+            break;
+          case SocialActivity.work:
+            tags.add('Work social');
+            break;
+          case SocialActivity.party:
+            tags.add('Party/Event');
+            break;
+          case SocialActivity.date:
+            tags.add('Date');
+            break;
+          case SocialActivity.none:
+          // Don't add a tag for solo time
+            break;
+        }
+      }
+
+      // Hobby activity
+      if (correlationData.hobbyActivity != null) {
+        switch (correlationData.hobbyActivity!) {
+          case HobbyActivity.reading:
+            tags.add('Reading');
+            break;
+          case HobbyActivity.music:
+            tags.add('Music');
+            break;
+          case HobbyActivity.gaming:
+            tags.add('Gaming');
+            break;
+          case HobbyActivity.cooking:
+            tags.add('Cooking');
+            break;
+          case HobbyActivity.gardening:
+            tags.add('Gardening');
+            break;
+          case HobbyActivity.art:
+            tags.add('Art');
+            break;
+          case HobbyActivity.photography:
+            tags.add('Photography');
+            break;
+          case HobbyActivity.writing:
+            tags.add('Writing');
+            break;
+          case HobbyActivity.sports:
+            tags.add('Sports');
+            break;
+          case HobbyActivity.crafts:
+            tags.add('Crafts');
+            break;
+        }
+      }
+
+      // Work stress
+      if (correlationData.workStress != null) {
+        if (correlationData.workStress! <= 3) {
+          tags.add('Low stress');
+        } else if (correlationData.workStress! <= 6) {
+          tags.add('Moderate stress');
+        } else {
+          tags.add('High stress');
+        }
+      }
+
+      // Custom tags
+      tags.addAll(correlationData.customTags.take(3)); // Limit custom tags to 3 to stay within 10 total
+    }
+
+    return tags;
+  }
+  
   @override
   Widget build(BuildContext context) {
     final isToday = DateTime.now().difference(dayData.date).inDays == 0;
@@ -439,9 +580,9 @@ class DayMoodCard extends StatelessWidget {
     // For "Today", use a more visible primary color or enhanced text color
     final todayTextColor = isToday
         ? (isDarkMode
-            ? theme.colorScheme.primary
-                .withValues(alpha: 0.9) // Use colorScheme primary in dark mode
-            : theme.primaryColor) // Use regular primary in light mode
+        ? theme.colorScheme.primary
+        .withValues(alpha: 0.9) // Use colorScheme primary in dark mode
+        : theme.primaryColor) // Use regular primary in light mode
         : primaryTextColor;
 
     return Card(
@@ -470,7 +611,7 @@ class DayMoodCard extends StatelessWidget {
                   ),
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: _getMoodColor(dayAverage).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -511,7 +652,7 @@ class DayMoodCard extends StatelessWidget {
                       child: _SegmentIndicator(
                         segmentName: MoodDataService.timeSegments[i],
                         segmentData: dayData.segments.firstWhere(
-                          (s) => s.segment == i,
+                              (s) => s.segment == i,
                           orElse: () =>
                               SegmentMoodData(segment: i, rating: 0, note: ''),
                         ),
@@ -523,6 +664,41 @@ class DayMoodCard extends StatelessWidget {
               ),
 
               const SizedBox(height: 12),
+
+// Context tags
+              FutureBuilder<List<String>>(
+                future: _buildContextTags(dayData.date),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                    final tags = snapshot.data!.take(10).toList(); // Limit to 10 tags
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: tags.map((tag) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: secondaryTextColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              tag,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: secondaryTextColor,
+                              ),
+                            ),
+                          )).toList(),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
 
               // Tap hint
               Row(
@@ -831,16 +1007,16 @@ class _DayDetailSheetState extends State<DayDetailSheet> {
               itemCount: 3,
               itemBuilder: (context, index) {
                 final segmentData = _currentDayData.segments.firstWhere(
-                  (s) => s.segment == index,
+                      (s) => s.segment == index,
                   orElse: () =>
                       SegmentMoodData(segment: index, rating: 0, note: ''),
                 );
                 final hasData =
-                    _currentDayData.segments.any((s) => s.segment == index);
+                _currentDayData.segments.any((s) => s.segment == index);
 
                 return Container(
                   margin:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                   decoration: BoxDecoration(
                     border: Border.all(
                         color: Theme.of(context).brightness == Brightness.dark
@@ -853,92 +1029,92 @@ class _DayDetailSheetState extends State<DayDetailSheet> {
                   ),
                   child: ListTile(
                     contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     title: Text(
                       MoodDataService.timeSegments[index],
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     subtitle: hasData
                         ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Text(
-                                    _getMoodEmoji(segmentData.rating),
-                                    style: const TextStyle(fontSize: 20),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    segmentData.rating.toStringAsFixed(1),
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: _getMoodColor(segmentData.rating),
-                                    ),
-                                  ),
-                                ],
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              _getMoodEmoji(segmentData.rating),
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              segmentData.rating.toStringAsFixed(1),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: _getMoodColor(segmentData.rating),
                               ),
-                              if (segmentData.note.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  segmentData.note.length > 50
-                                      ? '${segmentData.note.substring(0, 50)}...'
-                                      : segmentData.note,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          )
-                        : Text(
-                            'No mood logged',
+                            ),
+                          ],
+                        ),
+                        if (segmentData.note.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            segmentData.note.length > 50
+                                ? '${segmentData.note.substring(0, 50)}...'
+                                : segmentData.note,
                             style: TextStyle(
-                              color: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.color
-                                  ?.withValues(alpha: 0.6),
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
                             ),
                           ),
+                        ],
+                      ],
+                    )
+                        : Text(
+                      'No mood logged',
+                      style: TextStyle(
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.color
+                            ?.withValues(alpha: 0.6),
+                      ),
+                    ),
                     trailing: hasData
                         ? PopupMenuButton<String>(
-                            onSelected: (value) {
-                              if (value == 'edit') {
-                                _handleSegmentEdit(index, segmentData.rating,
-                                    segmentData.note);
-                              } else if (value == 'delete') {
-                                _handleSegmentDelete(index);
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit, size: 18),
-                                    SizedBox(width: 8),
-                                    Text('Edit'),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete,
-                                        size: 18, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Text('Delete',
-                                        style: TextStyle(color: Colors.red)),
-                                  ],
-                                ),
-                              ),
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          _handleSegmentEdit(index, segmentData.rating,
+                              segmentData.note);
+                        } else if (value == 'delete') {
+                          _handleSegmentDelete(index);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 18),
+                              SizedBox(width: 8),
+                              Text('Edit'),
                             ],
-                          )
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete,
+                                  size: 18, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete',
+                                  style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
                         : const Icon(Icons.chevron_right, color: Colors.grey),
                     onTap: () => _handleSegmentEdit(
                         index,

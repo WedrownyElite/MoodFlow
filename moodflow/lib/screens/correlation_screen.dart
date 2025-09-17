@@ -84,17 +84,22 @@ class _CorrelationScreenState extends State<CorrelationScreen>
     if (_currentData?.temperature != null &&
         _currentData?.temperatureUnit != null) {
       final displayTemp = _getTemperatureInUnit(_temperatureUnit);
-      return '${displayTemp.toStringAsFixed(1)}°${_temperatureUnit == 'celsius' ? 'C' : 'F'}';
+      return '${displayTemp.toStringAsFixed(1)}°${_temperatureUnit == 'celsius'
+          ? 'C'
+          : 'F'}';
     }
 
     // Fallback for temperatures passed directly
-    return '${temperature.toStringAsFixed(1)}°${_temperatureUnit == 'celsius' ? 'C' : 'F'}';
+    return '${temperature.toStringAsFixed(1)}°${_temperatureUnit == 'celsius'
+        ? 'C'
+        : 'F'}';
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
-    final data = await CorrelationDataService.loadCorrelationData(_selectedDate);
+    final data = await CorrelationDataService.loadCorrelationData(
+        _selectedDate);
 
     setState(() {
       _currentData = data ?? CorrelationData(date: _selectedDate);
@@ -192,7 +197,8 @@ class _CorrelationScreenState extends State<CorrelationScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Weather updated: ${weather.description}, ${_formatTemperature(weather.temperature)}'),
+                'Weather updated: ${weather.description}, ${_formatTemperature(
+                    weather.temperature)}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -235,7 +241,9 @@ class _CorrelationScreenState extends State<CorrelationScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daily Factors'),
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: Theme
+            .of(context)
+            .primaryColor,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -271,7 +279,10 @@ class _CorrelationScreenState extends State<CorrelationScreen>
           // Date header with weather info
           Container(
             padding: const EdgeInsets.all(16),
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+            color: Theme
+                .of(context)
+                .primaryColor
+                .withValues(alpha: 0.1),
             child: Column(
               children: [
                 Row(
@@ -291,24 +302,25 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    else if (_hasChanges)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.orange.shade300),
-                        ),
-                        child: Text(
-                          'Unsaved changes',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.orange.shade800,
-                            fontWeight: FontWeight.w500,
+                    else
+                      if (_hasChanges)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.shade300),
+                          ),
+                          child: Text(
+                            'Unsaved changes',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.shade800,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
                   ],
                 ),
                 // Quick weather display
@@ -357,25 +369,27 @@ class _CorrelationScreenState extends State<CorrelationScreen>
             child: _currentData == null
                 ? const Center(child: CircularProgressIndicator())
                 : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildWeatherTab(),
-                      _buildSleepTab(),
-                      _buildActivityTab(),
-                      _buildOtherTab(),
-                    ],
-                  ),
+              controller: _tabController,
+              children: [
+                _buildWeatherTab(),
+                _buildSleepTab(),
+                _buildActivityTab(),
+                _buildOtherTab(),
+              ],
+            ),
           ),
         ],
       ),
       floatingActionButton: _hasChanges
           ? FloatingActionButton.extended(
-              onPressed: _saveData,
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.save),
-              label: const Text('Save'),
-            )
+        onPressed: _saveData,
+        backgroundColor: Theme
+            .of(context)
+            .primaryColor,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.save),
+        label: const Text('Save'),
+      )
           : null,
     );
   }
@@ -424,12 +438,14 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.wb_sunny, size: 20, color: Colors.orange),
+                      const Icon(
+                          Icons.wb_sunny, size: 20, color: Colors.orange),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
                           'Weather Data',
-                          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                          style: TextStyle(fontWeight: FontWeight.w500,
+                              fontSize: 16),
                         ),
                       ),
                       if (_isFetchingWeather)
@@ -438,26 +454,31 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      else if (_autoWeatherEnabled)
-                        ElevatedButton.icon(
-                          onPressed: _fetchWeatherAutomatically,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Auto-fetch'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).primaryColor,
-                            foregroundColor: Colors.white,
-                          ),
-                        )
                       else
-                        ElevatedButton.icon(
-                          onPressed: _setupWeatherApi,
-                          icon: const Icon(Icons.settings),
-                          label: const Text('Setup API'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).primaryColor,
-                            foregroundColor: Colors.white,
+                        if (_autoWeatherEnabled)
+                          ElevatedButton.icon(
+                            onPressed: _fetchWeatherAutomatically,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Auto-fetch'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme
+                                  .of(context)
+                                  .primaryColor,
+                              foregroundColor: Colors.white,
+                            ),
+                          )
+                        else
+                          ElevatedButton.icon(
+                            onPressed: _setupWeatherApi,
+                            icon: const Icon(Icons.settings),
+                            label: const Text('Setup API'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme
+                                  .of(context)
+                                  .primaryColor,
+                              foregroundColor: Colors.white,
+                            ),
                           ),
-                        ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -475,7 +496,8 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Icon(Icons.thermostat, color: Colors.blue.shade600, size: 20),
+                      Icon(Icons.thermostat, color: Colors.blue.shade600,
+                          size: 20),
                       const SizedBox(width: 8),
                       const Text(
                         'Temperature:',
@@ -489,12 +511,16 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                       Expanded(
                         child: TextField(
                           controller: _temperatureController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
                           inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                            FilteringTextInputFormatter.allow(RegExp(
+                                r'^\d*\.?\d*')),
                           ],
                           decoration: InputDecoration(
-                            suffixText: _temperatureUnit == 'celsius' ? '°C' : '°F',
+                            suffixText: _temperatureUnit == 'celsius'
+                                ? '°C'
+                                : '°F',
                             border: const OutlineInputBorder(),
                             hintText: 'Enter temperature',
                             isDense: true,
@@ -525,7 +551,8 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                       const SizedBox(width: 12),
                       // Status indicator
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: _currentData?.autoWeather == true
                               ? Colors.green.shade100
@@ -567,7 +594,8 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.cloud, color: Colors.green.shade600, size: 16),
+                          Icon(Icons.cloud, color: Colors.green.shade600,
+                              size: 16),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -674,8 +702,13 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                   }
                 },
                 selectedColor:
-                    Theme.of(context).primaryColor.withValues(alpha: 0.2),
-                checkmarkColor: Theme.of(context).primaryColor,
+                Theme
+                    .of(context)
+                    .primaryColor
+                    .withValues(alpha: 0.2),
+                checkmarkColor: Theme
+                    .of(context)
+                    .primaryColor,
               );
             }).toList(),
           ),
@@ -686,12 +719,16 @@ class _CorrelationScreenState extends State<CorrelationScreen>
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
+                color: Theme
+                    .of(context)
+                    .brightness == Brightness.dark
                     ? Colors.grey.shade800
                     : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: Theme.of(context).brightness == Brightness.dark
+                  color: Theme
+                      .of(context)
+                      .brightness == Brightness.dark
                       ? Colors.grey.shade600
                       : Colors.grey.shade200,
                 ),
@@ -704,7 +741,9 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                     style: TextStyle(
                       fontWeight: FontWeight.w500,
                       // Use theme-aware text color
-                      color: Theme.of(context).brightness == Brightness.dark
+                      color: Theme
+                          .of(context)
+                          .brightness == Brightness.dark
                           ? Colors.grey.shade300
                           : Colors.grey.shade700,
                     ),
@@ -716,7 +755,9 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       // Use theme-aware text color for better contrast
-                      color: Theme.of(context).brightness == Brightness.dark
+                      color: Theme
+                          .of(context)
+                          .brightness == Brightness.dark
                           ? Colors.white
                           : Colors.black87,
                     ),
@@ -765,12 +806,13 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                               horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
                             color: _getSleepQualityColor(
-                                    _currentData!.sleepQuality!)
+                                _currentData!.sleepQuality!)
                                 .withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
-                            '${_currentData!.sleepQuality!.toStringAsFixed(1)}/10',
+                            '${_currentData!.sleepQuality!.toStringAsFixed(
+                                1)}/10',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: _getSleepQualityColor(
@@ -842,30 +884,36 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                                     horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
+                                    color: Theme
+                                        .of(context)
+                                        .brightness ==
+                                        Brightness.dark
                                         ? Colors.grey.shade600
                                         : Colors.grey.shade300,
                                   ),
                                   borderRadius: BorderRadius.circular(8),
                                   // Add background color for dark mode
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
+                                  color: Theme
+                                      .of(context)
+                                      .brightness ==
+                                      Brightness.dark
                                       ? Colors.grey.shade800
                                       : Colors.transparent,
                                 ),
                                 child: Text(
                                   _currentData?.bedtime != null
                                       ? DateFormat('h:mm a')
-                                          .format(_currentData!.bedtime!)
+                                      .format(_currentData!.bedtime!)
                                       : 'Select time',
                                   style: TextStyle(
                                     // Use theme-aware text color
                                     color: _currentData?.bedtime != null
-                                        ? (Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white
-                                            : Colors.black87)
+                                        ? (Theme
+                                        .of(context)
+                                        .brightness ==
+                                        Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black87)
                                         : Colors.grey,
                                   ),
                                 ),
@@ -889,30 +937,36 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                                     horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
+                                    color: Theme
+                                        .of(context)
+                                        .brightness ==
+                                        Brightness.dark
                                         ? Colors.grey.shade600
                                         : Colors.grey.shade300,
                                   ),
                                   borderRadius: BorderRadius.circular(8),
                                   // Add background color for dark mode
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
+                                  color: Theme
+                                      .of(context)
+                                      .brightness ==
+                                      Brightness.dark
                                       ? Colors.grey.shade800
                                       : Colors.transparent,
                                 ),
                                 child: Text(
                                   _currentData?.wakeTime != null
                                       ? DateFormat('h:mm a')
-                                          .format(_currentData!.wakeTime!)
+                                      .format(_currentData!.wakeTime!)
                                       : 'Select time',
                                   style: TextStyle(
                                     // Use theme-aware text color
                                     color: _currentData?.wakeTime != null
-                                        ? (Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white
-                                            : Colors.black87)
+                                        ? (Theme
+                                        .of(context)
+                                        .brightness ==
+                                        Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black87)
                                         : Colors.grey,
                                   ),
                                 ),
@@ -938,7 +992,8 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                               size: 16, color: Colors.blue.shade600),
                           const SizedBox(width: 8),
                           Text(
-                            'Sleep duration: ${_formatDuration(_calculateSleepDuration())}',
+                            'Sleep duration: ${_formatDuration(
+                                _calculateSleepDuration())}',
                             style: TextStyle(
                               color: Colors.blue.shade700,
                               fontWeight: FontWeight.w500,
@@ -1045,10 +1100,65 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                                 _currentData!.copyWith(socialActivity: null));
                           }
                         },
-                        selectedColor: Theme.of(context)
+                        selectedColor: Theme
+                            .of(context)
                             .primaryColor
                             .withValues(alpha: 0.2),
-                        checkmarkColor: Theme.of(context).primaryColor,
+                        checkmarkColor: Theme
+                            .of(context)
+                            .primaryColor,
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Hobby activity
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Hobbies & Interests',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'What hobby or interest did you engage in today?',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: HobbyActivity.values.map((hobby) {
+                      final isSelected = _currentData
+                          ?.hobbyActivity == hobby;
+                      return FilterChip(
+                        selected: isSelected,
+                        label: Text(
+                            _getHobbyActivityLabel(hobby)),
+                        onSelected: (selected) {
+                          if (selected) {
+                            _updateData(_currentData!.copyWith(
+                                hobbyActivity: hobby));
+                          } else {
+                            _updateData(_currentData!.copyWith(
+                                hobbyActivity: null));
+                          }
+                        },
+                        selectedColor: Theme
+                            .of(context)
+                            .primaryColor
+                            .withValues(alpha: 0.2),
+                        checkmarkColor: Theme
+                            .of(context)
+                            .primaryColor,
                       );
                     }).toList(),
                   ),
@@ -1157,12 +1267,13 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                   Wrap(
                     spacing: 8,
                     children: [
-                      ..._currentData!.customTags.map((tag) => Chip(
+                      ..._currentData!.customTags.map((tag) =>
+                          Chip(
                             label: Text(tag),
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               final newTags =
-                                  List<String>.from(_currentData!.customTags);
+                              List<String>.from(_currentData!.customTags);
                               newTags.remove(tag);
                               _updateData(
                                   _currentData!.copyWith(customTags: newTags));
@@ -1196,11 +1307,11 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                   const SizedBox(height: 8),
                   TextField(
                     controller:
-                        TextEditingController(text: _currentData?.notes ?? ''),
+                    TextEditingController(text: _currentData?.notes ?? ''),
                     maxLines: 4,
                     decoration: const InputDecoration(
                       hintText:
-                          'Any other factors that might have influenced your mood today...',
+                      'Any other factors that might have influenced your mood today...',
                       border: OutlineInputBorder(),
                     ),
                     onChanged: (value) {
@@ -1436,31 +1547,34 @@ class _CorrelationScreenState extends State<CorrelationScreen>
     final controller = TextEditingController();
     final result = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Custom Tag'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Enter tag name...',
-            border: OutlineInputBorder(),
+      builder: (context) =>
+          AlertDialog(
+            title: const Text('Add Custom Tag'),
+            content: TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Enter tag name...',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.words,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (controller.text
+                      .trim()
+                      .isNotEmpty) {
+                    Navigator.of(context).pop(controller.text.trim());
+                  }
+                },
+                child: const Text('Add'),
+              ),
+            ],
           ),
-          textCapitalization: TextCapitalization.words,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.trim().isNotEmpty) {
-                Navigator.of(context).pop(controller.text.trim());
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
     );
 
     if (result != null && result.isNotEmpty) {
@@ -1469,6 +1583,31 @@ class _CorrelationScreenState extends State<CorrelationScreen>
         newTags.add(result);
         _updateData(_currentData!.copyWith(customTags: newTags));
       }
+    }
+  }
+
+  String _getHobbyActivityLabel(HobbyActivity hobby) {
+    switch (hobby) {
+      case HobbyActivity.reading:
+        return 'Reading';
+      case HobbyActivity.music:
+        return 'Music';
+      case HobbyActivity.gaming:
+        return 'Gaming';
+      case HobbyActivity.cooking:
+        return 'Cooking';
+      case HobbyActivity.gardening:
+        return 'Gardening';
+      case HobbyActivity.art:
+        return 'Art';
+      case HobbyActivity.photography:
+        return 'Photography';
+      case HobbyActivity.writing:
+        return 'Writing';
+      case HobbyActivity.sports:
+        return 'Sports';
+      case HobbyActivity.crafts:
+        return 'Crafts';
     }
   }
 }
