@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.oddologyinc.moodflow"
     ndkVersion = "27.0.12077973"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
     
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -21,8 +21,8 @@ android {
 
     defaultConfig {
         applicationId = "com.oddologyinc.moodflow"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 21
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
