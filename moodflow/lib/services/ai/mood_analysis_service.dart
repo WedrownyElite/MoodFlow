@@ -901,8 +901,8 @@ class MoodAnalysisService {
           if (corr.exerciseLevel != null) {
             buffer.writeln('  Exercise: ${corr.exerciseLevel!.name}');
           }
-          if (corr.socialActivity != null) {
-            buffer.writeln('  Social: ${corr.socialActivity!.name}');
+          if (corr.socialActivities.isNotEmpty) {
+            buffer.writeln('  Social: ${corr.socialActivities.first.name}');
           }
         }
 

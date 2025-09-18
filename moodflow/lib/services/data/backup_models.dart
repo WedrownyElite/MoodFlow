@@ -233,12 +233,19 @@ class CorrelationEntryExport {
       bedtime: data.bedtime,
       wakeTime: data.wakeTime,
       exerciseLevel: data.exerciseLevel?.name,
-      socialActivity: data.socialActivity?.name,
+      // Handle socialActivities as a list - get the primary activity
+      socialActivity: data.socialActivities.isNotEmpty
+          ? data.socialActivities.first.name
+          : null,
       workStress: data.workStress,
       customTags: data.customTags,
       notes: data.notes,
       autoWeather: data.autoWeather,
       weatherData: data.weatherData,
+      // Handle hobbyActivities as a list - get the first hobby
+      hobbyActivity: data.hobbyActivities.isNotEmpty
+          ? data.hobbyActivities.first
+          : null,
     );
   }
 

@@ -1,5 +1,7 @@
 ﻿// lib/services/insights/pattern_detection_helper.dart
 import 'dart:math';
+import 'package:mood_flow/services/data/correlation_data_service.dart';
+
 import 'smart_insights_service.dart';
 
 // Data classes for pattern insights
@@ -519,8 +521,15 @@ class PatternDetectionHelper {
     final socialMoodMap = <String, List<double>>{};
 
     for (final day in data.days) {
-      if (day.correlationData?.socialActivity != null && day.averageMood > 0) {
-        final social = day.correlationData!.socialActivity!.name;
+      // FIXED: Handle socialActivities as a list
+      if (day.correlationData?.socialActivities != null &&
+          day.correlationData!.socialActivities.isNotEmpty &&
+          day.averageMood > 0) {
+        // Get the primary social activity (first non-none activity, or first if all are none)
+        final primaryActivity = day.correlationData!.socialActivities
+            .firstWhere((activity) => activity != SocialActivity.none,
+            orElse: () => day.correlationData!.socialActivities.first);
+        final social = primaryActivity.name;
         socialMoodMap.putIfAbsent(social, () => []).add(day.averageMood);
       }
     }

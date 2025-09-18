@@ -189,7 +189,7 @@ class BackupService {
           date: correlationExport.date,
           weather: correlationExport.weather != null
               ? WeatherCondition.values
-                  .firstWhere((e) => e.name == correlationExport.weather!)
+              .firstWhere((e) => e.name == correlationExport.weather!)
               : null,
           temperature: correlationExport.temperature,
           weatherDescription: correlationExport.weatherDescription,
@@ -201,17 +201,21 @@ class BackupService {
           wakeTime: correlationExport.wakeTime,
           exerciseLevel: correlationExport.exerciseLevel != null
               ? ActivityLevel.values
-                  .firstWhere((e) => e.name == correlationExport.exerciseLevel!)
+              .firstWhere((e) => e.name == correlationExport.exerciseLevel!)
               : null,
-          socialActivity: correlationExport.socialActivity != null
-              ? SocialActivity.values.firstWhere(
-                  (e) => e.name == correlationExport.socialActivity!)
-              : null,
+          // FIXED: Handle socialActivities as a list
+          socialActivities: correlationExport.socialActivity != null
+              ? [SocialActivity.values.firstWhere((e) => e.name == correlationExport.socialActivity!)]
+              : [],
           workStress: correlationExport.workStress,
           customTags: correlationExport.customTags,
           notes: correlationExport.notes,
           autoWeather: correlationExport.autoWeather,
           weatherData: correlationExport.weatherData,
+          // FIXED: Handle hobbyActivities as a list  
+          hobbyActivities: correlationExport.hobbyActivity != null
+              ? [correlationExport.hobbyActivity!]
+              : [],
         );
 
         await CorrelationDataService.saveCorrelationData(
@@ -308,7 +312,9 @@ class BackupService {
             exerciseLevel:
                 includeActivity ? correlationData.exerciseLevel?.name : null,
             socialActivity:
-                includeActivity ? correlationData.socialActivity?.name : null,
+            includeActivity ? (correlationData.socialActivities.isNotEmpty
+                ? correlationData.socialActivities.first.name
+                : null) : null,
             workStress: includeCorrelations ? correlationData.workStress : null,
             customTags: includeCorrelations ? correlationData.customTags : [],
             notes: includeCorrelations ? correlationData.notes : null,

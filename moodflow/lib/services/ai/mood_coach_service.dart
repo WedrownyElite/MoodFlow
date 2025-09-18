@@ -410,8 +410,8 @@ I can help you understand your mood patterns, provide wellness suggestions, and 
             if (correlation.exerciseLevel != null) {
               factors.add('Exercise: ${correlation.exerciseLevel!.name}');
             }
-            if (correlation.socialActivity != null) {
-              factors.add('Social: ${correlation.socialActivity!.name}');
+            if (correlation.socialActivities.isNotEmpty) {
+              factors.add('Social: ${correlation.socialActivities.first.name}');
             }
           }
 
