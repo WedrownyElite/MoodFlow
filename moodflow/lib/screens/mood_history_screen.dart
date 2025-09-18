@@ -429,77 +429,102 @@ class DayMoodCard extends StatelessWidget {
 
     // Load correlation data for this date
     final correlationData = await CorrelationDataService.loadCorrelationData(date);
+    if (correlationData == null) return [];
 
-    if (correlationData != null) {
-      // Sleep quality (higher priority)
-      if (correlationData.sleepQuality != null) {
-        if (correlationData.sleepQuality! >= 8) {
-          tags.add('Excellent sleep');
-        } else if (correlationData.sleepQuality! >= 6) {
-          tags.add('Good sleep');
-        } else if (correlationData.sleepQuality! >= 4) {
-          tags.add('Fair sleep');
-        } else {
-          tags.add('Poor sleep');
-        }
+    // Sleep quality (higher priority)
+    if (correlationData.sleepQuality != null) {
+      if (correlationData.sleepQuality! >= 8) {
+        tags.add('Excellent sleep');
+      } else if (correlationData.sleepQuality! >= 6) {
+        tags.add('Good sleep');
+      } else if (correlationData.sleepQuality! >= 4) {
+        tags.add('Fair sleep');
+      } else {
+        tags.add('Poor sleep');
       }
-
-      // Weather (high priority)
-      if (correlationData.weather != null) {
-        switch (correlationData.weather!) {
-          case WeatherCondition.sunny:
-            tags.add('Sunny');
-            break;
-          case WeatherCondition.cloudy:
-            tags.add('Cloudy');
-            break;
-          case WeatherCondition.rainy:
-            tags.add('Rainy');
-            break;
-          case WeatherCondition.stormy:
-            tags.add('Stormy');
-            break;
-          case WeatherCondition.snowy:
-            tags.add('Snowy');
-            break;
-          case WeatherCondition.foggy:
-            tags.add('Foggy');
-            break;
-        }
-      }
-
-      // Exercise level
-      if (correlationData.exerciseLevel != null) {
-        switch (correlationData.exerciseLevel!) {
-          case ActivityLevel.none:
-            tags.add('No exercise');
-            break;
-          case ActivityLevel.light:
-            tags.add('Light activity');
-            break;
-          case ActivityLevel.moderate:
-            tags.add('Moderate exercise');
-            break;
-          case ActivityLevel.intense:
-            tags.add('Intense workout');
-            break;
-        }
-      }
-
-      // Work stress
-      if (correlationData.workStress != null) {
-        if (correlationData.workStress! <= 3) {
-          tags.add('Low stress');
-        } else if (correlationData.workStress! <= 6) {
-          tags.add('Moderate stress');
-        } else {
-          tags.add('High stress');
-        }
-      }
-
-      // Custom tags - limit to 2 to stay within 10 total
-      tags.addAll(correlationData.customTags.take(2));
     }
+
+    // Weather (high priority)
+    if (correlationData.weather != null) {
+      switch (correlationData.weather!) {
+        case WeatherCondition.sunny:
+          tags.add('Sunny');
+          break;
+        case WeatherCondition.cloudy:
+          tags.add('Cloudy');
+          break;
+        case WeatherCondition.rainy:
+          tags.add('Rainy');
+          break;
+        case WeatherCondition.stormy:
+          tags.add('Stormy');
+          break;
+        case WeatherCondition.snowy:
+          tags.add('Snowy');
+          break;
+        case WeatherCondition.foggy:
+          tags.add('Foggy');
+          break;
+      }
+    }
+
+    // Exercise level
+    if (correlationData.exerciseLevel != null) {
+      switch (correlationData.exerciseLevel!) {
+        case ActivityLevel.none:
+          tags.add('No exercise');
+          break;
+        case ActivityLevel.light:
+          tags.add('Light activity');
+          break;
+        case ActivityLevel.moderate:
+          tags.add('Moderate exercise');
+          break;
+        case ActivityLevel.intense:
+          tags.add('Intense workout');
+          break;
+      }
+    }
+
+    // Social activities
+    if (correlationData.socialActivities.isNotEmpty) {
+      for (final activity in correlationData.socialActivities.take(2)) {
+        switch (activity) {
+          case SocialActivity.none:
+            tags.add('Solo time');
+            break;
+          case SocialActivity.friends:
+            tags.add('With friends');
+            break;
+          case SocialActivity.family:
+            tags.add('Family time');
+            break;
+          case SocialActivity.work:
+            tags.add('Work colleagues');
+            break;
+          case SocialActivity.party:
+            tags.add('Party/event');
+            break;
+          case SocialActivity.date:
+            tags.add('Date');
+            break;
+        }
+      }
+    }
+
+    // Work stress
+    if (correlationData.workStress != null) {
+      if (correlationData.workStress! <= 3) {
+        tags.add('Low stress');
+      } else if (correlationData.workStress! <= 6) {
+        tags.add('Moderate stress');
+      } else {
+        tags.add('High stress');
+      }
+    }
+
+    // Custom tags - limit to 2 to stay within 10 total
+    tags.addAll(correlationData.customTags.take(2));
 
     return tags.take(10).toList(); // Ensure max 10 tags
   }
@@ -630,25 +655,28 @@ class DayMoodCard extends StatelessWidget {
                         Wrap(
                           spacing: 4,
                           runSpacing: 4,
-                          children: tags.map((tag) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).primaryColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: Theme.of(context).primaryColor.withValues(alpha: 0.4),
-                                width: 1,
+                          children: tags.map((tag) {
+                            final tagColor = _getTagColor(tag);
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: tagColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: tagColor.withValues(alpha: 0.4),
+                                  width: 1,
+                                ),
                               ),
-                            ),
-                            child: Text(
-                              tag,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).primaryColor.withValues(alpha: 0.9),
+                              child: Text(
+                                tag,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: tagColor.withValues(alpha: 0.9),
+                                ),
                               ),
-                            ),
-                          )).toList(),
+                            );
+                          }).toList(),
                         ),
                         const SizedBox(height: 8),
                       ],
@@ -683,7 +711,45 @@ class DayMoodCard extends StatelessWidget {
       ),
     );
   }
-}
+
+  Color _getTagColor(String tag) {
+    // Sleep quality colors
+    if (tag.contains('Excellent sleep')) return Colors.green;
+    if (tag.contains('Good sleep')) return Colors.lightGreen;
+    if (tag.contains('Fair sleep')) return Colors.orange;
+    if (tag.contains('Poor sleep')) return Colors.red;
+
+    // Stress level colors
+    if (tag.contains('Low stress')) return Colors.green;
+    if (tag.contains('Moderate stress')) return Colors.orange;
+    if (tag.contains('High stress')) return Colors.red;
+
+    // Exercise level colors
+    if (tag.contains('No exercise')) return Colors.grey;
+    if (tag.contains('Light activity')) return Colors.lightGreen;
+    if (tag.contains('Moderate exercise')) return Colors.green;
+    if (tag.contains('Intense workout')) return Colors.green.shade700;
+
+    // Weather colors
+    if (tag.contains('Sunny')) return Colors.yellow.shade700;
+    if (tag.contains('Cloudy')) return Colors.grey;
+    if (tag.contains('Rainy')) return Colors.blue;
+    if (tag.contains('Stormy')) return Colors.purple;
+    if (tag.contains('Snowy')) return Colors.lightBlue;
+    if (tag.contains('Foggy')) return Colors.grey.shade600;
+
+    // Social activity colors
+    if (tag.contains('Solo time')) return Colors.purple.shade300;
+    if (tag.contains('With friends')) return Colors.green;
+    if (tag.contains('Family time')) return Colors.blue;
+    if (tag.contains('Work colleagues')) return Colors.orange;
+    if (tag.contains('Party/event')) return Colors.pink;
+    if (tag.contains('Date')) return Colors.red.shade300;
+
+    // Default color for custom tags
+    return Colors.indigo;
+  }
+} 
 
 class _SegmentIndicator extends StatelessWidget {
   final String segmentName;

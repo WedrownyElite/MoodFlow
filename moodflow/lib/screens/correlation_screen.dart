@@ -1389,14 +1389,34 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                           Chip(
                             label: Text(tag),
                             deleteIcon: const Icon(Icons.close, size: 16),
-                            onDeleted: () {
-                              final newTags =
-                              List<String>.from(_currentData!.customTags);
-                              newTags.remove(tag);
-                              _updateData(
-                                  _currentData!.copyWith(customTags: newTags));
+                            onDeleted: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Delete Tag'),
+                                  content: Text('Are you sure you want to remove "$tag"?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(true),
+                                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                      child: const Text('Delete'),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirmed == true) {
+                                final newTags = List<String>.from(_currentData!.customTags);
+                                newTags.remove(tag);
+                                _updateData(_currentData!.copyWith(customTags: newTags));
+                              }
                             },
-                          )),
+                          ),
+                      ),
                       ActionChip(
                         label: const Text('Add tag'),
                         avatar: const Icon(Icons.add, size: 16),
