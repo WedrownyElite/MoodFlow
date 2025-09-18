@@ -203,9 +203,9 @@ class BackupService {
               ? ActivityLevel.values
                   .firstWhere((e) => e.name == correlationExport.exerciseLevel!)
               : null,
-          socialActivities : correlationExport.socialActivities ?? []
-              ? socialActivities.values.firstWhere(
-                  (e) => e.name == correlationExport.socialActivities!)
+          socialActivity: correlationExport.socialActivity != null
+              ? SocialActivity.values.firstWhere(
+                  (e) => e.name == correlationExport.socialActivity!)
               : null,
           workStress: correlationExport.workStress,
           customTags: correlationExport.customTags,
