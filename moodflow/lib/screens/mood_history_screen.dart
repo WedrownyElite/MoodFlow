@@ -70,7 +70,20 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
         }
       }
 
-      if (hasAnyMood) {
+      // Check if we have correlation data even without mood data
+      final correlationData = await CorrelationDataService.loadCorrelationData(currentDate);
+      final hasCorrelationData = correlationData != null && (
+          correlationData.weather != null ||
+              correlationData.sleepQuality != null ||
+              correlationData.exerciseLevel != null ||
+              correlationData.socialActivity != null ||
+              correlationData.hobbyActivity != null ||
+              correlationData.workStress != null ||
+              correlationData.customTags.isNotEmpty ||
+              (correlationData.notes != null && correlationData.notes!.isNotEmpty)
+      );
+
+      if (hasAnyMood || hasCorrelationData) {
         final dateKey = DateFormat('yyyy-MM-dd').format(currentDate);
         dayDataMap[dateKey] = DayMoodData(
           date: currentDate,
@@ -418,7 +431,7 @@ class DayMoodCard extends StatelessWidget {
     final correlationData = await CorrelationDataService.loadCorrelationData(date);
 
     if (correlationData != null) {
-      // Sleep quality
+      // Sleep quality (higher priority)
       if (correlationData.sleepQuality != null) {
         if (correlationData.sleepQuality! >= 8) {
           tags.add('Excellent sleep');
@@ -431,7 +444,7 @@ class DayMoodCard extends StatelessWidget {
         }
       }
 
-      // Weather
+      // Weather (high priority)
       if (correlationData.weather != null) {
         switch (correlationData.weather!) {
           case WeatherCondition.sunny:
@@ -497,7 +510,7 @@ class DayMoodCard extends StatelessWidget {
         }
       }
 
-      // Hobby activity
+      // Hobby activity (NEW)
       if (correlationData.hobbyActivity != null) {
         switch (correlationData.hobbyActivity!) {
           case HobbyActivity.reading:
@@ -544,11 +557,11 @@ class DayMoodCard extends StatelessWidget {
         }
       }
 
-      // Custom tags
-      tags.addAll(correlationData.customTags.take(3)); // Limit custom tags to 3 to stay within 10 total
+      // Custom tags - limit to 2 to stay within 10 total
+      tags.addAll(correlationData.customTags.take(2));
     }
 
-    return tags;
+    return tags.take(10).toList(); // Ensure max 10 tags
   }
   
   @override
@@ -665,7 +678,7 @@ class DayMoodCard extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-// Context tags
+              // Context tags
               FutureBuilder<List<String>>(
                 future: _buildContextTags(dayData.date),
                 builder: (context, snapshot) {
@@ -678,16 +691,21 @@ class DayMoodCard extends StatelessWidget {
                           spacing: 4,
                           runSpacing: 4,
                           children: tags.map((tag) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: secondaryTextColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
+                              color: Theme.of(context).primaryColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Theme.of(context).primaryColor.withValues(alpha: 0.4),
+                                width: 1,
+                              ),
                             ),
                             child: Text(
                               tag,
                               style: TextStyle(
-                                fontSize: 10,
-                                color: secondaryTextColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).primaryColor.withValues(alpha: 0.9),
                               ),
                             ),
                           )).toList(),

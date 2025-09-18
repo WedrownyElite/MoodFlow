@@ -232,6 +232,7 @@ class RealNotificationService {
       body,
       _nextInstanceOfTime(time),
       details,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime, // ADD THIS LINE
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
       payload: payload,
@@ -307,6 +308,7 @@ class RealNotificationService {
       message,
       scheduledTime,
       details,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime, // ADD THIS LINE
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: jsonEncode({'type': 'test'}),
     );

@@ -53,14 +53,14 @@ class CorrelationData {
   final DateTime? bedtime;
   final DateTime? wakeTime;
   final ActivityLevel? exerciseLevel;
-  final SocialActivity? socialActivity;
+  final List<SocialActivity> socialActivities;
+  final List<String> hobbyActivities;
   final int? workStress; // 1-10 scale
   final List<String> customTags;
   final String? notes;
   final bool autoWeather; // Whether weather was fetched automatically
   final Map<String, dynamic>? weatherData; // Store raw weather data
   final String? temperatureUnit;
-  final HobbyActivity? hobbyActivity;
 
   CorrelationData({
     required this.date,
@@ -73,34 +73,35 @@ class CorrelationData {
     this.bedtime,
     this.wakeTime,
     this.exerciseLevel,
-    this.socialActivity,
+    this.socialActivities = const [],
+    this.hobbyActivities = const [],
     this.workStress,
     this.customTags = const [],
     this.notes,
     this.autoWeather = false,
     this.weatherData,
-    this.hobbyActivity,
   });
 
   Map<String, dynamic> toJson() => {
-        'date': date.toIso8601String(),
-        'weather': weather?.name,
-        'temperature': temperature,
-        'temperatureUnit': temperatureUnit,
-        'weatherDescription': weatherDescription,
-        'sleepQuality': sleepQuality,
-        'sleepDuration': sleepDuration?.inMinutes,
-        'bedtime': bedtime?.toIso8601String(),
-        'wakeTime': wakeTime?.toIso8601String(),
-        'exerciseLevel': exerciseLevel?.name,
-        'socialActivity': socialActivity?.name,
-        'workStress': workStress,
-        'customTags': customTags,
-        'notes': notes,
-        'autoWeather': autoWeather,
-        'weatherData': weatherData,
-        'timestamp': DateTime.now().toIso8601String(),
-      };
+    'date': date.toIso8601String(),
+    'weather': weather?.name,
+    'temperature': temperature,
+    'temperatureUnit': temperatureUnit,
+    'weatherDescription': weatherDescription,
+    'sleepQuality': sleepQuality,
+    'sleepDuration': sleepDuration?.inMinutes,
+    'bedtime': bedtime?.toIso8601String(),
+    'wakeTime': wakeTime?.toIso8601String(),
+    'exerciseLevel': exerciseLevel?.name,
+    'socialActivities': socialActivities.map((e) => e.name).toList(),
+    'hobbyActivities': hobbyActivities,
+    'workStress': workStress,
+    'customTags': customTags,
+    'notes': notes,
+    'autoWeather': autoWeather,
+    'weatherData': weatherData,
+    'timestamp': DateTime.now().toIso8601String(),
+  };
 
   factory CorrelationData.fromJson(Map<String, dynamic> json) =>
       CorrelationData(
@@ -124,18 +125,17 @@ class CorrelationData {
             ? ActivityLevel.values
                 .firstWhere((e) => e.name == json['exerciseLevel'])
             : null,
-        socialActivity: json['socialActivity'] != null
-            ? SocialActivity.values
-                .firstWhere((e) => e.name == json['socialActivity'])
-            : null,
+        socialActivities: json['socialActivities'] != null
+            ? (json['socialActivities'] as List)
+            .map((e) => SocialActivity.values.firstWhere((s) => s.name == e))
+            .toList()
+            : [],
+        hobbyActivities: List<String>.from(json['hobbyActivities'] ?? []),
         workStress: json['workStress'],
         customTags: List<String>.from(json['customTags'] ?? []),
         notes: json['notes'],
         autoWeather: json['autoWeather'] ?? false,
         weatherData: json['weatherData'],
-        hobbyActivity: json['hobbyActivity'] != null
-              ? HobbyActivity.values.firstWhere((e) => e.name == json['hobbyActivity'])
-                : null,
       );
 
   CorrelationData copyWith({
@@ -149,13 +149,13 @@ class CorrelationData {
     DateTime? bedtime,
     DateTime? wakeTime,
     ActivityLevel? exerciseLevel,
-    SocialActivity? socialActivity,
+    List<SocialActivity>? socialActivities,
+    List<String>? hobbyActivities,
     int? workStress,
     List<String>? customTags,
     String? notes,
     bool? autoWeather,
     Map<String, dynamic>? weatherData,
-    HobbyActivity? hobbyActivity,
   }) =>
       CorrelationData(
         date: date ?? this.date,
@@ -168,12 +168,12 @@ class CorrelationData {
         bedtime: bedtime ?? this.bedtime,
         wakeTime: wakeTime ?? this.wakeTime,
         exerciseLevel: exerciseLevel ?? this.exerciseLevel,
-        socialActivity: socialActivity ?? this.socialActivity,
+        socialActivities: socialActivities ?? this.socialActivities,
+        hobbyActivities: hobbyActivities ?? this.hobbyActivities,
         workStress: workStress ?? this.workStress,
         customTags: customTags ?? this.customTags,
         notes: notes ?? this.notes,
         autoWeather: autoWeather ?? this.autoWeather,
-        weatherData: weatherData ?? this.weatherData,
       );
 }
 
@@ -277,8 +277,10 @@ class CorrelationDataService {
 
       // Get current position with high accuracy
       return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
       );
     } catch (e) {
       Logger.correlationService('❌ Error getting location: $e');

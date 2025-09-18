@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import '../services/data/correlation_data_service.dart';
 import '../widgets/weather_api_setup_dialog.dart';
@@ -33,6 +34,7 @@ class _CorrelationScreenState extends State<CorrelationScreen>
   bool _isFetchingWeather = false;
   bool _autoWeatherEnabled = false;
   String _temperatureUnit = 'celsius';
+  final List<String> _customHobbyTags = [];
 
   @override
   void initState() {
@@ -50,6 +52,7 @@ class _CorrelationScreenState extends State<CorrelationScreen>
 
     _loadData();
     _checkAutoWeatherEnabled();
+    _loadCustomHobbyTags();
   }
 
   @override
@@ -57,6 +60,94 @@ class _CorrelationScreenState extends State<CorrelationScreen>
     _temperatureController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCustomHobbyTags() async {
+    final prefs = await SharedPreferences.getInstance();
+    final customTags = prefs.getStringList('custom_hobby_tags') ?? [];
+    setState(() {
+      _customHobbyTags.clear();
+      _customHobbyTags.addAll(customTags);
+    });
+  }
+
+  Future<void> _saveCustomHobbyTags() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('custom_hobby_tags', _customHobbyTags);
+  }
+
+  Future<void> _addCustomHobbyTag() async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Custom Hobby'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Enter hobby name (max 20 chars)',
+            border: OutlineInputBorder(),
+          ),
+          maxLength: 20,
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                Navigator.of(context).pop(controller.text.trim());
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty && !_customHobbyTags.contains(result)) {
+      setState(() {
+        _customHobbyTags.add(result);
+      });
+      await _saveCustomHobbyTags();
+    }
+  }
+
+  Future<void> _deleteCustomHobbyTag(String tag) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Custom Hobby'),
+        content: Text('Are you sure you want to delete "$tag"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _customHobbyTags.remove(tag);
+      });
+      await _saveCustomHobbyTags();
+
+      // Remove from current data if selected
+      final currentHobbies = Set<String>.from(_currentData?.hobbyActivities ?? []);
+      if (currentHobbies.remove(tag)) {
+        _updateData(_currentData!.copyWith(hobbyActivities: currentHobbies.toList()));
+      }
+    }
   }
 
   void _updateTemperatureController() {
@@ -698,17 +789,12 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                   if (selected) {
                     _updateData(_currentData!.copyWith(weather: condition));
                   } else {
+                    // Allow deselection by setting weather to null
                     _updateData(_currentData!.copyWith(weather: null));
                   }
                 },
-                selectedColor:
-                Theme
-                    .of(context)
-                    .primaryColor
-                    .withValues(alpha: 0.2),
-                checkmarkColor: Theme
-                    .of(context)
-                    .primaryColor,
+                selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+                checkmarkColor: Theme.of(context).primaryColor,
               );
             }).toList(),
           ),
@@ -1078,7 +1164,7 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Social connections can greatly influence our mood and wellbeing.',
+                    'Who did you spend time with today? (Select all that apply)',
                     style: TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   const SizedBox(height: 12),
@@ -1086,27 +1172,21 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                     spacing: 8,
                     runSpacing: 8,
                     children: SocialActivity.values.map((activity) {
-                      final isSelected =
-                          _currentData?.socialActivity == activity;
+                      final isSelected = _currentData?.socialActivities.contains(activity) ?? false;
                       return FilterChip(
                         selected: isSelected,
                         label: Text(_getSocialActivityLabel(activity)),
                         onSelected: (selected) {
+                          final currentActivities = Set<SocialActivity>.from(_currentData?.socialActivities ?? {});
                           if (selected) {
-                            _updateData(_currentData!
-                                .copyWith(socialActivity: activity));
+                            currentActivities.add(activity);
                           } else {
-                            _updateData(
-                                _currentData!.copyWith(socialActivity: null));
+                            currentActivities.remove(activity);
                           }
+                          _updateData(_currentData!.copyWith(socialActivities: currentActivities.toList()));
                         },
-                        selectedColor: Theme
-                            .of(context)
-                            .primaryColor
-                            .withValues(alpha: 0.2),
-                        checkmarkColor: Theme
-                            .of(context)
-                            .primaryColor,
+                        selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+                        checkmarkColor: Theme.of(context).primaryColor,
                       );
                     }).toList(),
                   ),
@@ -1114,6 +1194,7 @@ class _CorrelationScreenState extends State<CorrelationScreen>
               ),
             ),
           ),
+          
           const SizedBox(height: 16),
 
           // Hobby activity
@@ -1129,38 +1210,75 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'What hobby or interest did you engage in today?',
+                    'What hobbies or interests did you engage in today? (Select all that apply)',
                     style: TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: HobbyActivity.values.map((hobby) {
-                      final isSelected = _currentData
-                          ?.hobbyActivity == hobby;
-                      return FilterChip(
-                        selected: isSelected,
-                        label: Text(
-                            _getHobbyActivityLabel(hobby)),
-                        onSelected: (selected) {
-                          if (selected) {
-                            _updateData(_currentData!.copyWith(
-                                hobbyActivity: hobby));
-                          } else {
-                            _updateData(_currentData!.copyWith(
-                                hobbyActivity: null));
-                          }
-                        },
-                        selectedColor: Theme
-                            .of(context)
-                            .primaryColor
-                            .withValues(alpha: 0.2),
-                        checkmarkColor: Theme
-                            .of(context)
-                            .primaryColor,
-                      );
-                    }).toList(),
+                    children: [
+                      // Default hobby chips
+                      ...HobbyActivity.values.map((hobby) {
+                        final hobbyName = _getHobbyActivityLabel(hobby);
+                        final isSelected = _currentData?.hobbyActivities.contains(hobbyName) ?? false;
+                        return FilterChip(
+                          selected: isSelected,
+                          label: Text(hobbyName),
+                          onSelected: (selected) {
+                            final currentHobbies = Set<String>.from(_currentData?.hobbyActivities ?? {});
+                            if (selected) {
+                              currentHobbies.add(hobbyName);
+                            } else {
+                              currentHobbies.remove(hobbyName);
+                            }
+                            _updateData(_currentData!.copyWith(hobbyActivities: currentHobbies.toList()));
+                          },
+                          selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+                          checkmarkColor: Theme.of(context).primaryColor,
+                        );
+                      }),
+                      // Custom hobby chips with delete button
+                      ..._customHobbyTags.map((tag) {
+                        final isSelected = _currentData?.hobbyActivities.contains(tag) ?? false;
+                        return FilterChip(
+                          selected: isSelected,
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(tag),
+                              const SizedBox(width: 4),
+                              GestureDetector(
+                                onTap: () => _deleteCustomHobbyTag(tag),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          onSelected: (selected) {
+                            final currentHobbies = Set<String>.from(_currentData?.hobbyActivities ?? {});
+                            if (selected) {
+                              currentHobbies.add(tag);
+                            } else {
+                              currentHobbies.remove(tag);
+                            }
+                            _updateData(_currentData!.copyWith(hobbyActivities: currentHobbies.toList()));
+                          },
+                          selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+                          checkmarkColor: Theme.of(context).primaryColor,
+                        );
+                      }),
+                      // Add custom tag button
+                      ActionChip(
+                        label: const Text('Add custom'),
+                        avatar: const Icon(Icons.add, size: 16),
+                        onPressed: _addCustomHobbyTag,
+                        backgroundColor: Colors.grey.shade100,
+                      ),
+                    ],
                   ),
                 ],
               ),
