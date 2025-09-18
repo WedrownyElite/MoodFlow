@@ -76,8 +76,8 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
           correlationData.weather != null ||
               correlationData.sleepQuality != null ||
               correlationData.exerciseLevel != null ||
-              correlationData.socialActivity != null ||
-              correlationData.hobbyActivity != null ||
+              correlationData.socialActivities.isNotEmpty ||
+              correlationData.hobbyActivities.isNotEmpty ||
               correlationData.workStress != null ||
               correlationData.customTags.isNotEmpty ||
               (correlationData.notes != null && correlationData.notes!.isNotEmpty)
@@ -482,66 +482,6 @@ class DayMoodCard extends StatelessWidget {
             break;
           case ActivityLevel.intense:
             tags.add('Intense workout');
-            break;
-        }
-      }
-
-      // Social activity
-      if (correlationData.socialActivity != null) {
-        switch (correlationData.socialActivity!) {
-          case SocialActivity.friends:
-            tags.add('With friends');
-            break;
-          case SocialActivity.family:
-            tags.add('With family');
-            break;
-          case SocialActivity.work:
-            tags.add('Work social');
-            break;
-          case SocialActivity.party:
-            tags.add('Party/Event');
-            break;
-          case SocialActivity.date:
-            tags.add('Date');
-            break;
-          case SocialActivity.none:
-          // Don't add a tag for solo time
-            break;
-        }
-      }
-
-      // Hobby activity (NEW)
-      if (correlationData.hobbyActivity != null) {
-        switch (correlationData.hobbyActivity!) {
-          case HobbyActivity.reading:
-            tags.add('Reading');
-            break;
-          case HobbyActivity.music:
-            tags.add('Music');
-            break;
-          case HobbyActivity.gaming:
-            tags.add('Gaming');
-            break;
-          case HobbyActivity.cooking:
-            tags.add('Cooking');
-            break;
-          case HobbyActivity.gardening:
-            tags.add('Gardening');
-            break;
-          case HobbyActivity.art:
-            tags.add('Art');
-            break;
-          case HobbyActivity.photography:
-            tags.add('Photography');
-            break;
-          case HobbyActivity.writing:
-            tags.add('Writing');
-            break;
-          case HobbyActivity.sports:
-            tags.add('Sports');
-            break;
-          case HobbyActivity.crafts:
-            tags.add('Crafts');
             break;
         }
       }
