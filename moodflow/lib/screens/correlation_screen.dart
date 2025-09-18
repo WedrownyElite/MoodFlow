@@ -720,48 +720,72 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                     style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
-                  RadioGroup<String>(
-                    groupValue: _temperatureUnit,
-                    onChanged: (value) async {
-                      if (value != null) {
-                        await CorrelationDataService.setTemperatureUnit(value);
-                        if (mounted) {
-                          setState(() => _temperatureUnit = value);
-                        }
-                      }
-                    },
-                    child: Column(
-                      children: [
-                        ListTile(
-                          title: const Text('Celsius (°C)'),
-                          leading: Radio<String>(
-                            value: 'celsius',
-                          ),
-                          onTap: () async {
-                            await CorrelationDataService.setTemperatureUnit(
-                                'celsius');
+                  Column(
+                    children: [
+                      RadioGroup<String>(
+                        onChanged: (value) async {
+                          if (value != null) {
+                            await CorrelationDataService.setTemperatureUnit(value);
                             if (mounted) {
-                              setState(() => _temperatureUnit = 'celsius');
+                              setState(() => _temperatureUnit = value);
                             }
-                          },
-                          contentPadding: EdgeInsets.zero,
+                          }
+                        },
+                        child: Column(
+                          children: [
+                            ListTile(
+                              title: const Text('Celsius (°C)'),
+                              leading: Radio<String>(
+                                value: 'celsius',
+                              ),
+                              onTap: () async {
+                                await CorrelationDataService.setTemperatureUnit('celsius');
+                                if (mounted) {
+                                  setState(() => _temperatureUnit = 'celsius');
+                                }
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            ListTile(
+                              title: const Text('Fahrenheit (°F)'),
+                              leading: Radio<String>(
+                                value: 'fahrenheit',
+                              ),
+                              onTap: () async {
+                                await CorrelationDataService.setTemperatureUnit('fahrenheit');
+                                if (mounted) {
+                                  setState(() => _temperatureUnit = 'fahrenheit');
+                                }
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ],
                         ),
-                        ListTile(
-                          title: const Text('Fahrenheit (°F)'),
-                          leading: Radio<String>(
-                            value: 'fahrenheit',
-                          ),
-                          onTap: () async {
-                            await CorrelationDataService.setTemperatureUnit(
-                                'fahrenheit');
-                            if (mounted) {
-                              setState(() => _temperatureUnit = 'fahrenheit');
-                            }
-                          },
-                          contentPadding: EdgeInsets.zero,
+                      ),
+                      RadioGroup<ActivityLevel>(
+                        onChanged: (value) {
+                          if (value != null) {
+                            _updateData(_currentData!.copyWith(exerciseLevel: value));
+                          }
+                        },
+                        child: Column(
+                          children: ActivityLevel.values.map((level) {
+                            return ListTile(
+                              title: Text(_getActivityLevelTitle(level)),
+                              subtitle: Text(_getActivityLevelDescription(level)),
+                              leading: Radio<ActivityLevel>(
+                                value: level,
+                              ),
+                              onTap: () {
+                                _updateData(_currentData!.copyWith(exerciseLevel: level));
+                              },
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                            );
+                          }).toList(),
                         ),
-                      ],
-                    ),
+                      )
+                    ],
                   ),
                 ],
               ),
