@@ -855,56 +855,63 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
 
           // Data selection card
           _buildDataSelectionCard(),
-
-          // Analysis button
-          if (_hasValidKey) ...[
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Deep Analysis Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: _isAnalyzing
-                          ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                          : const Icon(Icons.psychology),
-                      label: Text(_isAnalyzing ? 'Analyzing...' : 'Deep Dive Analysis'),
-                      onPressed: _isAnalyzing ? null : () async => await _performAnalysis(AnalysisType.deepDive),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.indigo.shade600
-                            : Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        elevation: 3,
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Deep Analysis Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: _isAnalyzing
+                        ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
+                    )
+                        : const Icon(Icons.psychology),
+                    label: Text(_isAnalyzing ? 'Analyzing...' : 'Deep Dive Analysis'),
+                    onPressed: (_isAnalyzing || !_hasValidKey) ? null : () async => await _performAnalysis(AnalysisType.deepDive),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.indigo.shade600
+                          : Theme.of(context).primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 3,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  // Comparative Analysis Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.compare_arrows),
-                      label: const Text('Compare Time Periods'),
-                      onPressed: _isAnalyzing ? null : () => _showComparativeAnalysisDialog(),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
+                ),
+                const SizedBox(height: 8),
+                // Comparative Analysis Button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.compare_arrows),
+                    label: const Text('Compare Time Periods'),
+                    onPressed: (_isAnalyzing || !_hasValidKey) ? null : () => _showComparativeAnalysisDialog(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
+
+          // AI Provider Settings
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: AIProviderSettings(
+              title: 'AI Provider Configuration',
+              currentProvider: _selectedProvider,
+              currentModel: _selectedModel,
+              onProviderChanged: _onProviderChanged,
+            ),
+          ),
 
           // Content area
           _buildContent(),
