@@ -856,14 +856,6 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
           // Data selection card
           _buildDataSelectionCard(),
 
-          // AI Provider Settings
-          AIProviderSettings(
-            title: 'AI Provider Settings',
-            currentProvider: _selectedProvider,
-            currentModel: _selectedModel,
-            onProviderChanged: _onProviderChanged,
-          ),
-
           // Analysis button
           if (_hasValidKey) ...[
             Padding(
