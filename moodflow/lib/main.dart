@@ -15,6 +15,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:home_widget/home_widget.dart';
 import 'screens/main_menu_screen.dart';
 import 'screens/mood_log_screen.dart';
 import 'screens/goals_screen.dart';
@@ -33,8 +34,9 @@ import 'services/utils/logger.dart';
 import 'screens/correlation_screen.dart';
 import 'screens/insights_screen.dart';
 import '/services/insights/smart_insights_service.dart';
-import 'services/onboarding/onboarding_service.dart';
-import 'services/backup/startup_restore_service.dart';
+import '/services/onboarding/onboarding_service.dart';
+import '/services/backup/startup_restore_service.dart';
+import '/services/widgets/mood_widget_service.dart';
 
 void main() async {
   // CRITICAL: Ensure Flutter bindings are initialized FIRST
@@ -126,6 +128,21 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize widget service
+    MoodWidgetService.initialize();
+
+    // Listen for widget interactions
+    HomeWidget.widgetClicked.listen((uri) {
+      if (uri != null) {
+        MoodWidgetService.handleWidgetInteraction(uri);
+      }
+    });
+
+    // Update widget on app start
+    Future.delayed(const Duration(seconds: 1), () {
+      MoodWidgetService.updateWidget();
+    });
 
     // Load preferences and check for onboarding after a short delay
     Future.delayed(const Duration(milliseconds: 100), () {

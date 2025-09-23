@@ -15,6 +15,10 @@ dependencies:
   flutter:
     sdk: flutter
   
+  # Home Screen Widget dependencies
+  home_widget: ^0.5.0  # For iOS/Android widgets
+  workmanager: ^0.5.2  # For background tasks
+  
   # Core dependencies
   shared_preferences: ^2.2.2
   intl: ^0.19.0
