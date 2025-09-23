@@ -40,26 +40,41 @@ class MoodFlowWidgetProvider : AppWidgetProvider() {
         val statusText = if (canLogCurrent) "Tap a mood to log quickly" else "Current time slot not available"
         views.setTextViewText(R.id.status_text, statusText)
         
-        // Set up click listeners to open the app
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        // Set up click listeners for mood buttons with specific mood values
+        val moodButtonIds = arrayOf(R.id.mood_1, R.id.mood_2, R.id.mood_3, R.id.mood_4, R.id.mood_5)
+        val moodActions = arrayOf("mood_1", "mood_2", "mood_3", "mood_4", "mood_5")
+        
+        for (i in moodButtonIds.indices) {
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                // Pass the mood action as data
+                putExtra("widget_action", moodActions[i])
+            }
+            
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                1000 + i, // Unique request code for each button
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            
+            views.setOnClickPendingIntent(moodButtonIds[i], pendingIntent)
         }
         
-        val pendingIntent = PendingIntent.getActivity(
+        // Set up click listener for the widget title (general app opening)
+        val titleIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("widget_action", "open_app")
+        }
+            
+        val titlePendingIntent = PendingIntent.getActivity(
             context,
-            0,
-            intent,
+            2000,
+            titleIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-        // Make the entire widget clickable to open the app
-        views.setOnClickPendingIntent(R.id.widget_title, pendingIntent)
-        
-        // Make mood buttons clickable to open the app
-        val moodButtonIds = arrayOf(R.id.mood_1, R.id.mood_2, R.id.mood_3, R.id.mood_4, R.id.mood_5)
-        for (buttonId in moodButtonIds) {
-            views.setOnClickPendingIntent(buttonId, pendingIntent)
-        }
+        views.setOnClickPendingIntent(R.id.widget_title, titlePendingIntent)
         
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }

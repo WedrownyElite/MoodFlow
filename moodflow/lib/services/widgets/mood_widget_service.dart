@@ -2,6 +2,7 @@
 import '../data/mood_data_service.dart';
 import '../notifications/enhanced_notification_service.dart';
 import '../utils/logger.dart';
+import '../navigation_service.dart';
 
 class MoodWidgetService {
   static const String _widgetName = 'MoodFlowWidget';
@@ -71,32 +72,67 @@ class MoodWidgetService {
     }
   }
 
-  /// Handle widget interactions
+  /// Handle widget interactions - Updated to navigate with mood data
   static Future<void> handleWidgetInteraction(String? action) async {
     if (action == null) return;
 
     try {
       Logger.moodService('📱 Widget interaction: $action');
 
-      switch (action) {
-        case 'quick_mood_1':
-        case 'quick_mood_2':
-        case 'quick_mood_3':
-        case 'quick_mood_4':
-        case 'quick_mood_5':
-          final rating = double.parse(action.split('_').last) * 2; // Convert 1-5 to 2-10
-          await _logQuickMood(rating);
-          break;
-        case 'open_app':
-        // This will be handled by the main app when it opens
-          break;
+      if (action.startsWith('mood_')) {
+        // Extract mood number (1-5) from action
+        final moodIndex = int.tryParse(action.split('_').last);
+        if (moodIndex != null && moodIndex >= 1 && moodIndex <= 5) {
+          // Convert 1-5 scale to 2-10 scale for better distribution
+          final rating = _convertMoodIndexToRating(moodIndex);
+          final currentSegment = await _getCurrentTimeSegment();
+
+          // Navigate to mood screen with pre-selected rating
+          await _navigateToMoodScreenWithRating(rating, currentSegment);
+        }
+      } else if (action == 'open_app') {
+        // Regular app opening without pre-selected mood
+        NavigationService.navigateToHome();
       }
     } catch (e) {
       Logger.moodService('❌ Widget interaction failed: $e');
     }
   }
 
-  /// Log a quick mood from widget
+  /// Convert mood index (1-5) to rating (2-10) for better distribution
+  static double _convertMoodIndexToRating(int moodIndex) {
+    // Map 1-5 to 2-10 with better spacing:
+    // 1 (😢) -> 2.0 (Very bad)
+    // 2 (🙁) -> 4.0 (Bad) 
+    // 3 (😐) -> 6.0 (Neutral)
+    // 4 (🙂) -> 8.0 (Good)
+    // 5 (😊) -> 10.0 (Very good)
+    switch (moodIndex) {
+      case 1: return 2.0;
+      case 2: return 4.0;
+      case 3: return 6.0;
+      case 4: return 8.0;
+      case 5: return 10.0;
+      default: return 6.0; // Default to neutral
+    }
+  }
+
+  /// Navigate to mood screen with pre-selected rating
+  static Future<void> _navigateToMoodScreenWithRating(double rating, int segment) async {
+    try {
+      Logger.moodService('🎯 Navigating to mood screen with rating: $rating for segment: $segment');
+
+      // Use NavigationService to navigate with arguments
+      NavigationService.navigateToMoodLogWithRating(
+        segment: segment,
+        preSelectedRating: rating,
+      );
+    } catch (e) {
+      Logger.moodService('❌ Navigation to mood screen failed: $e');
+    }
+  }
+
+  /// Log a quick mood from widget (keeping this for potential future use)
   static Future<void> _logQuickMood(double rating) async {
     try {
       final today = DateTime.now();
@@ -132,7 +168,6 @@ class MoodWidgetService {
     try {
       final moodEmoji = _getMoodEmoji(rating);
       Logger.moodService('✅ Mood logged successfully: $moodEmoji ${rating.toStringAsFixed(1)}/10');
-
     } catch (e) {
       Logger.moodService('❌ Success notification failed: $e');
     }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class NavigationService {
   static final GlobalKey<NavigatorState> navigatorKey =
-      GlobalKey<NavigatorState>();
+  GlobalKey<NavigatorState>();
 
   /// Get the current navigation context
   static BuildContext? get context => navigatorKey.currentContext;
@@ -25,7 +25,7 @@ class NavigationService {
       {Object? arguments}) {
     return navigatorKey.currentState!.pushNamedAndRemoveUntil(
       routeName,
-      (Route<dynamic> route) => false,
+          (Route<dynamic> route) => false,
       arguments: arguments,
     );
   }
@@ -51,11 +51,11 @@ class NavigationService {
         await _handleGoalNotification(payload);
         break;
       case 'test':
-        // For test notifications, just go to home
+      // For test notifications, just go to home
         await navigateToHome();
         break;
       default:
-        // Unknown notification type, go to home
+      // Unknown notification type, go to home
         await navigateToHome();
     }
   }
@@ -101,6 +101,23 @@ class NavigationService {
     });
   }
 
+  /// NEW: Navigate to mood log screen with pre-selected rating from widget
+  static Future<void> navigateToMoodLogWithRating({
+    required int segment,
+    required double preSelectedRating,
+  }) async {
+    // First ensure we're at the home screen, then navigate to mood log
+    // This preserves the navigation stack so user can go back to main menu
+    await navigateToHome();
+
+    // Then navigate to mood log with the pre-selected rating
+    await navigateTo('/mood-log', arguments: {
+      'segment': segment,
+      'preSelectedRating': preSelectedRating,
+      'fromWidget': true,
+    });
+  }
+
   /// Navigate to goals screen
   static Future<void> navigateToGoals({String? goalId}) async {
     await navigateToHome();
@@ -138,10 +155,10 @@ class NavigationService {
 
   /// Show a snackbar message
   static void showSnackBar(
-    String message, {
-    Color? backgroundColor,
-    Duration duration = const Duration(seconds: 3),
-  }) {
+      String message, {
+        Color? backgroundColor,
+        Duration duration = const Duration(seconds: 3),
+      }) {
     final context = NavigationService.context;
     if (context != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -166,6 +183,9 @@ class NavigationService {
         break;
       case 'goal':
         message = '🎯 Opened from goal notification';
+        break;
+      case 'widget':
+        message = '📱 Opened from home screen widget';
         break;
       default:
         message = '📱 Opened from notification';

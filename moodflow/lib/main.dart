@@ -14,6 +14,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:home_widget/home_widget.dart';
 import 'screens/main_menu_screen.dart';
@@ -125,6 +126,9 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
   static const _prefThemeModeKey = 'theme_mode';
   static const _prefCustomGradientKey = 'use_custom_gradient';
 
+  // NEW: Add method channel for widget interactions
+  static const MethodChannel _widgetChannel = MethodChannel('widget_interaction');
+
   @override
   void initState() {
     super.initState();
@@ -132,12 +136,15 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
     // Initialize widget service
     MoodWidgetService.initialize();
 
-    // Listen for widget interactions
+    // Listen for widget interactions from home_widget package
     HomeWidget.widgetClicked.listen((uri) {
       if (uri != null) {
         MoodWidgetService.handleWidgetInteraction(uri.toString());
       }
     });
+
+    // NEW: Listen for widget interactions from native Android
+    _widgetChannel.setMethodCallHandler(_handleWidgetMethodCall);
 
     // Update widget on app start
     Future.delayed(const Duration(seconds: 1), () {
@@ -150,6 +157,25 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
       _checkOnboarding();
       _scheduleInitialBackupCheck();
     });
+  }
+
+  // NEW: Handle widget method calls from native side
+  Future<dynamic> _handleWidgetMethodCall(MethodCall call) async {
+    switch (call.method) {
+      case 'widgetActionReceived':
+        final arguments = call.arguments as Map<dynamic, dynamic>;
+        final action = arguments['action'] as String?;
+        if (action != null) {
+          Logger.moodService('📱 Received widget action from native: $action');
+          await MoodWidgetService.handleWidgetInteraction(action);
+        }
+        return true;
+      default:
+        throw PlatformException(
+          code: 'UNIMPLEMENTED',
+          details: 'Method ${call.method} not implemented',
+        );
+    }
   }
 
   /// Check if onboarding should be shown
@@ -281,34 +307,36 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
       ),
       routes: {
         '/': (context) => MainMenuScreen(
-              themeMode: _themeMode,
-              useCustomGradient: _useCustomGradient,
-              onThemeModeChanged: (ThemeMode? mode) {
-                if (mode != null) {
-                  _setThemeMode(mode);
-                }
-              },
-              onUseCustomGradientChanged: _setUseCustomGradient,
-            ),
+          themeMode: _themeMode,
+          useCustomGradient: _useCustomGradient,
+          onThemeModeChanged: (ThemeMode? mode) {
+            if (mode != null) {
+              _setThemeMode(mode);
+            }
+          },
+          onUseCustomGradientChanged: _setUseCustomGradient,
+        ),
         '/mood-log': (context) {
           final args = ModalRoute.of(context)?.settings.arguments
-              as Map<String, dynamic>?;
+          as Map<String, dynamic>?;
           final brightness = _themeMode == ThemeMode.system
               ? MediaQuery.platformBrightnessOf(context)
               : (_themeMode == ThemeMode.dark
-                  ? Brightness.dark
-                  : Brightness.light);
+              ? Brightness.dark
+              : Brightness.light);
 
           return MoodLogScreen(
             useCustomGradient: _useCustomGradient,
             isDarkMode: brightness == Brightness.dark,
             initialSegment: args?['segment'],
             timeSegment: args?['timeSegment'],
+            preSelectedRating: args?['preSelectedRating']?.toDouble(), // NEW: Widget rating
+            fromWidget: args?['fromWidget'] as bool?, // NEW: Widget flag
           );
         },
         '/goals': (context) {
           final args = ModalRoute.of(context)?.settings.arguments
-              as Map<String, dynamic>?;
+          as Map<String, dynamic>?;
           return GoalsScreen(highlightGoalId: args?['goalId']);
         },
         '/correlation': (context) => const CorrelationScreen(),
@@ -318,19 +346,19 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
         '/ai-analysis': (context) => const AIAnalysisScreen(),
         '/backup-export': (context) => const BackupExportScreen(),
         '/settings': (context) => SettingsScreen(
-              themeMode: _themeMode,
-              useCustomGradient: _useCustomGradient,
-              onThemeModeChanged: (ThemeMode? mode) {
-                if (mode != null) {
-                  _setThemeMode(mode);
-                }
-              },
-              onUseCustomGradientChanged: _setUseCustomGradient,
-            ),
+          themeMode: _themeMode,
+          useCustomGradient: _useCustomGradient,
+          onThemeModeChanged: (ThemeMode? mode) {
+            if (mode != null) {
+              _setThemeMode(mode);
+            }
+          },
+          onUseCustomGradientChanged: _setUseCustomGradient,
+        ),
         // Add debug route (only available in debug mode)
         if (kDebugMode)
           '/debug': (context) =>
-              kDebugMode ? const DebugDataScreen() : const SizedBox(),
+          kDebugMode ? const DebugDataScreen() : const SizedBox(),
       },
     );
   }

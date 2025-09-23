@@ -16,6 +16,8 @@ class MoodLogScreen extends StatefulWidget {
   final bool isDarkMode;
   final int? initialSegment;
   final String? timeSegment;
+  final double? preSelectedRating;
+  final bool? fromWidget;
 
   const MoodLogScreen({
     super.key,
@@ -23,6 +25,8 @@ class MoodLogScreen extends StatefulWidget {
     required this.isDarkMode,
     this.initialSegment,
     this.timeSegment,
+    this.preSelectedRating,
+    this.fromWidget,
   });
 
   @override
@@ -59,7 +63,13 @@ class _MoodLogScreenState extends State<MoodLogScreen>
     // Initialize controllers for all segments first
     for (int i = 0; i < timeSegments.length; i++) {
       _noteControllers[i] = TextEditingController();
-      _sessionMoodValues[i] = 5.0; // Default value
+
+      // NEW: Set pre-selected rating if provided from widget
+      if (widget.preSelectedRating != null && widget.fromWidget == true) {
+        _sessionMoodValues[i] = widget.preSelectedRating!;
+      } else {
+        _sessionMoodValues[i] = 5.0; // Default value
+      }
     }
 
     // Determine the correct starting segment synchronously
@@ -152,10 +162,33 @@ class _MoodLogScreenState extends State<MoodLogScreen>
       });
 
       if (widget.useCustomGradient) {
-        _updateGradientForMood(_sessionMoodValues[currentSegment] ?? 5.0);
+        final moodValue = widget.preSelectedRating ?? _sessionMoodValues[currentSegment] ?? 5.0;
+        _updateGradientForMood(moodValue);
       }
 
-      final savedMoodValue = _sessionMoodValues[currentSegment] ?? 5.0;
+      // NEW: Handle pre-selected rating from widget
+      final savedMoodValue = widget.preSelectedRating ?? _sessionMoodValues[currentSegment] ?? 5.0;
+
+      // Update session value if we have a pre-selected rating
+      if (widget.preSelectedRating != null && widget.fromWidget == true) {
+        _sessionMoodValues[currentSegment] = widget.preSelectedRating!;
+
+        // Show helpful message to user
+        if (mounted) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Pre-selected mood: ${widget.preSelectedRating!.toStringAsFixed(1)}/10 from widget'),
+                  duration: const Duration(seconds: 3),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          });
+        }
+      }
+
       _sliderService?.setValueImmediate(savedMoodValue);
     }
   }
