@@ -135,7 +135,7 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
     // Listen for widget interactions
     HomeWidget.widgetClicked.listen((uri) {
       if (uri != null) {
-        MoodWidgetService.handleWidgetInteraction(uri);
+        MoodWidgetService.handleWidgetInteraction(uri.toString());
       }
     });
 

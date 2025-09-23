@@ -38,7 +38,9 @@ struct MoodFlowWidgetEntryView: View {
             // Quick mood buttons
             HStack(spacing: 12) {
                 ForEach(1...5, id: \.self) { mood in
-                    Button(intent: QuickMoodIntent(mood: mood)) {
+                    Button(action: {
+                        // Handle mood tap
+                    }) {
                         Image(systemName: moodIcon(for: mood))
                             .font(.title2)
                             .foregroundColor(.white)

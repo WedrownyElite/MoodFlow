@@ -299,7 +299,7 @@
         <entry key="home_widget">
           <value>
             <list>
-              <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/home_widget-0.5.0/lib" />
+              <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/home_widget-0.6.0/lib" />
             </list>
           </value>
         </entry>
@@ -730,13 +730,6 @@
             </list>
           </value>
         </entry>
-        <entry key="workmanager">
-          <value>
-            <list>
-              <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/workmanager-0.5.2/lib" />
-            </list>
-          </value>
-        </entry>
         <entry key="xdg_directories">
           <value>
             <list>
@@ -793,7 +786,7 @@
       <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/google_sign_in_web-0.12.4+4/lib" />
       <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/googleapis-13.2.0/lib" />
       <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/googleapis_auth-1.6.0/lib" />
-      <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/home_widget-0.5.0/lib" />
+      <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/home_widget-0.6.0/lib" />
       <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/http-1.5.0/lib" />
       <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/http_parser-4.1.2/lib" />
       <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/icloud_storage-2.2.0/lib" />
@@ -854,7 +847,6 @@
       <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/vm_service-15.0.0/lib" />
       <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/web-1.1.1/lib" />
       <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/win32-5.14.0/lib" />
-      <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/workmanager-0.5.2/lib" />
       <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/xdg_directories-1.1.0/lib" />
       <root url="file://$USER_HOME$/AppData/Local/Pub/cache/hosted/pub.dev/xml-6.5.0/lib" />
       <root url="file://$USER_HOME$/Flutter/bin/cache/pkg/sky_engine/lib" />

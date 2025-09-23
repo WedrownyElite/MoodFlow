@@ -25,6 +25,16 @@
             android:killAfterRestore="true"
             android:restoreAnyVersion="true">
 
+        <!-- Widget provider -->
+        <receiver android:name=".MoodFlowWidgetProvider"
+                  android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                       android:resource="@xml/mood_widget_info" />
+        </receiver>
+        
         <!-- Notification receivers -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
             <intent-filter>

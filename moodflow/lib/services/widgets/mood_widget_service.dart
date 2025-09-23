@@ -1,5 +1,4 @@
 ﻿import 'package:home_widget/home_widget.dart';
-import 'package:flutter/services.dart';
 import '../data/mood_data_service.dart';
 import '../notifications/enhanced_notification_service.dart';
 import '../utils/logger.dart';
@@ -62,7 +61,7 @@ class MoodWidgetService {
       // Update the actual widget
       await HomeWidget.updateWidget(
         name: _widgetName,
-        androidName: 'MoodFlowWidget',
+        androidName: 'MoodFlowWidgetProvider',
         iOSName: 'MoodFlowWidget',
       );
 
@@ -132,10 +131,8 @@ class MoodWidgetService {
   static Future<void> _showSuccessNotification(double rating) async {
     try {
       final moodEmoji = _getMoodEmoji(rating);
-      await HomeWidget.showInteractiveNotification(
-        title: 'Mood Logged! $moodEmoji',
-        body: 'You rated your mood ${rating.toStringAsFixed(1)}/10',
-      );
+      Logger.moodService('✅ Mood logged successfully: $moodEmoji ${rating.toStringAsFixed(1)}/10');
+
     } catch (e) {
       Logger.moodService('❌ Success notification failed: $e');
     }
@@ -185,8 +182,9 @@ class MoodWidgetService {
   /// Schedule daily widget updates
   static Future<void> scheduleDailyUpdates() async {
     try {
-      // This would integrate with WorkManager for background updates
-      Logger.moodService('📅 Scheduled daily widget updates');
+      // Widget updates are handled by the system and manual triggers
+      // Future enhancement: Could use flutter_local_notifications for periodic updates
+      Logger.moodService('📅 Widget updates available on-demand');
     } catch (e) {
       Logger.moodService('❌ Widget scheduling failed: $e');
     }
