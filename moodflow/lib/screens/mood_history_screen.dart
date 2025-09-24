@@ -523,8 +523,16 @@ class DayMoodCard extends StatelessWidget {
       }
     }
 
-    // Custom tags - limit to 2 to stay within 10 total
-    tags.addAll(correlationData.customTags.take(2));
+    // Hobby activities - limit to 2 to avoid overcrowding
+    if (correlationData.hobbyActivities.isNotEmpty) {
+      tags.addAll(correlationData.hobbyActivities.take(2));
+    }
+
+    // Custom tags - add remaining slots (up to 10 total)
+    final remainingSlots = 10 - tags.length;
+    if (remainingSlots > 0 && correlationData.customTags.isNotEmpty) {
+      tags.addAll(correlationData.customTags.take(remainingSlots));
+    }
 
     return tags.take(10).toList(); // Ensure max 10 tags
   }
@@ -746,8 +754,20 @@ class DayMoodCard extends StatelessWidget {
     if (tag.contains('Party/event')) return Colors.pink;
     if (tag.contains('Date')) return Colors.red.shade300;
 
-    // Default color for custom tags
-    return Colors.indigo;
+    // Hobby activity colors (for both default and custom hobbies)
+    if (tag.contains('Reading')) return Colors.brown;
+    if (tag.contains('Music')) return Colors.purple;
+    if (tag.contains('Gaming')) return Colors.deepPurple;
+    if (tag.contains('Cooking')) return Colors.orange;
+    if (tag.contains('Gardening')) return Colors.green;
+    if (tag.contains('Art')) return Colors.pink;
+    if (tag.contains('Photography')) return Colors.teal;
+    if (tag.contains('Writing')) return Colors.indigo;
+    if (tag.contains('Sports')) return Colors.blue;
+    if (tag.contains('Crafts')) return Colors.amber;
+
+    // Default color for custom tags (distinctive but neutral)
+    return Colors.deepOrange.shade400;
   }
 } 
 
