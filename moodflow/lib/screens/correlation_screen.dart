@@ -503,6 +503,41 @@ class _CorrelationScreenState extends State<CorrelationScreen>
     return parts.join(' • ');
   }
 
+  Future<void> _changeTemperatureUnit(String newUnit) async {
+    if (newUnit == _temperatureUnit) return; // Already in this unit
+
+    final oldUnit = _temperatureUnit;
+
+    // Update the unit preference
+    await CorrelationDataService.setTemperatureUnit(newUnit);
+
+    // Convert the current temperature if it exists
+    if (_currentData?.temperature != null) {
+      final oldTemp = _currentData!.temperature!;
+      final storedUnit = _currentData!.temperatureUnit ?? oldUnit;
+
+      // Convert from stored unit to new unit
+      final convertedTemp = CorrelationDataService.convertTemperature(
+        oldTemp,
+        storedUnit,
+        newUnit,
+      );
+
+      // Update the data with converted temperature
+      _updateData(_currentData!.copyWith(
+        temperature: convertedTemp,
+        temperatureUnit: newUnit,
+      ));
+    }
+
+    // Update state to show the new unit
+    if (mounted) {
+      setState(() {
+        _temperatureUnit = newUnit;
+      });
+    }
+  }
+
   Widget _buildWeatherTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -720,72 +755,37 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                     style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
-                  Column(
-                    children: [
-                      RadioGroup<String>(
-                        onChanged: (value) async {
-                          if (value != null) {
-                            await CorrelationDataService.setTemperatureUnit(value);
-                            if (mounted) {
-                              setState(() => _temperatureUnit = value);
-                            }
-                          }
-                        },
-                        child: Column(
-                          children: [
-                            ListTile(
-                              title: const Text('Celsius (°C)'),
-                              leading: Radio<String>(
-                                value: 'celsius',
-                              ),
-                              onTap: () async {
-                                await CorrelationDataService.setTemperatureUnit('celsius');
-                                if (mounted) {
-                                  setState(() => _temperatureUnit = 'celsius');
-                                }
-                              },
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            ListTile(
-                              title: const Text('Fahrenheit (°F)'),
-                              leading: Radio<String>(
-                                value: 'fahrenheit',
-                              ),
-                              onTap: () async {
-                                await CorrelationDataService.setTemperatureUnit('fahrenheit');
-                                if (mounted) {
-                                  setState(() => _temperatureUnit = 'fahrenheit');
-                                }
-                              },
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ],
+                  RadioGroup<String>(
+                    groupValue: _temperatureUnit,
+                    onChanged: (value) async {
+                      if (value != null) {
+                        await _changeTemperatureUnit(value);
+                      }
+                    },
+                    child: Column(
+                      children: [
+                        ListTile(
+                          title: const Text('Celsius (°C)'),
+                          leading: Radio<String>(
+                            value: 'celsius',
+                          ),
+                          onTap: () async {
+                            await _changeTemperatureUnit('celsius');
+                          },
+                          contentPadding: EdgeInsets.zero,
                         ),
-                      ),
-                      RadioGroup<ActivityLevel>(
-                        onChanged: (value) {
-                          if (value != null) {
-                            _updateData(_currentData!.copyWith(exerciseLevel: value));
-                          }
-                        },
-                        child: Column(
-                          children: ActivityLevel.values.map((level) {
-                            return ListTile(
-                              title: Text(_getActivityLevelTitle(level)),
-                              subtitle: Text(_getActivityLevelDescription(level)),
-                              leading: Radio<ActivityLevel>(
-                                value: level,
-                              ),
-                              onTap: () {
-                                _updateData(_currentData!.copyWith(exerciseLevel: level));
-                              },
-                              contentPadding: EdgeInsets.zero,
-                              dense: true,
-                            );
-                          }).toList(),
+                        ListTile(
+                          title: const Text('Fahrenheit (°F)'),
+                          leading: Radio<String>(
+                            value: 'fahrenheit',
+                          ),
+                          onTap: () async {
+                            await _changeTemperatureUnit('fahrenheit');
+                          },
+                          contentPadding: EdgeInsets.zero,
                         ),
-                      )
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
