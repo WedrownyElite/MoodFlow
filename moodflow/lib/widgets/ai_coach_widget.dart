@@ -205,8 +205,7 @@ class _AiCoachWidgetState extends State<AiCoachWidget> {
           if (_showDataSettings) _buildDataSelectionPanel(),
           Expanded(child: _buildMessageList()),
           // Wrap input area with bottom padding based on keyboard
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+          Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
             ),

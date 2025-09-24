@@ -82,7 +82,8 @@ class _CorrelationScreenState extends State<CorrelationScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add Custom Hobby'),
-        content: TextField(
+        content: SingleChildScrollView(
+          child: TextField(
           controller: controller,
           decoration: const InputDecoration(
             hintText: 'Enter hobby name (max 20 chars)',
@@ -90,6 +91,7 @@ class _CorrelationScreenState extends State<CorrelationScreen>
           ),
           maxLength: 20,
           textCapitalization: TextCapitalization.words,
+          ),
         ),
         actions: [
           TextButton(
@@ -1712,13 +1714,15 @@ class _CorrelationScreenState extends State<CorrelationScreen>
       builder: (context) =>
           AlertDialog(
             title: const Text('Add Custom Tag'),
-            content: TextField(
+            content: SingleChildScrollView(
+              child: TextField(
               controller: controller,
               decoration: const InputDecoration(
                 hintText: 'Enter tag name...',
                 border: OutlineInputBorder(),
               ),
               textCapitalization: TextCapitalization.words,
+              ),
             ),
             actions: [
               TextButton(
