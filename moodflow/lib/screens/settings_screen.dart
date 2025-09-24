@@ -1,5 +1,3 @@
-// Updated settings_screen.dart - Condensed with proper widget separation
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';

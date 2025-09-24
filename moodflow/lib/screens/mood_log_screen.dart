@@ -279,7 +279,6 @@ class _MoodLogScreenState extends State<MoodLogScreen>
     }
   }
 
-  /// FIXED: Improved save process with immediate verification
   Future<void> _saveMoodData(int segment) async {
     final moodValue = _sessionMoodValues[segment] ?? 5.0;
     final noteText = _noteControllers[segment]?.text ?? '';
@@ -482,7 +481,6 @@ class _MoodLogScreenState extends State<MoodLogScreen>
                 sliderService: _sliderService!,
                 enabled: canEdit,
                 onChanged: (value) {
-                  // FIXED: Update session value immediately
                   _sessionMoodValues[index] = value;
 
                   if (widget.useCustomGradient && index == currentSegment) {
@@ -491,7 +489,6 @@ class _MoodLogScreenState extends State<MoodLogScreen>
                 },
                 onChangeEnd: canEdit
                     ? (value) {
-                        // FIXED: Save with debouncing to avoid excessive saves
                         _saveDebounceTimer?.cancel();
                         _saveDebounceTimer =
                             Timer(const Duration(milliseconds: 500), () {
@@ -531,7 +528,6 @@ class _MoodLogScreenState extends State<MoodLogScreen>
                           border: InputBorder.none,
                           hintText: 'Write your thoughts here...'),
                       onChanged: (text) {
-                        // FIXED: Save notes with debouncing
                         _debounceTimer?.cancel();
                         _debounceTimer =
                             Timer(const Duration(milliseconds: 1000), () {
