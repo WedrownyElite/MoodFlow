@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../services/notifications/real_notification_service.dart'
     as real_notifications;
 import '../services/backup/cloud_backup_service.dart';
@@ -11,6 +12,7 @@ import '../services/data/correlation_data_service.dart';
 import '../widgets/weather_api_setup_dialog.dart';
 import '../services/onboarding/onboarding_service.dart';
 import '../widgets/notification_settings_widget.dart';
+import '../services/notifications/real_notification_service.dart';
 import 'debug_data_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -664,12 +666,33 @@ class _DebugSection extends StatelessWidget {
               subtitle: 'Schedule a notification for 10 seconds from now',
               onTap: () => _testImmediateNotification(context),
             ),
+            _DebugListTile(
+              icon: Icons.schedule,
+              iconColor: Colors.blue,
+              title: 'View Scheduled Notifications',
+              subtitle: 'See all pending system notifications',
+              onTap: () => _showScheduledNotifications(context),
+              showChevron: true,
+            ),
           ],
         ),
       ),
     );
   }
 
+  Future<void> _showScheduledNotifications(BuildContext context) async {
+    final pendingNotifications = await RealNotificationService.getPendingNotifications();
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => _ScheduledNotificationsDialog(
+        notifications: pendingNotifications,
+      ),
+    );
+  }
+  
   // Debug action methods
   Future<void> _resetOnboarding(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -830,6 +853,81 @@ class _DebugListTile extends StatelessWidget {
       trailing: showChevron ? const Icon(Icons.chevron_right) : null,
       onTap: onTap,
       contentPadding: EdgeInsets.zero,
+    );
+  }
+}
+
+class _ScheduledNotificationsDialog extends StatelessWidget {
+  final List<PendingNotificationRequest> notifications;
+
+  const _ScheduledNotificationsDialog({required this.notifications});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Scheduled Notifications'),
+      content: SizedBox(
+        width: double.maxFinite,
+        height: 400,
+        child: notifications.isEmpty
+            ? const Center(
+          child: Text('No scheduled notifications'),
+        )
+            : ListView.builder(
+          itemCount: notifications.length,
+          itemBuilder: (context, index) {
+            final notification = notifications[index];
+            return Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'ID: ${notification.id}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const Spacer(),
+                        if (notification.payload != null)
+                          Icon(Icons.data_object, size: 16, color: Colors.blue),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      notification.title ?? 'No title',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      notification.body ?? 'No body',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                    if (notification.payload != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Payload: ${notification.payload}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue.shade600,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
     );
   }
 }

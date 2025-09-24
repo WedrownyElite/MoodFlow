@@ -131,57 +131,7 @@ class MoodWidgetService {
       Logger.moodService('❌ Navigation to mood screen failed: $e');
     }
   }
-
-  /// Log a quick mood from widget (keeping this for potential future use)
-  static Future<void> _logQuickMood(double rating) async {
-    try {
-      final today = DateTime.now();
-      final currentSegment = await _getCurrentTimeSegment();
-
-      if (!await _canLogCurrentSegment(currentSegment)) {
-        Logger.moodService('⚠️ Cannot log mood for current segment');
-        return;
-      }
-
-      // Save the mood with a note indicating it was from widget
-      await MoodDataService.saveMood(
-          today,
-          currentSegment,
-          rating,
-          'Quick check-in via widget'
-      );
-
-      // Update widget to reflect the change
-      await updateWidget();
-
-      // Show success notification
-      await _showSuccessNotification(rating);
-
-      Logger.moodService('✅ Quick mood logged: $rating for segment $currentSegment');
-    } catch (e) {
-      Logger.moodService('❌ Quick mood logging failed: $e');
-    }
-  }
-
-  /// Show success notification after logging mood
-  static Future<void> _showSuccessNotification(double rating) async {
-    try {
-      final moodEmoji = _getMoodEmoji(rating);
-      Logger.moodService('✅ Mood logged successfully: $moodEmoji ${rating.toStringAsFixed(1)}/10');
-    } catch (e) {
-      Logger.moodService('❌ Success notification failed: $e');
-    }
-  }
-
-  /// Get appropriate emoji for mood rating
-  static String _getMoodEmoji(double rating) {
-    if (rating >= 8) return '😊';
-    if (rating >= 6) return '🙂';
-    if (rating >= 4) return '😐';
-    if (rating >= 2) return '🙁';
-    return '😢';
-  }
-
+  
   /// Get current time segment based on notification settings
   static Future<int> _getCurrentTimeSegment() async {
     final settings = await EnhancedNotificationService.loadSettings();
