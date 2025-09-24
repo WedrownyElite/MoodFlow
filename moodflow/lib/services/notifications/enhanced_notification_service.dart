@@ -3,6 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     as notifications;
 import 'real_notification_service.dart';
+import '../data/mood_trends_service.dart';
+import '../data/mood_analytics_service.dart';
+import '../utils/logger.dart';
 
 class EnhancedNotificationService {
   static const String _settingsKey = 'notification_settings_v2';
@@ -68,36 +71,211 @@ class EnhancedNotificationService {
   static Future<void> _updateScheduledNotifications(
       NotificationSettings settings) async {
     if (!settings.enabled) {
-      // Cancel all notifications if disabled
       await RealNotificationService.cancelAllNotifications();
       return;
     }
 
-    // Cancel existing notifications first
     await RealNotificationService.cancelAllNotifications();
 
-    // Schedule mood reminders with user-configured times
+    // Schedule personalized mood reminders
     if (settings.accessReminders) {
-      await RealNotificationService.scheduleMoodReminders(
-        morningEnabled: settings.morningAccessReminder,
-        middayEnabled: settings.middayAccessReminder,
-        eveningEnabled: settings.eveningAccessReminder,
-        morningTime: NotificationTime(
-            settings.morningTime.hour, settings.morningTime.minute),
-        middayTime: NotificationTime(
-            settings.middayTime.hour, settings.middayTime.minute),
-        eveningTime: NotificationTime(
-            settings.eveningTime.hour, settings.eveningTime.minute),
-      );
+      if (settings.morningAccessReminder) {
+        final morningMessage = await _generatePersonalizedMessage(0);
+        await RealNotificationService.schedulePersonalizedMoodReminder(
+          id: 1001,
+          title: '☀️ Morning Check-in',
+          body: morningMessage,
+          time: NotificationTime(settings.morningTime.hour, settings.morningTime.minute),
+          segment: 0,
+        );
+      }
+
+      if (settings.middayAccessReminder) {
+        final middayMessage = await _generatePersonalizedMessage(1);
+        await RealNotificationService.schedulePersonalizedMoodReminder(
+          id: 1002,
+          title: '⚡ Midday Moment',
+          body: middayMessage,
+          time: NotificationTime(settings.middayTime.hour, settings.middayTime.minute),
+          segment: 1,
+        );
+      }
+
+      if (settings.eveningAccessReminder) {
+        final eveningMessage = await _generatePersonalizedMessage(2);
+        await RealNotificationService.schedulePersonalizedMoodReminder(
+          id: 1003,
+          title: '🌙 Evening Reflection',
+          body: eveningMessage,
+          time: NotificationTime(settings.eveningTime.hour, settings.eveningTime.minute),
+          segment: 2,
+        );
+      }
     }
 
     // Schedule end-of-day reminder
     if (settings.endOfDayReminder) {
       await RealNotificationService.scheduleEndOfDayReminder(
         enabled: true,
-        time: NotificationTime(
-            settings.endOfDayTime.hour, settings.endOfDayTime.minute),
+        time: NotificationTime(settings.endOfDayTime.hour, settings.endOfDayTime.minute),
       );
+    }
+
+    // Schedule streak preservation notification (1 hour before midnight)
+    await _scheduleStreakPreservationCheck();
+
+    // Schedule goal progress notifications
+    if (settings.goalProgress) {
+      await _scheduleGoalProgressCheck();
+    }
+  }
+
+  /// Check and schedule streak preservation notification
+  static Future<void> _scheduleStreakPreservationCheck() async {
+    try {
+      final endDate = DateTime.now();
+      final startDate = endDate.subtract(const Duration(days: 30));
+      final trends = await MoodTrendsService.getMoodTrends(
+        startDate: startDate,
+        endDate: endDate,
+      );
+      final stats = await MoodTrendsService.calculateStatisticsForDateRange(
+        trends,
+        startDate,
+        endDate,
+      );
+
+      if (stats.currentStreak >= 3) {
+        // Schedule notification for 11 PM (1 hour before midnight)
+        await RealNotificationService.scheduleStreakPreservationNotification(
+          currentStreak: stats.currentStreak,
+          time: const NotificationTime(23, 0),
+        );
+      }
+    } catch (e) {
+      Logger.notificationService('Error scheduling streak preservation: $e');
+    }
+  }
+
+  /// Check and schedule goal progress notifications
+  static Future<void> _scheduleGoalProgressCheck() async {
+    try {
+      final goals = await MoodAnalyticsService.loadGoals();
+
+      for (final goal in goals) {
+        if (!goal.isCompleted) {
+          // Calculate progress based on goal type
+          int progress = 0;
+          int target = goal.targetDays;
+
+          if (goal.type == GoalType.consecutiveDays) {
+            final endDate = DateTime.now();
+            final startDate = goal.createdDate;
+            final trends = await MoodTrendsService.getMoodTrends(
+              startDate: startDate,
+              endDate: endDate,
+            );
+            final stats = await MoodTrendsService.calculateStatisticsForDateRange(
+              trends,
+              startDate,
+              endDate,
+            );
+            progress = stats.currentStreak;
+          } else {
+            progress = goal.targetDays ~/ 2; // Placeholder calculation
+          }
+
+          final percentage = (progress / target * 100).round();
+
+          // Only schedule if meaningful progress (25%, 50%, 75%, 90%)
+          if (percentage >= 25 && percentage % 25 == 0 || percentage >= 90) {
+            await RealNotificationService.scheduleGoalProgressNotification(
+              goalTitle: goal.title,
+              progress: progress,
+              target: target,
+              time: const NotificationTime(18, 0), // 6 PM by default
+            );
+          }
+        }
+      }
+    } catch (e) {
+      Logger.notificationService('Error scheduling goal progress: $e');
+    }
+  }
+
+  /// Generate personalized notification text based on mood trends
+  static Future<String> _generatePersonalizedMessage(int segment) async {
+    try {
+      // Get last 30 days of mood data
+      final endDate = DateTime.now();
+      final startDate = endDate.subtract(const Duration(days: 30));
+      final trends = await MoodTrendsService.getMoodTrends(
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+      if (trends.isEmpty) {
+        return _getDefaultMessage(segment);
+      }
+
+      // Calculate average for this segment
+      final segmentMoods = <double>[];
+      for (final day in trends) {
+        if (day.moods[segment] != null) {
+          segmentMoods.add(day.moods[segment]!);
+        }
+      }
+
+      if (segmentMoods.isEmpty) {
+        return _getDefaultMessage(segment);
+      }
+
+      final avgMood = segmentMoods.reduce((a, b) => a + b) / segmentMoods.length;
+
+      // Generate message based on segment and average mood
+      switch (segment) {
+        case 0: // Morning
+          if (avgMood >= 7.5) {
+            return 'Good morning, sunshine! ☀️ Your mornings are usually great - let\'s keep it up!';
+          } else if (avgMood >= 6.0) {
+            return 'Morning check-in time! 🌅 How are you starting your day?';
+          } else {
+            return 'Good morning! 🌄 Remember, rough mornings can still turn into good days.';
+          }
+        case 1: // Midday
+          if (avgMood >= 7.5) {
+            return 'Midday momentum! ⚡ You usually feel great at this time!';
+          } else if (avgMood >= 6.0) {
+            return 'Time for a midday check-in! 🌤️ How\'s your day going?';
+          } else {
+            return 'Midday pause! ☕ Take a moment to check in with yourself.';
+          }
+        case 2: // Evening
+          if (avgMood >= 7.5) {
+            return 'Evening reflection! 🌙 Your evenings tend to be peaceful.';
+          } else if (avgMood >= 6.0) {
+            return 'How was your evening? 🌆 Time to wind down and reflect.';
+          } else {
+            return 'Evening check-in! 🌃 Remember to be kind to yourself.';
+          }
+        default:
+          return _getDefaultMessage(segment);
+      }
+    } catch (e) {
+      return _getDefaultMessage(segment);
+    }
+  }
+
+  static String _getDefaultMessage(int segment) {
+    switch (segment) {
+      case 0:
+        return 'Good morning! ☀️ How are you feeling?';
+      case 1:
+        return 'Midday check-in! ⚡ Take a moment to log your mood.';
+      case 2:
+        return 'Evening reflection! 🌙 How has your day been?';
+      default:
+        return 'Time to check in with your mood!';
     }
   }
 

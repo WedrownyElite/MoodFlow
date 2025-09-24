@@ -71,7 +71,11 @@ Future<void> _initializeServices() async {
     await MoodDataService.initialize();
     Logger.moodService('✅ MoodDataService initialized');
 
-    // 4. Initialize cloud backup services
+    // 4. Initialize enhanced notifications with personalization
+    await EnhancedNotificationService.initialize();
+    Logger.notificationService('✅ Enhanced notifications initialized');
+
+    // 5. Initialize cloud backup services
     await _initializeCloudBackup();
   } catch (e) {
     Logger.moodService('❌ Error during service initialization: $e');

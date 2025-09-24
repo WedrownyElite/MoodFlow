@@ -25,6 +25,21 @@ class RealNotificationService {
   static bool _initialized = false;
   static late tz.Location _localTimeZone;
 
+  static final Map<int, tz.TZDateTime> _scheduledNotificationTimes = {};
+
+  /// Helper to check for time conflicts and adjust if needed
+  static tz.TZDateTime _adjustForConflicts(tz.TZDateTime scheduledTime) {
+    for (final existingTime in _scheduledNotificationTimes.values) {
+      final difference = scheduledTime.difference(existingTime).abs();
+      if (difference.inMinutes < 5) {
+        // Conflict detected, delay by 5 minutes
+        scheduledTime = scheduledTime.add(const Duration(minutes: 5));
+        debugPrint('⏰ Notification conflict detected, delaying by 5 minutes');
+      }
+    }
+    return scheduledTime;
+  }
+
   /// Initialize the notification service
   static Future<void> initialize() async {
     if (_initialized) return;
@@ -226,16 +241,111 @@ class RealNotificationService {
       iOS: iosDetails,
     );
 
+    var scheduledTime = _nextInstanceOfTime(time);
+    scheduledTime = _adjustForConflicts(scheduledTime);
+    _scheduledNotificationTimes[id] = scheduledTime;
+
     await _notifications.zonedSchedule(
       id,
       title,
       body,
-      _nextInstanceOfTime(time),
+      scheduledTime,
       details,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime, // ADD THIS LINE
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
       payload: payload,
+    );
+  }
+
+  /// Schedule personalized mood reminder
+  static Future<void> schedulePersonalizedMoodReminder({
+    required int id,
+    required String title,
+    required String body,
+    required NotificationTime time,
+    required int segment,
+  }) async {
+    await scheduleDailyNotification(
+      id: id,
+      title: title,
+      body: body,
+      time: time,
+      payload: jsonEncode({
+        'type': 'access_reminder',
+        'segment': segment,
+        'personalized': true,
+      }),
+    );
+  }
+
+  /// Schedule streak preservation notification
+  static Future<void> scheduleStreakPreservationNotification({
+    required int currentStreak,
+    required NotificationTime time,
+  }) async {
+    String title;
+    String body;
+
+    if (currentStreak >= 30) {
+      title = '🔥 $currentStreak-day streak at stake!';
+      body = 'You\'re on fire! Don\'t break your amazing streak - log your mood before midnight.';
+    } else if (currentStreak >= 7) {
+      title = '⚡ $currentStreak-day streak reminder';
+      body = 'Keep your $currentStreak-day streak alive! Take a moment to log your mood.';
+    } else {
+      title = '📝 Don\'t forget your mood log';
+      body = 'You\'re building momentum with a $currentStreak-day streak! Log your mood to keep it going.';
+    }
+
+    await scheduleDailyNotification(
+      id: 5001,
+      title: title,
+      body: body,
+      time: time,
+      payload: jsonEncode({
+        'type': 'streak_preservation',
+        'currentStreak': currentStreak,
+      }),
+    );
+  }
+
+  /// Schedule goal progress notification
+  static Future<void> scheduleGoalProgressNotification({
+    required String goalTitle,
+    required int progress,
+    required int target,
+    required NotificationTime time,
+  }) async {
+    final percentage = (progress / target * 100).round();
+    String title;
+    String body;
+
+    if (percentage >= 90) {
+      title = '🎯 Almost there!';
+      body = 'You\'re at $percentage% of your goal "$goalTitle". Finish strong!';
+    } else if (percentage >= 75) {
+      title = '💪 Great progress!';
+      body = 'You\'ve reached $percentage% of "$goalTitle". Keep pushing!';
+    } else if (percentage >= 50) {
+      title = '📈 Halfway there!';
+      body = 'You\'re $percentage% toward "$goalTitle". You\'ve got this!';
+    } else {
+      title = '🚀 Goal reminder';
+      body = 'Keep working on "$goalTitle" - you\'re at $percentage%!';
+    }
+
+    await scheduleDailyNotification(
+      id: 6001,
+      title: title,
+      body: body,
+      time: time,
+      payload: jsonEncode({
+        'type': 'goal_progress',
+        'goalTitle': goalTitle,
+        'progress': progress,
+        'target': target,
+      }),
     );
   }
 
@@ -411,5 +521,7 @@ class NotificationIds {
   static const int endOfDayReminder = 2001;
   static const int goalReminder = 3001;
   static const int streakCelebration = 4001;
+  static const int streakPreservation = 5001;
+  static const int goalProgress = 6001;
   static const int test = 9999;
 }
