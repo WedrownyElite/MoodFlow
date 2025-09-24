@@ -762,29 +762,6 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                           ],
                         ),
                       ),
-                      RadioGroup<ActivityLevel>(
-                        onChanged: (value) {
-                          if (value != null) {
-                            _updateData(_currentData!.copyWith(exerciseLevel: value));
-                          }
-                        },
-                        child: Column(
-                          children: ActivityLevel.values.map((level) {
-                            return ListTile(
-                              title: Text(_getActivityLevelTitle(level)),
-                              subtitle: Text(_getActivityLevelDescription(level)),
-                              leading: Radio<ActivityLevel>(
-                                value: level,
-                              ),
-                              onTap: () {
-                                _updateData(_currentData!.copyWith(exerciseLevel: level));
-                              },
-                              contentPadding: EdgeInsets.zero,
-                              dense: true,
-                            );
-                          }).toList(),
-                        ),
-                      )
                     ],
                   ),
                 ],
