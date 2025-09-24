@@ -759,7 +759,7 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                     groupValue: _temperatureUnit,
                     onChanged: (value) async {
                       if (value != null) {
-                        await _changeTemperatureUnit(value);
+                          await _changeTemperatureUnit(value);
                       }
                     },
                     child: Column(
