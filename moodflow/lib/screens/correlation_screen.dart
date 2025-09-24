@@ -774,18 +774,8 @@ class _CorrelationScreenState extends State<CorrelationScreen>
                           },
                           contentPadding: EdgeInsets.zero,
                         ),
-                        ListTile(
-                          title: const Text('Fahrenheit (°F)'),
-                          leading: Radio<String>(
-                            value: 'fahrenheit',
-                          ),
-                          onTap: () async {
-                            await _changeTemperatureUnit('fahrenheit');
-                          },
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
