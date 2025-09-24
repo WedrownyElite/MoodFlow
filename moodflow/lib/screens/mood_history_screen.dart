@@ -767,7 +767,7 @@ class DayMoodCard extends StatelessWidget {
     if (tag.contains('Crafts')) return Colors.amber;
 
     // Default color for custom tags (distinctive but neutral)
-    return Colors.deepOrange.shade400;
+    return Colors.lightGreen.shade400;
   }
 } 
 
