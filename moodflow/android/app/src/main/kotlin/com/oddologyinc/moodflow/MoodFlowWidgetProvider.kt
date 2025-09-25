@@ -27,17 +27,18 @@ class MoodFlowWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.mood_widget)
         
         // Get data from shared preferences (set by Flutter)
-        val prefs = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         
-        val currentSegment = prefs.getInt("current_segment_index", 0)
+        // Use Flutter's key format for home_widget package
+        val currentSegment = prefs.getInt("flutter.current_segment_index", 0)
         val segmentNames = arrayOf("Morning", "Midday", "Evening")
         val segmentQuestions = arrayOf(
             "How's your morning going?",
             "How's your midday going?", 
             "How's your evening going?"
         )
-        val canLogCurrent = prefs.getBoolean("can_log_current", true)
-        val selectedMood = prefs.getInt("selected_mood_$currentSegment", -1)
+        val canLogCurrent = prefs.getBoolean("flutter.can_log_current", true)
+        val selectedMood = prefs.getInt("flutter.selected_mood_$currentSegment", -1)
         
         // Update header and segment info
         views.setTextViewText(R.id.current_segment_display, segmentNames[currentSegment])
@@ -62,11 +63,9 @@ class MoodFlowWidgetProvider : AppWidgetProvider() {
             if (isSelected) {
                 views.setInt(moodButtonIds[i], "setBackgroundResource", R.drawable.mood_button_selected_bg)
                 views.setFloat(moodButtonIds[i], "setAlpha", 1.0f)
-                views.setBoolean(moodButtonIds[i], "setSelected", true)
             } else {
                 views.setInt(moodButtonIds[i], "setBackgroundResource", R.drawable.mood_button_bg)
                 views.setFloat(moodButtonIds[i], "setAlpha", if (canLogCurrent) 1.0f else 0.5f)
-                views.setBoolean(moodButtonIds[i], "setSelected", false)
             }
             
             if (canLogCurrent) {
@@ -136,22 +135,22 @@ class MoodFlowWidgetProvider : AppWidgetProvider() {
             else -> 6.0
         }
         
-        // Save mood selection and update widget display
-        val prefs = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
+        // Save mood selection to Flutter's shared preferences
+        val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         prefs.edit().apply {
-            putInt("selected_mood_$segment", moodIndex)
-            putFloat("widget_mood_rating_$segment", rating.toFloat())
-            putInt("widget_mood_segment", segment)
-            putLong("widget_mood_timestamp", System.currentTimeMillis())
-            putBoolean("widget_mood_pending", true) // Flag for Flutter to pick up
+            putInt("flutter.selected_mood_$segment", moodIndex)
+            putFloat("flutter.widget_mood_rating_$segment", rating.toFloat())
+            putInt("flutter.widget_mood_segment", segment)
+            putLong("flutter.widget_mood_timestamp", System.currentTimeMillis())
+            putBoolean("flutter.widget_mood_pending", true) // Flag for Flutter to pick up
             apply()
         }
         
-        // Show brief feedback by updating widget immediately
+        // Show immediate feedback by updating widget
         val appWidgetManager = AppWidgetManager.getInstance(context)
         updateAppWidget(context, appWidgetManager, appWidgetId)
         
-        // Optionally: Send a broadcast to Flutter app if it's running
+        // Send a broadcast to Flutter app if it's running
         val flutterBroadcast = Intent().apply {
             action = "com.oddologyinc.moodflow.WIDGET_MOOD_SELECTED"
             putExtra("mood_index", moodIndex)

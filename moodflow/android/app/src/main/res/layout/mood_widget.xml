@@ -65,7 +65,8 @@
                 android:textSize="24sp"
                 android:gravity="center"
                 android:contentDescription="Very Bad Mood"
-                android:alpha="1.0" />
+                android:clickable="true"
+                android:focusable="true" />
 
         <!-- Bad - 🙁 -->
         <TextView
@@ -78,7 +79,8 @@
                 android:textSize="24sp"
                 android:gravity="center"
                 android:contentDescription="Bad Mood"
-                android:alpha="1.0" />
+                android:clickable="true"
+                android:focusable="true" />
 
         <!-- Neutral - 😐 -->
         <TextView
@@ -91,7 +93,8 @@
                 android:textSize="24sp"
                 android:gravity="center"
                 android:contentDescription="Neutral Mood"
-                android:alpha="1.0" />
+                android:clickable="true"
+                android:focusable="true" />
 
         <!-- Good - 🙂 -->
         <TextView
@@ -104,7 +107,8 @@
                 android:textSize="24sp"
                 android:gravity="center"
                 android:contentDescription="Good Mood"
-                android:alpha="1.0" />
+                android:clickable="true"
+                android:focusable="true" />
 
         <!-- Very Good - 😊 -->
         <TextView
@@ -117,7 +121,8 @@
                 android:textSize="24sp"
                 android:gravity="center"
                 android:contentDescription="Very Good Mood"
-                android:alpha="1.0" />
+                android:clickable="true"
+                android:focusable="true" />
     </LinearLayout>
 
     <!-- Status message -->

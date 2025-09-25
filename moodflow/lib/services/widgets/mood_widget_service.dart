@@ -29,18 +29,14 @@ class MoodWidgetService {
       final today = DateTime.now();
       final currentSegment = await _getCurrentTimeSegment();
 
-      // Get today's mood data for all segments
-      final segmentMoods = <int, Map<String, dynamic>?>{};
-      for (int i = 0; i < 3; i++) {
-        segmentMoods[i] = await MoodDataService.loadMood(today, i);
-      }
+      // Get today's mood data for current segment
+      final currentSegmentMood = await MoodDataService.loadMood(today, currentSegment);
 
       // Update widget data
       await HomeWidget.saveWidgetData<int>('current_segment_index', currentSegment);
       await HomeWidget.saveWidgetData<bool>('can_log_current', await _canLogCurrentSegment(currentSegment));
 
       // Save mood selection state for current segment
-      final currentSegmentMood = segmentMoods[currentSegment];
       if (currentSegmentMood?['rating'] != null) {
         final rating = (currentSegmentMood!['rating'] as num).toDouble();
         final moodIndex = _convertRatingToMoodIndex(rating);
@@ -84,9 +80,10 @@ class MoodWidgetService {
       // Handle "Open App" button - this SHOULD open the app
       else if (action == 'open_mood_log' || action == 'open_app') {
         final currentSegment = await _getCurrentTimeSegment();
-        await NavigationService.navigateToMoodLogWithRating(
+
+        // Navigate to mood log for current segment
+        await NavigationService.navigateToMoodLog(
           segment: currentSegment,
-          preSelectedRating: 6.0,
         );
 
         NavigationService.showNotificationTapInfo('widget');
@@ -124,9 +121,6 @@ class MoodWidgetService {
 
         // Trigger cloud backup if enabled
         await _triggerCloudBackupIfEnabled();
-
-        // Could add haptic feedback here if needed
-        // HapticFeedback.lightImpact();
       } else {
         Logger.moodService('❌ Failed to save background mood from widget');
       }
@@ -138,7 +132,6 @@ class MoodWidgetService {
   /// Start periodic check for pending widget moods (in case app wasn't running)
   static void _startPeriodicMoodCheck() {
     // Check every 30 seconds for pending moods when app is active
-    // This catches mood selections made when the app wasn't running
     Stream.periodic(const Duration(seconds: 30)).listen((_) async {
       await _checkForPendingWidgetMoods();
     });
@@ -147,11 +140,72 @@ class MoodWidgetService {
   /// Check for pending widget moods and process them
   static Future<void> _checkForPendingWidgetMoods() async {
     try {
-      // This would check SharedPreferences or your storage for pending widget moods
-      // For now, just ensure widget is up to date
-      await updateWidget();
+      // Check if there are pending widget moods to process
+      final pendingMoods = await _getPendingWidgetMoods();
+
+      for (final moodData in pendingMoods) {
+        await _processPendingMood(moodData);
+      }
+
+      if (pendingMoods.isNotEmpty) {
+        // Clear pending flag
+        await HomeWidget.saveWidgetData<bool>('widget_mood_pending', false);
+
+        // Update widget to reflect changes
+        await updateWidget();
+      }
     } catch (e) {
       Logger.moodService('❌ Pending mood check failed: $e');
+    }
+  }
+
+  /// Get pending widget moods from SharedPreferences
+  static Future<List<Map<String, dynamic>>> _getPendingWidgetMoods() async {
+    try {
+      final isPending = await HomeWidget.getWidgetData<bool>('widget_mood_pending') ?? false;
+
+      if (!isPending) return [];
+
+      final segment = await HomeWidget.getWidgetData<int>('widget_mood_segment') ?? 0;
+      final rating = await HomeWidget.getWidgetData<double>('widget_mood_rating_$segment') ?? 6.0;
+      final timestamp = await HomeWidget.getWidgetData<int>('widget_mood_timestamp') ?? DateTime.now().millisecondsSinceEpoch;
+
+      return [{
+        'segment': segment,
+        'rating': rating,
+        'timestamp': timestamp,
+      }];
+    } catch (e) {
+      Logger.moodService('❌ Error getting pending moods: $e');
+      return [];
+    }
+  }
+
+  /// Process a pending mood selection
+  static Future<void> _processPendingMood(Map<String, dynamic> moodData) async {
+    try {
+      final segment = moodData['segment'] as int;
+      final rating = moodData['rating'] as double;
+      final timestamp = moodData['timestamp'] as int;
+
+      final moodDate = DateTime.fromMillisecondsSinceEpoch(timestamp);
+      final today = DateTime.now();
+
+      // Only process if it's for today
+      if (moodDate.day == today.day && moodDate.month == today.month && moodDate.year == today.year) {
+        final success = await MoodDataService.saveMood(
+            today,
+            segment,
+            rating,
+            'Quick mood from widget (processed)'
+        );
+
+        if (success) {
+          Logger.moodService('✅ Processed pending widget mood: $rating for segment $segment');
+        }
+      }
+    } catch (e) {
+      Logger.moodService('❌ Error processing pending mood: $e');
     }
   }
 
