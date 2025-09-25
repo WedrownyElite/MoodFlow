@@ -92,7 +92,23 @@ class MainActivity: FlutterActivity() {
             // Send the action to Flutter via MethodChannel
             flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
                 val channel = MethodChannel(messenger, WIDGET_CHANNEL)
-                channel.invokeMethod("widgetActionReceived", mapOf("action" to action))
+                
+                // Check if this is a background mood save
+                if (action == "mood_selected_background") {
+                    // Get the mood data from SharedPreferences
+                    val prefs = getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
+                    val segment = prefs.getInt("widget_mood_segment", 0)
+                    val rating = prefs.getFloat("widget_mood_rating_$segment", 6.0f)
+                    val timestamp = prefs.getLong("widget_mood_timestamp", 0)
+                    
+                    channel.invokeMethod("widgetMoodSelected", mapOf(
+                        "segment" to segment,
+                        "rating" to rating.toDouble(),
+                        "timestamp" to timestamp
+                    ))
+                } else {
+                    channel.invokeMethod("widgetActionReceived", mapOf("action" to action))
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()

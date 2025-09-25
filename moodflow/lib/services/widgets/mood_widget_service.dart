@@ -1,4 +1,5 @@
-﻿import 'package:home_widget/home_widget.dart';
+﻿import 'package:flutter/services.dart';
+import 'package:home_widget/home_widget.dart';
 import '../data/mood_data_service.dart';
 import '../notifications/enhanced_notification_service.dart';
 import '../utils/logger.dart';
@@ -105,6 +106,49 @@ class MoodWidgetService {
       }
     } catch (e) {
       Logger.moodService('❌ Widget interaction failed: $e');
+    }
+  }
+
+  /// Handle method calls from native widget
+  static Future<dynamic> handleWidgetMethodCall(MethodCall call) async {
+    switch (call.method) {
+      case 'widgetMoodSelected':
+        final arguments = call.arguments as Map<dynamic, dynamic>;
+        final segment = arguments['segment'] as int;
+        final rating = arguments['rating'] as double;
+        await _saveMoodFromWidget(segment, rating);
+        return true;
+      case 'widgetActionReceived':
+        final arguments = call.arguments as Map<dynamic, dynamic>;
+        final action = arguments['action'] as String?;
+        if (action != null) {
+          await handleWidgetInteraction(action);
+        }
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /// Save mood data from widget background interaction
+  static Future<void> _saveMoodFromWidget(int segment, double rating) async {
+    try {
+      final today = DateTime.now();
+      final success = await MoodDataService.saveMood(today, segment, rating, 'Quick mood from widget');
+
+      if (success) {
+        Logger.moodService('✅ Background mood saved from widget: $rating for segment $segment');
+
+        // Update widget to show the new selection
+        await updateWidget();
+
+        // Trigger cloud backup if enabled
+        await _triggerCloudBackupIfEnabled();
+      } else {
+        Logger.moodService('❌ Failed to save background mood from widget');
+      }
+    } catch (e) {
+      Logger.moodService('❌ Background mood save failed: $e');
     }
   }
 
