@@ -60,7 +60,7 @@ class MoodFlowWidgetProvider : AppWidgetProvider() {
             
             // Set selection state and alpha
             if (isSelected) {
-                views.setInt(moodButtonIds[i], "setBackgroundResource", R.drawable.enhanced_mood_button_selected)
+                views.setInt(moodButtonIds[i], "setBackgroundResource", R.drawable.mood_button_selected)
                 views.setFloat(moodButtonIds[i], "setAlpha", 1.0f)
                 views.setBoolean(moodButtonIds[i], "setSelected", true)
             } else {
