@@ -43,8 +43,49 @@
             android:progressTint="#4CAF50"
             android:progress="0" />
 
-    <!-- Quick Mood Buttons -->
+    <!-- Mood Section Header with Swipe Indicators -->
     <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp">
+
+        <TextView
+                android:id="@+id/swipe_indicator_left"
+                android:layout_width="16dp"
+                android:layout_height="wrap_content"
+                android:text="‹"
+                android:textColor="#80FFFFFF"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:visibility="gone" />
+
+        <TextView
+                android:id="@+id/segment_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Morning Mood"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:gravity="center" />
+
+        <TextView
+                android:id="@+id/swipe_indicator_right"
+                android:layout_width="16dp"
+                android:layout_height="wrap_content"
+                android:text="›"
+                android:textColor="#80FFFFFF"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:visibility="visible" />
+    </LinearLayout>
+
+    <!-- Quick Mood Buttons with Selection State -->
+    <LinearLayout
+            android:id="@+id/mood_buttons_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -58,7 +99,8 @@
                 android:layout_margin="4dp"
                 android:background="@drawable/mood_button_bg"
                 android:src="@drawable/ic_mood_very_bad"
-                android:contentDescription="Very Bad Mood" />
+                android:contentDescription="Very Bad Mood"
+                android:alpha="1.0" />
 
         <ImageButton
                 android:id="@+id/mood_2"
@@ -67,7 +109,8 @@
                 android:layout_margin="4dp"
                 android:background="@drawable/mood_button_bg"
                 android:src="@drawable/ic_mood_bad"
-                android:contentDescription="Bad Mood" />
+                android:contentDescription="Bad Mood"
+                android:alpha="1.0" />
 
         <ImageButton
                 android:id="@+id/mood_3"
@@ -76,7 +119,8 @@
                 android:layout_margin="4dp"
                 android:background="@drawable/mood_button_bg"
                 android:src="@drawable/ic_mood_neutral"
-                android:contentDescription="Neutral Mood" />
+                android:contentDescription="Neutral Mood"
+                android:alpha="1.0" />
 
         <ImageButton
                 android:id="@+id/mood_4"
@@ -85,7 +129,8 @@
                 android:layout_margin="4dp"
                 android:background="@drawable/mood_button_bg"
                 android:src="@drawable/ic_mood_good"
-                android:contentDescription="Good Mood" />
+                android:contentDescription="Good Mood"
+                android:alpha="1.0" />
 
         <ImageButton
                 android:id="@+id/mood_5"
@@ -94,7 +139,51 @@
                 android:layout_margin="4dp"
                 android:background="@drawable/mood_button_bg"
                 android:src="@drawable/ic_mood_very_good"
-                android:contentDescription="Very Good Mood" />
+                android:contentDescription="Very Good Mood"
+                android:alpha="1.0" />
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="8dp">
+
+        <Button
+                android:id="@+id/open_mood_log_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:text="Open App"
+                android:textSize="10sp"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/mood_button_bg"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp" />
+
+        <Button
+                android:id="@+id/swipe_left_btn"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="4dp"
+                android:text="‹"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/mood_button_bg"
+                android:visibility="gone" />
+
+        <Button
+                android:id="@+id/swipe_right_btn"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:text="›"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/mood_button_bg" />
     </LinearLayout>
 
     <!-- Current Status -->
