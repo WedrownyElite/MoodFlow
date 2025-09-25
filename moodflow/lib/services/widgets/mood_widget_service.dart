@@ -1,5 +1,4 @@
-﻿import 'package:flutter/services.dart';
-import 'package:home_widget/home_widget.dart';
+﻿import 'package:home_widget/home_widget.dart';
 import '../data/mood_data_service.dart';
 import '../notifications/enhanced_notification_service.dart';
 import '../utils/logger.dart';
@@ -14,13 +13,17 @@ class MoodWidgetService {
   static Future<void> initialize() async {
     try {
       await HomeWidget.setAppGroupId(_groupId);
-      Logger.moodService('✅ Widget service initialized');
+
+      // Set up periodic checks for pending widget moods
+      _startPeriodicMoodCheck();
+
+      Logger.moodService('✅ Enhanced widget service initialized');
     } catch (e) {
       Logger.moodService('❌ Widget initialization failed: $e');
     }
   }
 
-  /// Update widget with current mood data
+  /// Update widget with current mood data and segment information
   static Future<void> updateWidget() async {
     try {
       final today = DateTime.now();
@@ -32,32 +35,18 @@ class MoodWidgetService {
         segmentMoods[i] = await MoodDataService.loadMood(today, i);
       }
 
-      // Calculate completion status
-      final completedSegments = [
-        segmentMoods[0]?['rating'] != null,
-        segmentMoods[1]?['rating'] != null,
-        segmentMoods[2]?['rating'] != null,
-      ];
-
-      final completionCount = completedSegments.where((c) => c).length;
-      final completionPercentage = (completionCount / 3 * 100).round();
-
       // Update widget data
       await HomeWidget.saveWidgetData<int>('current_segment_index', currentSegment);
-      await HomeWidget.saveWidgetData<String>('current_segment', MoodDataService.timeSegments[currentSegment]);
-      await HomeWidget.saveWidgetData<int>('completion_percentage', completionPercentage);
       await HomeWidget.saveWidgetData<bool>('can_log_current', await _canLogCurrentSegment(currentSegment));
 
-      // Save mood data for each segment
-      for (int i = 0; i < 3; i++) {
-        final mood = segmentMoods[i];
-        if (mood?['rating'] != null) {
-          final rating = (mood!['rating'] as num).toDouble();
-          final moodIndex = _convertRatingToMoodIndex(rating);
-          await HomeWidget.saveWidgetData<int>('selected_mood_$i', moodIndex);
-        } else {
-          await HomeWidget.saveWidgetData<int>('selected_mood_$i', -1);
-        }
+      // Save mood selection state for current segment
+      final currentSegmentMood = segmentMoods[currentSegment];
+      if (currentSegmentMood?['rating'] != null) {
+        final rating = (currentSegmentMood!['rating'] as num).toDouble();
+        final moodIndex = _convertRatingToMoodIndex(rating);
+        await HomeWidget.saveWidgetData<int>('selected_mood_$currentSegment', moodIndex);
+      } else {
+        await HomeWidget.saveWidgetData<int>('selected_mood_$currentSegment', -1);
       }
 
       // Update the actual widget
@@ -67,74 +56,65 @@ class MoodWidgetService {
         iOSName: 'MoodFlowWidget',
       );
 
-      Logger.moodService('✅ Widget updated: segment=$currentSegment, completion=$completionPercentage%');
+      Logger.moodService('✅ Widget updated: segment=$currentSegment, accessible=${await _canLogCurrentSegment(currentSegment)}');
     } catch (e) {
       Logger.moodService('❌ Widget update failed: $e');
     }
   }
 
-  /// Handle widget interactions - Updated for multi-segment support
+  /// Handle widget interactions
   static Future<void> handleWidgetInteraction(String? action) async {
     if (action == null) return;
 
     try {
       Logger.moodService('📱 Widget interaction: $action');
 
+      // Handle mood selections (these shouldn't open the app)
       if (action.startsWith('mood_') && action.contains('_segment_')) {
-        // Parse mood and segment from action like "mood_3_segment_1"
         final parts = action.split('_');
         if (parts.length >= 4) {
           final moodIndex = int.tryParse(parts[1]);
           final segment = int.tryParse(parts[3]);
 
           if (moodIndex != null && segment != null && moodIndex >= 1 && moodIndex <= 5) {
-            await _handleMoodSelection(moodIndex, segment);
+            await _handleBackgroundMoodSelection(moodIndex, segment);
           }
         }
-      } else if (action == 'swipe_left') {
-        await _handleSwipeLeft();
-      } else if (action == 'swipe_right') {
-        await _handleSwipeRight();
-      } else if (action == 'open_mood_log') {
+      }
+      // Handle "Open App" button - this SHOULD open the app
+      else if (action == 'open_mood_log' || action == 'open_app') {
         final currentSegment = await _getCurrentTimeSegment();
-        NavigationService.navigateToMoodLogWithRating(
+        await NavigationService.navigateToMoodLogWithRating(
           segment: currentSegment,
-          preSelectedRating: 6.0, // Default neutral
+          preSelectedRating: 6.0,
         );
-      } else if (action == 'open_app') {
-        NavigationService.navigateToHome();
+
+        NavigationService.showNotificationTapInfo('widget');
       }
     } catch (e) {
       Logger.moodService('❌ Widget interaction failed: $e');
     }
   }
 
-  /// Handle method calls from native widget
-  static Future<dynamic> handleWidgetMethodCall(MethodCall call) async {
-    switch (call.method) {
-      case 'widgetMoodSelected':
-        final arguments = call.arguments as Map<dynamic, dynamic>;
-        final segment = arguments['segment'] as int;
-        final rating = arguments['rating'] as double;
-        await _saveMoodFromWidget(segment, rating);
-        return true;
-      case 'widgetActionReceived':
-        final arguments = call.arguments as Map<dynamic, dynamic>;
-        final action = arguments['action'] as String?;
-        if (action != null) {
-          await handleWidgetInteraction(action);
-        }
-        return true;
-      default:
-        return false;
-    }
-  }
-
-  /// Save mood data from widget background interaction
-  static Future<void> _saveMoodFromWidget(int segment, double rating) async {
+  /// Handle background mood selection (saves mood without opening app)
+  static Future<void> _handleBackgroundMoodSelection(int moodIndex, int segment) async {
     try {
+      final rating = _convertMoodIndexToRating(moodIndex);
       final today = DateTime.now();
-      final success = await MoodDataService.saveMood(today, segment, rating, 'Quick mood from widget');
+
+      // Check if this segment is accessible
+      if (!await _canLogCurrentSegment(segment)) {
+        Logger.moodService('⚠️ Attempted to log mood for inaccessible segment: $segment');
+        return;
+      }
+
+      // Save the mood data with a note indicating it came from widget
+      final success = await MoodDataService.saveMood(
+          today,
+          segment,
+          rating,
+          'Quick mood from widget'
+      );
 
       if (success) {
         Logger.moodService('✅ Background mood saved from widget: $rating for segment $segment');
@@ -144,32 +124,37 @@ class MoodWidgetService {
 
         // Trigger cloud backup if enabled
         await _triggerCloudBackupIfEnabled();
+
+        // Could add haptic feedback here if needed
+        // HapticFeedback.lightImpact();
       } else {
         Logger.moodService('❌ Failed to save background mood from widget');
       }
     } catch (e) {
-      Logger.moodService('❌ Background mood save failed: $e');
+      Logger.moodService('❌ Background mood selection failed: $e');
     }
   }
 
-  /// Convert mood index (1-5) to rating (2-10) for better distribution
-  static double _convertMoodIndexToRating(int moodIndex) {
-    // Map 1-5 to 2-10 with better spacing:
-    // 1 (😢) -> 2.0 (Very bad)
-    // 2 (🙁) -> 4.0 (Bad) 
-    // 3 (😐) -> 6.0 (Neutral)
-    // 4 (🙂) -> 8.0 (Good)
-    // 5 (😊) -> 10.0 (Very good)
-    switch (moodIndex) {
-      case 1: return 2.0;
-      case 2: return 4.0;
-      case 3: return 6.0;
-      case 4: return 8.0;
-      case 5: return 10.0;
-      default: return 6.0; // Default to neutral
+  /// Start periodic check for pending widget moods (in case app wasn't running)
+  static void _startPeriodicMoodCheck() {
+    // Check every 30 seconds for pending moods when app is active
+    // This catches mood selections made when the app wasn't running
+    Stream.periodic(const Duration(seconds: 30)).listen((_) async {
+      await _checkForPendingWidgetMoods();
+    });
+  }
+
+  /// Check for pending widget moods and process them
+  static Future<void> _checkForPendingWidgetMoods() async {
+    try {
+      // This would check SharedPreferences or your storage for pending widget moods
+      // For now, just ensure widget is up to date
+      await updateWidget();
+    } catch (e) {
+      Logger.moodService('❌ Pending mood check failed: $e');
     }
   }
-  
+
   /// Get current time segment based on notification settings
   static Future<int> _getCurrentTimeSegment() async {
     final settings = await EnhancedNotificationService.loadSettings();
@@ -179,114 +164,41 @@ class MoodWidgetService {
     final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
     final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
 
+    // Return the highest accessible segment
     if (currentMinutes >= eveningMinutes) return 2; // Evening
     if (currentMinutes >= middayMinutes) return 1; // Midday
     return 0; // Morning
   }
 
-  /// Check if user can log mood for current segment
+  /// Check if user can log mood for specific segment
   static Future<bool> _canLogCurrentSegment(int segment) async {
     final settings = await EnhancedNotificationService.loadSettings();
     final now = DateTime.now();
     final currentMinutes = now.hour * 60 + now.minute;
 
     switch (segment) {
-      case 0: return true; // Morning always available
+      case 0:
+        return true; // Morning always available
       case 1:
         final middayMinutes = settings.middayTime.hour * 60 + settings.middayTime.minute;
         return currentMinutes >= middayMinutes;
       case 2:
         final eveningMinutes = settings.eveningTime.hour * 60 + settings.eveningTime.minute;
         return currentMinutes >= eveningMinutes;
-      default: return false;
+      default:
+        return false;
     }
   }
 
-  /// Schedule daily widget updates
-  static Future<void> scheduleDailyUpdates() async {
-    try {
-      // Widget updates are handled by the system and manual triggers
-      // Future enhancement: Could use flutter_local_notifications for periodic updates
-      Logger.moodService('📅 Widget updates available on-demand');
-    } catch (e) {
-      Logger.moodService('❌ Widget scheduling failed: $e');
-    }
-  }
-
-  /// Get widget analytics data
-  static Future<Map<String, dynamic>> getWidgetAnalytics() async {
-    try {
-      // Track widget usage for insights
-      return {
-        'widget_interactions_today': 0, // Implement tracking
-        'quick_moods_logged': 0,
-        'last_updated': DateTime.now().toIso8601String(),
-      };
-    } catch (e) {
-      Logger.moodService('❌ Widget analytics failed: $e');
-      return {};
-    }
-  }
-
-  /// Handle mood selection for specific segment
-  static Future<void> _handleMoodSelection(int moodIndex, int segment) async {
-    try {
-      final rating = _convertMoodIndexToRating(moodIndex);
-      final today = DateTime.now();
-
-      // Save the mood data
-      final success = await MoodDataService.saveMood(today, segment, rating, 'Quick mood from widget');
-
-      if (success) {
-        Logger.moodService('✅ Mood saved from widget: $rating for segment $segment');
-
-        // Update widget to show selection
-        await updateWidget();
-
-        // Trigger cloud backup if enabled
-        await _triggerCloudBackupIfEnabled();
-      } else {
-        Logger.moodService('❌ Failed to save mood from widget');
-      }
-    } catch (e) {
-      Logger.moodService('❌ Mood selection handling failed: $e');
-    }
-  }
-
-  /// Handle swipe left (previous segment)
-  static Future<void> _handleSwipeLeft() async {
-    try {
-      final currentSegment = await _getCurrentTimeSegment();
-      if (currentSegment > 0) {
-        // Update to previous segment and refresh widget
-        await _setCurrentWidgetSegment(currentSegment - 1);
-      }
-    } catch (e) {
-      Logger.moodService('❌ Swipe left handling failed: $e');
-    }
-  }
-
-  /// Handle swipe right (next segment)
-  static Future<void> _handleSwipeRight() async {
-    try {
-      final currentSegment = await _getCurrentTimeSegment();
-      if (currentSegment < 2) {
-        // Update to next segment and refresh widget
-        await _setCurrentWidgetSegment(currentSegment + 1);
-      }
-    } catch (e) {
-      Logger.moodService('❌ Swipe right handling failed: $e');
-    }
-  }
-
-  /// Set current widget segment and update display
-  static Future<void> _setCurrentWidgetSegment(int segment) async {
-    try {
-      await HomeWidget.saveWidgetData<int>('current_segment_index', segment);
-      await updateWidget();
-      Logger.moodService('📱 Widget swiped to segment: $segment');
-    } catch (e) {
-      Logger.moodService('❌ Set widget segment failed: $e');
+  /// Convert mood index (1-5) to rating (2-10) with good distribution
+  static double _convertMoodIndexToRating(int moodIndex) {
+    switch (moodIndex) {
+      case 1: return 2.0;  // 😢 Very bad
+      case 2: return 4.0;  // 🙁 Bad
+      case 3: return 6.0;  // 😐 Neutral
+      case 4: return 8.0;  // 🙂 Good
+      case 5: return 10.0; // 😊 Very good
+      default: return 6.0; // Default to neutral
     }
   }
 
@@ -302,10 +214,6 @@ class MoodWidgetService {
   /// Trigger cloud backup if enabled
   static Future<void> _triggerCloudBackupIfEnabled() async {
     try {
-      // Import the cloud backup service
-      // Note: You may need to add this import at the top of the file:
-      // import '../backup/cloud_backup_service.dart';
-
       final isEnabled = await RealCloudBackupService.isAutoBackupEnabled();
       final isAvailable = await RealCloudBackupService.isCloudBackupAvailable();
 
@@ -315,6 +223,36 @@ class MoodWidgetService {
       }
     } catch (e) {
       Logger.moodService('❌ Cloud backup trigger failed: $e');
+    }
+  }
+
+  /// Get widget analytics data
+  static Future<Map<String, dynamic>> getWidgetAnalytics() async {
+    try {
+      final today = DateTime.now();
+      int quickMoodsToday = 0;
+
+      // Count moods logged today with widget note
+      for (int segment = 0; segment < 3; segment++) {
+        final mood = await MoodDataService.loadMood(today, segment);
+        if (mood?['note']?.contains('widget') == true) {
+          quickMoodsToday++;
+        }
+      }
+
+      return {
+        'quick_moods_logged_today': quickMoodsToday,
+        'current_segment': await _getCurrentTimeSegment(),
+        'segments_accessible': [
+          await _canLogCurrentSegment(0),
+          await _canLogCurrentSegment(1),
+          await _canLogCurrentSegment(2),
+        ],
+        'last_updated': DateTime.now().toIso8601String(),
+      };
+    } catch (e) {
+      Logger.moodService('❌ Widget analytics failed: $e');
+      return {};
     }
   }
 }

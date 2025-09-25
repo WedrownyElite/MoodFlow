@@ -130,9 +130,10 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
   static const _prefThemeModeKey = 'theme_mode';
   static const _prefCustomGradientKey = 'use_custom_gradient';
 
-  // NEW: Add method channel for widget interactions
+  // Method channel for widget interactions
   static const MethodChannel _widgetChannel = MethodChannel('widget_interaction');
 
+  @override
   @override
   void initState() {
     super.initState();
@@ -147,7 +148,7 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
       }
     });
 
-    // NEW: Listen for widget interactions from native Android
+    // Enhanced widget interaction handling
     _widgetChannel.setMethodCallHandler(_handleWidgetMethodCall);
 
     // Update widget on app start
@@ -160,10 +161,11 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
       _loadPreferences();
       _checkOnboarding();
       _scheduleInitialBackupCheck();
+      _checkForPendingWidgetMoods();
     });
   }
 
-  // NEW: Handle widget method calls from native side
+  // Handle widget method calls from native side
   Future<dynamic> _handleWidgetMethodCall(MethodCall call) async {
     switch (call.method) {
       case 'widgetActionReceived':
@@ -174,11 +176,100 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
           await MoodWidgetService.handleWidgetInteraction(action);
         }
         return true;
+
+      case 'openMoodLog':
+        final arguments = call.arguments as Map<dynamic, dynamic>;
+        final segment = arguments['segment'] as int? ?? 0;
+        final fromWidget = arguments['fromWidget'] as bool? ?? false;
+
+        Logger.moodService('📱 Opening mood log from widget: segment=$segment');
+
+        // Navigate to mood log with segment info
+        if (mounted) {
+          Navigator.pushNamed(context, '/mood-log', arguments: {
+            'segment': segment,
+            'fromWidget': fromWidget,
+          });
+        }
+        return true;
+
+      case 'processPendingWidgetMood':
+        final arguments = call.arguments as Map<dynamic, dynamic>;
+        await _processPendingWidgetMood(arguments);
+        return true;
+
       default:
         throw PlatformException(
           code: 'UNIMPLEMENTED',
           details: 'Method ${call.method} not implemented',
         );
+    }
+  }
+
+  // Check for pending widget moods on app startup
+  Future<void> _checkForPendingWidgetMoods() async {
+    try {
+      final result = await _widgetChannel.invokeMethod('checkPendingMoods');
+      if (result is List && result.isNotEmpty) {
+        Logger.moodService('📱 Found ${result.length} pending widget moods');
+
+        for (final moodData in result) {
+          await _processPendingWidgetMood(moodData as Map<dynamic, dynamic>);
+        }
+
+        // Clear pending moods
+        await _widgetChannel.invokeMethod('clearPendingMoods');
+
+        // Update widget to reflect saved moods
+        MoodWidgetService.updateWidget();
+      }
+    } catch (e) {
+      Logger.moodService('❌ Error checking for pending widget moods: $e');
+    }
+  }
+
+  // Process a pending widget mood selection
+  Future<void> _processPendingWidgetMood(Map<dynamic, dynamic> moodData) async {
+    try {
+      final segment = moodData['segment'] as int;
+      final rating = moodData['rating'] as double;
+      final timestamp = moodData['timestamp'] as int;
+
+      // Convert timestamp to date
+      final moodDate = DateTime.fromMillisecondsSinceEpoch(timestamp);
+      final today = DateTime.now();
+
+      // Only process if it's for today (prevent stale data)
+      if (moodDate.day == today.day &&
+          moodDate.month == today.month &&
+          moodDate.year == today.year) {
+
+        final success = await MoodDataService.saveMood(
+            today,
+            segment,
+            rating,
+            'Quick mood from widget (background)'
+        );
+
+        if (success) {
+          Logger.moodService('✅ Processed pending widget mood: $rating for segment $segment');
+
+          // Show user feedback
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Widget mood saved: ${rating.toStringAsFixed(1)}/10 for ${MoodDataService.timeSegments[segment]}'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      } else {
+        Logger.moodService('⚠️ Skipping stale widget mood from ${moodDate.toString()}');
+      }
+    } catch (e) {
+      Logger.moodService('❌ Error processing pending widget mood: $e');
     }
   }
 

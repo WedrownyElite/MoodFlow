@@ -44,7 +44,7 @@ class MainActivity: FlutterActivity() {
             }
         }
         
-        // NEW: Widget interaction channel
+        // Enhanced widget interaction channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WIDGET_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "handleWidgetAction" -> {
@@ -55,6 +55,14 @@ class MainActivity: FlutterActivity() {
                     } else {
                         result.error("INVALID_ACTION", "Action cannot be null", null)
                     }
+                }
+                "checkPendingMoods" -> {
+                    val pendingMoods = checkForPendingWidgetMoods()
+                    result.success(pendingMoods)
+                }
+                "clearPendingMoods" -> {
+                    clearPendingWidgetMoods()
+                    result.success(true)
                 }
                 else -> {
                     result.notImplemented()
@@ -76,14 +84,23 @@ class MainActivity: FlutterActivity() {
         handleIntent(intent)
     }
     
+    override fun onResume() {
+        super.onResume()
+        
+        // Check for pending widget moods when app becomes active
+        processPendingWidgetMoods()
+    }
+    
     private fun handleIntent(intent: Intent?) {
         intent?.let {
             val widgetAction = it.getStringExtra("widget_action")
-            if (widgetAction != null) {
+            val fromWidget = it.getBooleanExtra("from_widget", false)
+            
+            if (widgetAction != null && fromWidget) {
                 // Delay to ensure Flutter is ready
                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                     handleWidgetAction(widgetAction)
-                }, 500)
+                }, 300)
             }
         }
     }
@@ -94,25 +111,67 @@ class MainActivity: FlutterActivity() {
             flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
                 val channel = MethodChannel(messenger, WIDGET_CHANNEL)
                 
-                // Check if this is a background mood save
-                if (action == "mood_selected_background") {
-                    // Get the mood data from SharedPreferences
-                    val prefs = getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
-                    val segment = prefs.getInt("widget_mood_segment", 0)
-                    val rating = prefs.getFloat("widget_mood_rating_$segment", 6.0f)
-                    val timestamp = prefs.getLong("widget_mood_timestamp", 0)
-                    
-                    channel.invokeMethod("widgetMoodSelected", mapOf(
-                        "segment" to segment,
-                        "rating" to rating.toDouble(),
-                        "timestamp" to timestamp
-                    ))
-                } else {
-                    channel.invokeMethod("widgetActionReceived", mapOf("action" to action))
+                when (action) {
+                    "open_mood_log" -> {
+                        val segment = intent.getIntExtra("segment", 0)
+                        channel.invokeMethod("openMoodLog", mapOf(
+                            "segment" to segment,
+                            "fromWidget" to true
+                        ))
+                    }
+                    else -> {
+                        channel.invokeMethod("widgetActionReceived", mapOf("action" to action))
+                    }
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+    
+    // Check for pending widget mood selections
+    private fun checkForPendingWidgetMoods(): List<Map<String, Any>> {
+        val prefs = getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
+        val pendingMoods = mutableListOf<Map<String, Any>>()
+        
+        if (prefs.getBoolean("widget_mood_pending", false)) {
+            val segment = prefs.getInt("widget_mood_segment", 0)
+            val rating = prefs.getFloat("widget_mood_rating_$segment", 6.0f)
+            val timestamp = prefs.getLong("widget_mood_timestamp", 0)
+            
+            pendingMoods.add(mapOf(
+                "segment" to segment,
+                "rating" to rating.toDouble(),
+                "timestamp" to timestamp,
+                "source" to "widget"
+            ))
+        }
+        
+        return pendingMoods
+    }
+    
+    // Process pending widget moods when app becomes active
+    private fun processPendingWidgetMoods() {
+        val pendingMoods = checkForPendingWidgetMoods()
+        
+        if (pendingMoods.isNotEmpty()) {
+            // Send to Flutter for processing
+            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                val channel = MethodChannel(messenger, WIDGET_CHANNEL)
+                
+                for (mood in pendingMoods) {
+                    channel.invokeMethod("processPendingWidgetMood", mood)
+                }
+            }
+            
+            // Clear pending flag
+            clearPendingWidgetMoods()
+        }
+    }
+    
+    // Clear pending widget moods flag
+    private fun clearPendingWidgetMoods() {
+        val prefs = getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("widget_mood_pending", false).apply()
     }
 }

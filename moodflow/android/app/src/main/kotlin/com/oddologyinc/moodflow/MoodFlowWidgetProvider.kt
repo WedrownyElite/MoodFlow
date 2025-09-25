@@ -31,92 +31,81 @@ class MoodFlowWidgetProvider : AppWidgetProvider() {
         
         val currentSegment = prefs.getInt("current_segment_index", 0)
         val segmentNames = arrayOf("Morning", "Midday", "Evening")
-        val completionPercentage = prefs.getInt("completion_percentage", 0)
+        val segmentQuestions = arrayOf(
+            "How's your morning going?",
+            "How's your midday going?", 
+            "How's your evening going?"
+        )
         val canLogCurrent = prefs.getBoolean("can_log_current", true)
         val selectedMood = prefs.getInt("selected_mood_$currentSegment", -1)
         
-        // Update segment title and indicators
-        views.setTextViewText(R.id.segment_title, "${segmentNames[currentSegment]} Mood")
-        views.setProgressBar(R.id.completion_progress, 100, completionPercentage, false)
+        // Update header and segment info
+        views.setTextViewText(R.id.current_segment_display, segmentNames[currentSegment])
+        views.setTextViewText(R.id.segment_title, segmentQuestions[currentSegment])
         
-        // Update swipe indicators
-        views.setViewVisibility(R.id.swipe_indicator_left, if (currentSegment > 0) android.view.View.VISIBLE else android.view.View.GONE)
-        views.setViewVisibility(R.id.swipe_indicator_right, if (currentSegment < 2) android.view.View.VISIBLE else android.view.View.GONE)
-        views.setViewVisibility(R.id.swipe_left_btn, if (currentSegment > 0) android.view.View.VISIBLE else android.view.View.GONE)
-        views.setViewVisibility(R.id.swipe_right_btn, if (currentSegment < 2) android.view.View.VISIBLE else android.view.View.GONE)
-        
-        val statusText = if (canLogCurrent) "Tap a mood to log quickly" else "Current time slot not available"
+        // Update status text
+        val statusText = if (canLogCurrent) {
+            "Tap an emoji to log your mood"
+        } else {
+            "This time slot isn't available yet"
+        }
         views.setTextViewText(R.id.status_text, statusText)
         
-        // Set up mood buttons with selection state - FIXED: Use broadcast instead of activity
+        // Set up 5 emoji mood buttons
         val moodButtonIds = arrayOf(R.id.mood_1, R.id.mood_2, R.id.mood_3, R.id.mood_4, R.id.mood_5)
-        val moodActions = arrayOf("mood_1", "mood_2", "mood_3", "mood_4", "mood_5")
         
         for (i in moodButtonIds.indices) {
-            val isSelected = selectedMood == (i + 1)
+            val moodIndex = i + 1
+            val isSelected = selectedMood == moodIndex
             
-            // Set selection state
+            // Set selection state and alpha
             if (isSelected) {
-                views.setInt(moodButtonIds[i], "setBackgroundResource", R.drawable.mood_button_selected_bg)
+                views.setInt(moodButtonIds[i], "setBackgroundResource", R.drawable.enhanced_mood_button_selected)
                 views.setFloat(moodButtonIds[i], "setAlpha", 1.0f)
+                views.setBoolean(moodButtonIds[i], "setSelected", true)
             } else {
                 views.setInt(moodButtonIds[i], "setBackgroundResource", R.drawable.mood_button_bg)
                 views.setFloat(moodButtonIds[i], "setAlpha", if (canLogCurrent) 1.0f else 0.5f)
+                views.setBoolean(moodButtonIds[i], "setSelected", false)
             }
             
             if (canLogCurrent) {
-                // FIXED: Send broadcast to widget provider instead of opening activity
-                val intent = Intent(context, MoodFlowWidgetProvider::class.java).apply {
+                // Create broadcast intent for mood selection (NO app opening)
+                val moodIntent = Intent(context, MoodFlowWidgetProvider::class.java).apply {
                     action = "MOOD_SELECTED"
-                    putExtra("mood_index", i + 1)
+                    putExtra("mood_index", moodIndex)
                     putExtra("segment", currentSegment)
                     putExtra("appWidgetId", appWidgetId)
                 }
                 
                 val pendingIntent = PendingIntent.getBroadcast(
                     context,
-                    1000 + (currentSegment * 10) + i,
-                    intent,
+                    2000 + (currentSegment * 10) + i, // Unique request code
+                    moodIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 
                 views.setOnClickPendingIntent(moodButtonIds[i], pendingIntent)
+            } else {
+                // Disable clicks for unavailable segments
+                views.setOnClickPendingIntent(moodButtonIds[i], null)
             }
         }
         
-        // Set up navigation buttons - FIXED: Use broadcast
-        if (currentSegment > 0) {
-            val leftIntent = Intent(context, MoodFlowWidgetProvider::class.java).apply {
-                action = "SWIPE_LEFT"
-                putExtra("appWidgetId", appWidgetId)
-            }
-            val leftPendingIntent = PendingIntent.getBroadcast(
-                context, 3000, leftIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.swipe_left_btn, leftPendingIntent)
-        }
-        
-        if (currentSegment < 2) {
-            val rightIntent = Intent(context, MoodFlowWidgetProvider::class.java).apply {
-                action = "SWIPE_RIGHT"
-                putExtra("appWidgetId", appWidgetId)
-            }
-            val rightPendingIntent = PendingIntent.getBroadcast(
-                context, 3001, rightIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.swipe_right_btn, rightPendingIntent)
-        }
-        
-        // Set up "Open App" button - ONLY this should open the activity
+        // Set up "Open App" button - ONLY this opens the app
         val openAppIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("widget_action", "open_mood_log")
             putExtra("segment", currentSegment)
+            putExtra("from_widget", true)
         }
         val openAppPendingIntent = PendingIntent.getActivity(
-            context, 2000, openAppIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            context, 
+            5000 + appWidgetId, // Unique request code
+            openAppIntent, 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        views.setOnClickPendingIntent(R.id.open_mood_log_btn, openAppPendingIntent)
+        views.setOnClickPendingIntent(R.id.open_app_btn, openAppPendingIntent)
         
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
@@ -130,80 +119,51 @@ class MoodFlowWidgetProvider : AppWidgetProvider() {
                 val segment = intent.getIntExtra("segment", 0)
                 val appWidgetId = intent.getIntExtra("appWidgetId", 0)
                 
-                // Handle mood selection without opening app
-                handleMoodSelection(context, moodIndex, segment, appWidgetId)
-            }
-            "SWIPE_LEFT" -> {
-                val appWidgetId = intent.getIntExtra("appWidgetId", 0)
-                handleSwipeLeft(context, appWidgetId)
-            }
-            "SWIPE_RIGHT" -> {
-                val appWidgetId = intent.getIntExtra("appWidgetId", 0)
-                handleSwipeRight(context, appWidgetId)
+                // Handle mood selection WITHOUT opening app
+                handleMoodSelectionBackground(context, moodIndex, segment, appWidgetId)
             }
         }
     }
     
-    private fun handleMoodSelection(context: Context, moodIndex: Int, segment: Int, appWidgetId: Int) {
-        // Convert mood index to rating
+    private fun handleMoodSelectionBackground(context: Context, moodIndex: Int, segment: Int, appWidgetId: Int) {
+        // Convert mood index to rating (1-5 -> 2.0, 4.0, 6.0, 8.0, 10.0)
         val rating = when (moodIndex) {
-            1 -> 2.0
-            2 -> 4.0
-            3 -> 6.0
-            4 -> 8.0
-            5 -> 10.0
+            1 -> 2.0  // 😢 Very Bad
+            2 -> 4.0  // 🙁 Bad  
+            3 -> 6.0  // 😐 Neutral
+            4 -> 8.0  // 🙂 Good
+            5 -> 10.0 // 😊 Very Good
             else -> 6.0
         }
         
-        // Save to SharedPreferences so Flutter can pick it up
+        // Save mood selection and update widget display
         val prefs = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
         prefs.edit().apply {
             putInt("selected_mood_$segment", moodIndex)
             putFloat("widget_mood_rating_$segment", rating.toFloat())
             putInt("widget_mood_segment", segment)
             putLong("widget_mood_timestamp", System.currentTimeMillis())
+            putBoolean("widget_mood_pending", true) // Flag for Flutter to pick up
             apply()
         }
         
-        // Notify Flutter about the mood selection via method channel
-        val flutterIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("widget_action", "mood_selected_background")
+        // Show brief feedback by updating widget immediately
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        updateAppWidget(context, appWidgetManager, appWidgetId)
+        
+        // Optionally: Send a broadcast to Flutter app if it's running
+        val flutterBroadcast = Intent().apply {
+            action = "com.oddologyinc.moodflow.WIDGET_MOOD_SELECTED"
             putExtra("mood_index", moodIndex)
             putExtra("segment", segment)
             putExtra("rating", rating)
+            putExtra("background_save", true)
         }
         
         try {
-            context.startActivity(flutterIntent)
+            context.sendBroadcast(flutterBroadcast)
         } catch (e: Exception) {
-            // If app is not running, the mood will be saved when it starts
-        }
-        
-        // Update widget display
-        val appWidgetManager = AppWidgetManager.getInstance(context)
-        updateAppWidget(context, appWidgetManager, appWidgetId)
-    }
-    
-    private fun handleSwipeLeft(context: Context, appWidgetId: Int) {
-        val prefs = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
-        val currentSegment = prefs.getInt("current_segment_index", 0)
-        
-        if (currentSegment > 0) {
-            prefs.edit().putInt("current_segment_index", currentSegment - 1).apply()
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            updateAppWidget(context, appWidgetManager, appWidgetId)
-        }
-    }
-    
-    private fun handleSwipeRight(context: Context, appWidgetId: Int) {
-        val prefs = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
-        val currentSegment = prefs.getInt("current_segment_index", 0)
-        
-        if (currentSegment < 2) {
-            prefs.edit().putInt("current_segment_index", currentSegment + 1).apply()
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            updateAppWidget(context, appWidgetManager, appWidgetId)
+            // Silent fail - app might not be running
         }
     }
 }

@@ -1,17 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_pressed="true">
-        <shape android:shape="oval">
-            <solid android:color="#FFFFFFFF" />
-            <stroke android:width="2dp" android:color="#4CAF50" />
-        </shape>
-    </item>
+    <!-- Selected state with bright highlight -->
     <item android:state_selected="true">
         <shape android:shape="oval">
-            <solid android:color="#E8F5E8" />
-            <stroke android:width="3dp" android:color="#4CAF50" />
+            <solid android:color="#E3F2FD" />
+            <stroke android:width="3dp" android:color="#2196F3" />
         </shape>
     </item>
+    <!-- Pressed state -->
+    <item android:state_pressed="true">
+        <shape android:shape="oval">
+            <solid android:color="#BBDEFB" />
+            <stroke android:width="2dp" android:color="#1976D2" />
+        </shape>
+    </item>
+    <!-- Default state -->
     <item>
         <shape android:shape="oval">
             <solid android:color="#40FFFFFF" />

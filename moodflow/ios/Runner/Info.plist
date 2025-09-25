@@ -58,5 +58,22 @@
     <string>This app needs location access to fetch weather data for mood correlations.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>This app needs location access to fetch weather data for mood correlations.</string>
+    <!-- URL Scheme for Deep Linking from Widget -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.oddologyinc.moodflow</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>moodflow</string>
+            </array>
+        </dict>
+    </array>
+    <!-- App Groups for Widget Communication -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.oddologyinc.moodflow</string>
+    </array>
 </dict>
 </plist>
