@@ -45,30 +45,42 @@ class MainActivity: FlutterActivity() {
         }
         
         // Enhanced widget interaction channel
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WIDGET_CHANNEL).setMethodCallHandler { call, result ->
-            when (call.method) {
-                "handleWidgetAction" -> {
-                    val action = call.argument<String>("action")
-                    if (action != null) {
-                        handleWidgetAction(action)
-                        result.success(true)
-                    } else {
-                        result.error("INVALID_ACTION", "Action cannot be null", null)
-                    }
-                }
-                "checkPendingMoods" -> {
-                    val pendingMoods = checkForPendingWidgetMoods()
-                    result.success(pendingMoods)
-                }
-                "clearPendingMoods" -> {
-                    clearPendingWidgetMoods()
-                    result.success(true)
-                }
-                else -> {
-                    result.notImplemented()
-                }
-            }
-        }
+      MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WIDGET_CHANNEL).setMethodCallHandler { call, result ->
+          when (call.method) {
+              "handleWidgetAction" -> {
+                  val action = call.argument<String>("action")
+                  if (action != null) {
+                      handleWidgetAction(action)
+                      result.success(true)
+                  } else {
+                      result.error("INVALID_ACTION", "Action cannot be null", null)
+                  }
+              }
+              "checkPendingMoods" -> {
+                  val pendingMoods = checkForPendingWidgetMoods()
+                  result.success(pendingMoods)
+              }
+              "clearPendingMoods" -> {
+                  clearPendingWidgetMoods()
+                  result.success(true)
+              }
+              // ADD THIS NEW CASE - this is what was missing
+              "forceNavigateToMoodLog" -> {
+                  val segment = call.argument<Int>("segment") ?: 0
+                  val fromWidget = call.argument<Boolean>("fromWidget") ?: false
+                  
+                  // Force navigate to mood log (this is handled on Flutter side)
+                  result.success(mapOf(
+                      "segment" to segment,
+                      "fromWidget" to fromWidget,
+                      "forceNavigation" to true
+                  ))
+              }
+              else -> {
+                  result.notImplemented()
+              }
+          }
+      }
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,17 +107,18 @@ class MainActivity: FlutterActivity() {
         intent?.let {
             val widgetAction = it.getStringExtra("widget_action")
             val fromWidget = it.getBooleanExtra("from_widget", false)
+            val forceMoodLog = it.getBooleanExtra("force_mood_log", false)
             
             if (widgetAction != null && fromWidget) {
                 // Delay to ensure Flutter is ready
                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    handleWidgetAction(widgetAction)
+                    handleWidgetAction(widgetAction, forceMoodLog)
                 }, 300)
             }
         }
     }
     
-    private fun handleWidgetAction(action: String) {
+    private fun handleWidgetAction(action: String, forceMoodLog: Boolean = false) {
         try {
             // Send the action to Flutter via MethodChannel
             flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
@@ -114,10 +127,19 @@ class MainActivity: FlutterActivity() {
                 when (action) {
                     "open_mood_log" -> {
                         val segment = intent.getIntExtra("segment", 0)
-                        channel.invokeMethod("openMoodLog", mapOf(
-                            "segment" to segment,
-                            "fromWidget" to true
-                        ))
+                        
+                        // FIXED: Always navigate to mood log when force_mood_log is true
+                        if (forceMoodLog) {
+                            channel.invokeMethod("forceNavigateToMoodLog", mapOf(
+                                "segment" to segment,
+                                "fromWidget" to true
+                            ))
+                        } else {
+                            channel.invokeMethod("openMoodLog", mapOf(
+                                "segment" to segment,
+                                "fromWidget" to true
+                            ))
+                        }
                     }
                     else -> {
                         channel.invokeMethod("widgetActionReceived", mapOf("action" to action))

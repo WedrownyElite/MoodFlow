@@ -6,13 +6,13 @@
               android:padding="12dp"
               android:background="@drawable/widget_background">
 
-    <!-- Header with app name and current segment -->
+    <!-- Header with app name and navigation arrows -->
     <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="6dp">
 
         <TextView
                 android:id="@+id/widget_title"
@@ -33,17 +33,55 @@
                 android:textSize="11sp" />
     </LinearLayout>
 
-    <!-- Current segment title -->
-    <TextView
-            android:id="@+id/segment_title"
+    <!-- NEW: Segment Navigation with Left/Right arrows -->
+    <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="How's your morning going?"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:layout_marginBottom="12dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+        <!-- Previous Segment Button -->
+        <TextView
+                android:id="@+id/prev_segment_btn"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:text="◀"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:background="@drawable/mood_button_bg"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Previous Time Segment" />
+
+        <!-- Current segment title - BIGGER and CENTERED -->
+        <TextView
+                android:id="@+id/segment_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="How's your morning going?"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginHorizontal="8dp" />
+
+        <!-- Next Segment Button -->
+        <TextView
+                android:id="@+id/next_segment_btn"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:text="▶"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:background="@drawable/mood_button_bg"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Next Time Segment" />
+    </LinearLayout>
 
     <!-- 5 Emoji Mood Buttons -->
     <LinearLayout

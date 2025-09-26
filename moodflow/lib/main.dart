@@ -193,6 +193,29 @@ class _MoodTrackerAppState extends State<MoodTrackerApp> {
         }
         return true;
 
+    // ADD THIS NEW CASE
+      case 'forceNavigateToMoodLog':
+        final arguments = call.arguments as Map<dynamic, dynamic>;
+        final segment = arguments['segment'] as int? ?? 0;
+        final fromWidget = arguments['fromWidget'] as bool? ?? false;
+
+        Logger.moodService('📱 FORCE navigation to mood log from widget: segment=$segment');
+
+        // Navigate to mood log regardless of current screen
+        if (mounted) {
+          // Clear navigation stack and go to mood log
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/mood-log',
+                (route) => false, // Remove all previous routes
+            arguments: {
+              'segment': segment,
+              'fromWidget': fromWidget,
+            },
+          );
+        }
+        return true;
+
       case 'processPendingWidgetMood':
         final arguments = call.arguments as Map<dynamic, dynamic>;
         await _processPendingWidgetMood(arguments);
