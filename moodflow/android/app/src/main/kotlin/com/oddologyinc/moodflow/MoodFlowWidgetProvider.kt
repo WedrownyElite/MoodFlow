@@ -5,7 +5,11 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.widget.RemoteViews
+import java.text.SimpleDateFormat
+import java.util.*
+import org.json.JSONObject
 
 class MoodFlowWidgetProvider : AppWidgetProvider() {
     
@@ -135,16 +139,22 @@ class MoodFlowWidgetProvider : AppWidgetProvider() {
             }
         }
         
-        // Set up "Open App" button - ONLY this opens the app
+        // Set up "Open App" button - Navigate directly to mood log screen
         val openAppIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            action = Intent.ACTION_MAIN
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            
+            // Pass the specific segment and widget flag
             putExtra("widget_action", "open_mood_log")
             putExtra("segment", currentSegment)
             putExtra("from_widget", true)
+            putExtra("force_mood_log", true) // NEW: Force navigation to mood log
         }
+        
         val openAppPendingIntent = PendingIntent.getActivity(
             context, 
-            5000 + appWidgetId, // Unique request code
+            6000 + appWidgetId, // Unique request code for app opening
             openAppIntent, 
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -201,18 +211,18 @@ class MoodFlowWidgetProvider : AppWidgetProvider() {
         
         // FIXED: Save to CORRECT SharedPreferences with Flutter's key format
         val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-        val today = SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         
         // Use Flutter's exact key format from MoodDataService
-        val moodKey = "flutter.mood_${today}_${segment}"
+        val moodKey = "mood_${today}_${segment}"
         
         // Create mood data in Flutter's exact format
-        val moodData = org.json.JSONObject().apply {
+        val moodData = JSONObject().apply {
             put("rating", rating)
             put("note", "Quick mood from widget")
-            put("timestamp", java.time.Instant.now().toString())
-            put("moodDate", java.time.LocalDate.now().toString() + "T00:00:00.000")
-            put("lastModified", java.time.Instant.now().toString())
+            put("timestamp", Date().toInstant().toString())
+            put("moodDate", Date().toInstant().toString())
+            put("lastModified", Date().toInstant().toString())
         }
         
         prefs.edit().apply {
