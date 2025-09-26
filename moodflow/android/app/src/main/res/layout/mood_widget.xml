@@ -144,7 +144,7 @@
             android:text="Open MoodFlow App"
             android:textSize="12sp"
             android:textColor="#FFFFFF"
-            android:background="@drawable/mood_button_bg"
+            android:background="@drawable/app_button_bg"
             android:layout_marginTop="4dp" />
 
 </LinearLayout>
