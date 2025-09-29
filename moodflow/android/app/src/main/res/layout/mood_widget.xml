@@ -33,7 +33,7 @@
                 android:textSize="11sp" />
     </LinearLayout>
 
-    <!-- NEW: Segment Navigation with Left/Right arrows -->
+    <!-- Segment Navigation with Left/Right arrows -->
     <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -55,7 +55,7 @@
                 android:focusable="true"
                 android:contentDescription="Previous Time Segment" />
 
-        <!-- Current segment title - BIGGER and CENTERED -->
+        <!-- Current segment title -->
         <TextView
                 android:id="@+id/segment_title"
                 android:layout_width="0dp"
@@ -66,7 +66,8 @@
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:gravity="center"
-                android:layout_marginHorizontal="8dp" />
+                android:layout_marginLeft="8dp"
+                android:layout_marginRight="8dp" />
 
         <!-- Next Segment Button -->
         <TextView
