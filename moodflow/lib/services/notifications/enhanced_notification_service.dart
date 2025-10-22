@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     as notifications;
+import 'personalized_notification_generator.dart';
 import 'real_notification_service.dart';
 import '../data/mood_trends_service.dart';
 import '../data/mood_analytics_service.dart';
@@ -80,33 +81,33 @@ class EnhancedNotificationService {
     // Schedule personalized mood reminders
     if (settings.accessReminders) {
       if (settings.morningAccessReminder) {
-        final morningMessage = await _generatePersonalizedMessage(0);
+        final morningNotification = await PersonalizedNotificationGenerator.generateMorningMessage();
         await RealNotificationService.schedulePersonalizedMoodReminder(
           id: 1001,
-          title: '☀️ Morning Check-in',
-          body: morningMessage,
+          title: morningNotification.title,
+          body: morningNotification.body,
           time: NotificationTime(settings.morningTime.hour, settings.morningTime.minute),
           segment: 0,
         );
       }
 
       if (settings.middayAccessReminder) {
-        final middayMessage = await _generatePersonalizedMessage(1);
+        final middayNotification = await PersonalizedNotificationGenerator.generateMiddayMessage();
         await RealNotificationService.schedulePersonalizedMoodReminder(
           id: 1002,
-          title: '⚡ Midday Moment',
-          body: middayMessage,
+          title: middayNotification.title,
+          body: middayNotification.body,
           time: NotificationTime(settings.middayTime.hour, settings.middayTime.minute),
           segment: 1,
         );
       }
 
       if (settings.eveningAccessReminder) {
-        final eveningMessage = await _generatePersonalizedMessage(2);
+        final eveningNotification = await PersonalizedNotificationGenerator.generateEveningMessage();
         await RealNotificationService.schedulePersonalizedMoodReminder(
           id: 1003,
-          title: '🌙 Evening Reflection',
-          body: eveningMessage,
+          title: eveningNotification.title,
+          body: eveningNotification.body,
           time: NotificationTime(settings.eveningTime.hour, settings.eveningTime.minute),
           segment: 2,
         );
@@ -200,82 +201,6 @@ class EnhancedNotificationService {
       }
     } catch (e) {
       Logger.notificationService('Error scheduling goal progress: $e');
-    }
-  }
-
-  /// Generate personalized notification text based on mood trends
-  static Future<String> _generatePersonalizedMessage(int segment) async {
-    try {
-      // Get last 30 days of mood data
-      final endDate = DateTime.now();
-      final startDate = endDate.subtract(const Duration(days: 30));
-      final trends = await MoodTrendsService.getMoodTrends(
-        startDate: startDate,
-        endDate: endDate,
-      );
-
-      if (trends.isEmpty) {
-        return _getDefaultMessage(segment);
-      }
-
-      // Calculate average for this segment
-      final segmentMoods = <double>[];
-      for (final day in trends) {
-        if (day.moods[segment] != null) {
-          segmentMoods.add(day.moods[segment]!);
-        }
-      }
-
-      if (segmentMoods.isEmpty) {
-        return _getDefaultMessage(segment);
-      }
-
-      final avgMood = segmentMoods.reduce((a, b) => a + b) / segmentMoods.length;
-
-      // Generate message based on segment and average mood
-      switch (segment) {
-        case 0: // Morning
-          if (avgMood >= 7.5) {
-            return 'Good morning, sunshine! ☀️ Your mornings are usually great - let\'s keep it up!';
-          } else if (avgMood >= 6.0) {
-            return 'Morning check-in time! 🌅 How are you starting your day?';
-          } else {
-            return 'Good morning! 🌄 Remember, rough mornings can still turn into good days.';
-          }
-        case 1: // Midday
-          if (avgMood >= 7.5) {
-            return 'Midday momentum! ⚡ You usually feel great at this time!';
-          } else if (avgMood >= 6.0) {
-            return 'Time for a midday check-in! 🌤️ How\'s your day going?';
-          } else {
-            return 'Midday pause! ☕ Take a moment to check in with yourself.';
-          }
-        case 2: // Evening
-          if (avgMood >= 7.5) {
-            return 'Evening reflection! 🌙 Your evenings tend to be peaceful.';
-          } else if (avgMood >= 6.0) {
-            return 'How was your evening? 🌆 Time to wind down and reflect.';
-          } else {
-            return 'Evening check-in! 🌃 Remember to be kind to yourself.';
-          }
-        default:
-          return _getDefaultMessage(segment);
-      }
-    } catch (e) {
-      return _getDefaultMessage(segment);
-    }
-  }
-
-  static String _getDefaultMessage(int segment) {
-    switch (segment) {
-      case 0:
-        return 'Good morning! ☀️ How are you feeling?';
-      case 1:
-        return 'Midday check-in! ⚡ Take a moment to log your mood.';
-      case 2:
-        return 'Evening reflection! 🌙 How has your day been?';
-      default:
-        return 'Time to check in with your mood!';
     }
   }
 

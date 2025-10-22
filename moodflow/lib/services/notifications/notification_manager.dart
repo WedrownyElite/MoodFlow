@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'real_notification_service.dart';
+import 'personalized_notification_generator.dart';
 import '../data/mood_trends_service.dart';
 import '../data/mood_data_service.dart';
 import '../utils/logger.dart';
@@ -19,6 +20,11 @@ class NotificationManager {
     // Start background task to check for streak preservation
     _backgroundTimer = Timer.periodic(const Duration(hours: 1), (timer) async {
       await _checkStreakPreservation();
+
+      // Check once per day (at hour 10) for inactive users
+      if (DateTime.now().hour == 10) {
+        await _checkInactiveUsers();
+      }
     });
   }
 
@@ -56,11 +62,14 @@ class NotificationManager {
         );
 
         if (stats.currentStreak >= 3) {
+          // Generate personalized streak message
+          final streakMessage = await PersonalizedNotificationGenerator.generateStreakMessage(stats.currentStreak);
+
           // Send immediate notification
           await RealNotificationService.showNotification(
             id: 5001,
-            title: '🔥 Don\'t break your ${stats.currentStreak}-day streak!',
-            body: 'Quick! Log your mood before midnight to keep your streak alive.',
+            title: streakMessage.title,
+            body: streakMessage.body,
             payload: jsonEncode({
               'type': 'streak_preservation',
               'currentStreak': stats.currentStreak,
@@ -73,6 +82,49 @@ class NotificationManager {
     }
   }
 
+  /// Check for inactive users and send return notifications
+  static Future<void> _checkInactiveUsers() async {
+    try {
+      final daysSinceLastLog = await _getDaysSinceLastMoodLog();
+
+      // Only notify if user has been inactive for 3+ days
+      if (daysSinceLastLog >= 3) {
+        final returnMessage = await PersonalizedNotificationGenerator.generateReturnMessage(daysSinceLastLog);
+
+        // Send notification
+        await RealNotificationService.showNotification(
+          id: 5002,
+          title: returnMessage.title,
+          body: returnMessage.body,
+          payload: jsonEncode({
+            'type': 'return_reminder',
+            'daysSinceLastLog': daysSinceLastLog,
+          }),
+        );
+
+        Logger.notificationService('📬 Sent return notification after $daysSinceLastLog days');
+      }
+    } catch (e) {
+      Logger.notificationService('Error checking inactive users: $e');
+    }
+  }
+
+  static Future<int> _getDaysSinceLastMoodLog() async {
+    final today = DateTime.now();
+
+    for (int i = 0; i < 365; i++) {
+      final checkDate = today.subtract(Duration(days: i));
+      for (int segment = 0; segment < 3; segment++) {
+        final mood = await MoodDataService.loadMood(checkDate, segment);
+        if (mood != null) {
+          return i;
+        }
+      }
+    }
+
+    return 365;
+  }
+  
   static void dispose() {
     _backgroundTimer?.cancel();
     _backgroundTimer = null;

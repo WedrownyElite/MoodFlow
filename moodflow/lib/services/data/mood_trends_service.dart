@@ -52,6 +52,34 @@ class MoodTrendsService {
     return trends;
   }
 
+  /// Get the earliest date with any mood data
+  static Future<DateTime?> getEarliestMoodDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final moodKeys = prefs.getKeys().where((key) => key.startsWith('mood_')).toList();
+
+    if (moodKeys.isEmpty) return null;
+
+    DateTime? earliest;
+
+    for (final key in moodKeys) {
+      // Extract date from key format: mood_YYYY-MM-DD_segment
+      final parts = key.split('_');
+      if (parts.length >= 2) {
+        try {
+          final dateStr = parts[1]; // YYYY-MM-DD
+          final date = DateTime.parse(dateStr);
+          if (earliest == null || date.isBefore(earliest)) {
+            earliest = date;
+          }
+        } catch (e) {
+          // Skip invalid keys
+        }
+      }
+    }
+
+    return earliest;
+  }
+
   /// Get total days logged with caching
   static Future<int> getTotalDaysLogged() async {
     final prefs = await SharedPreferences.getInstance();

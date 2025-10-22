@@ -64,7 +64,13 @@ class _MoodTrendsScreenState extends State<MoodTrendsScreen>
           startDate = endDate.subtract(const Duration(days: 365));
           break;
         case TimeRange.all:
-          startDate = endDate.subtract(const Duration(days: 365)); // Max 1 year
+          final earliestDate = await MoodTrendsService.getEarliestMoodDate();
+          if (earliestDate != null) {
+            startDate = earliestDate;
+          } else {
+            // If no moods exist, default to 30 days ago
+            startDate = endDate.subtract(const Duration(days: 30));
+          }
           break;
         case TimeRange.custom:
           if (_customStartDate != null && _customEndDate != null) {
